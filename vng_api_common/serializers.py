@@ -169,10 +169,15 @@ class GegevensGroepSerializer(
         """
         (is_empty_value, data) = super().validate_empty_values(data)
 
-        if self.root.partial:
-            if is_empty_value:
-                return (is_empty_value, data)
+        if is_empty_value:
+            return (is_empty_value, data)
 
+        # allow to have all fields empty if the gegevensgroup is not required
+        all_empty = all(not bool(value) for name, value in data.items())
+        if not self.required and all_empty:
+            return (True, data)
+
+        if self.root.partial:
             errors = OrderedDict()
 
             for field_name, field in self.fields.items():

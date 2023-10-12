@@ -72,7 +72,9 @@ class GegevensGroepType:
 
     def __set__(self, obj, value: Optional[dict]):
         # value can be empty, if that's the case, empty all model fields
-        if not value:
+        # if all nested values are empty - treat it as empty value
+        all_empty = all(not bool(v) for k, v in value.items()) if value else True
+        if not value or all_empty:
             if self.required:
                 raise ValueError("A non-empty value is required")
 
