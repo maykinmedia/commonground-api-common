@@ -98,3 +98,16 @@ def test_nullable_gegevensgroep():
         "street": "",
         "number": "",
     }
+
+
+def test_gegevensgroep_not_required_with_all_empty_values():
+    """
+    check that if GegevensGroepSerializer is not required and all its items are empty
+    it's processed as valid
+    """
+    serializer = PersonSerializer2(
+        data={"name": "Willy De Kooning", "address": {"street": "", "number": ""}},
+        partial=False,
+    )
+
+    assert serializer.is_valid()
