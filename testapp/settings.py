@@ -15,9 +15,9 @@ ALLOWED_HOSTS = ["*"]
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("PGDATABASE", "vng_api_common"),
-        "USER": os.getenv("PGUSER", "vng_api_common"),
-        "PASSWORD": os.getenv("PGPASSWORD", "vng_api_common"),
+        "NAME": os.getenv("DB_NAME", "vng_api_common"),
+        "USER": os.getenv("DB_USER", "vng_api_common"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "vng_api_common"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", 5432),
     }
@@ -35,7 +35,7 @@ INSTALLED_APPS = [
     "django.contrib.postgres",
     "django.contrib.messages",
     "rest_framework",
-    "drf_yasg",
+    "drf_spectacular",
     "simple_certmanager",
     "zgw_consumers",
     "notifications_api_common",
@@ -81,16 +81,17 @@ REST_FRAMEWORK = BASE_REST_FRAMEWORK.copy()
 
 SECURITY_DEFINITION_NAME = "JWT-Claims"
 
-SWAGGER_SETTINGS = BASE_SWAGGER_SETTINGS.copy()
-
-SWAGGER_SETTINGS["DEFAULT_FIELD_INSPECTORS"] = SWAGGER_SETTINGS[
-    "DEFAULT_FIELD_INSPECTORS"
-][1:]
-
-SWAGGER_SETTINGS.update(
+SPECTACULAR_SETTINGS = BASE_SPECTACULAR_SETTINGS.copy()
+SPECTACULAR_SETTINGS.update(
     {
-        "DEFAULT_INFO": "testapp.schema.info",
         "SECURITY_DEFINITIONS": {SECURITY_DEFINITION_NAME: {}},
+        "TAGS": BASE_SPECTACULAR_SETTINGS.get("TAGS", [])
+        + [
+            {
+                "name": "moloko_milk_bar",
+                "description": "Global tag description via settings",
+            },
+        ],
     }
 )
 
