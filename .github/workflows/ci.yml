@@ -24,12 +24,14 @@ jobs:
         django: ['3.2', '4.2']
     services:
       postgres:
-        image: postgres:14
+        image: postgis/postgis:13-3.4
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
-
         ports:
           - 5432:5432
+
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     name: Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }})
 
@@ -40,7 +42,12 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install dependencies
-        run: pip install tox tox-gh-actions
+        run: |
+          pip install tox tox-gh-actions \
+          && sudo apt-get update \
+          && sudo apt-get install -y --no-install-recommends \
+            libgdal-dev \
+            gdal-bin
 
       - name: Run tests
         run: tox
