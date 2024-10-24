@@ -13,8 +13,6 @@ from djangorestframework_camel_case.util import underscoreize
 from requests import RequestException
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from zds_client.client import ClientError
-
 from vng_api_common.client import to_internal_data
 
 from .authorizations.models import Applicatie, AuthorizationsConfig, Autorisatie
