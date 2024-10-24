@@ -13,7 +13,8 @@ import requests
 from rest_framework import exceptions as drf_exceptions, status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
-from zds_client import ClientError
+
+from vng_api_common.client import ClientError
 
 from . import exceptions
 from .compat import sentry_client
@@ -129,7 +130,7 @@ def _test_ac_config() -> list:
 
     # check if AC auth is configured
     ac_client = AuthorizationsConfig.get_client()
-    has_ac_auth = ac_client.auth is not None
+    has_ac_auth = ac_client.auth is not None if ac_client else False
 
     checks = [
         (_("Type of component"), auth_config.get_component_display(), None),
@@ -146,10 +147,8 @@ def _test_ac_config() -> list:
         error = False
 
         try:
-            ac_client.list(
-                "applicatie", query_params={"clientIds": ac_client.auth.client_id}
-            )
-        except requests.ConnectionError:
+            ac_client.get("applicaties", params={"clientIds": ac_client.auth.client_id})
+        except requests.RequestException:
             error = True
             message = _("Could not connect with AC")
         except ClientError as exc:
@@ -172,7 +171,6 @@ def _test_nrc_config() -> list:
     from notifications_api_common.models import NotificationsConfig, Subscription
 
     nrc_config = NotificationsConfig.get_solo()
-
     nrc_client = NotificationsConfig.get_client()
 
     has_nrc_auth = nrc_client.auth is not None if nrc_client else False
@@ -199,8 +197,8 @@ def _test_nrc_config() -> list:
         error = False
 
         try:
-            nrc_client.list("kanaal")
-        except requests.ConnectionError:
+            nrc_client.get("kanaal")
+        except requests.RequestException:
             error = True
             message = _("Could not connect with NRC")
         except ClientError as exc:
