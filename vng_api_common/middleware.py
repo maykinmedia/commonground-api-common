@@ -13,6 +13,7 @@ from djangorestframework_camel_case.util import underscoreize
 from requests import RequestException
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+
 from vng_api_common.client import to_internal_data
 
 from .authorizations.models import Applicatie, AuthorizationsConfig, Autorisatie
@@ -55,9 +56,7 @@ class JWTAuth:
     def _request_auth(self) -> list:
         client = AuthorizationsConfig.get_client()
         try:
-            response = client.get(
-                "applicaties", params={"clientIds": self.client_id}
-            )
+            response = client.get("applicaties", params={"clientIds": self.client_id})
 
             data = to_internal_data(response)
         except RequestException as exc:
