@@ -2,6 +2,15 @@
 Change history
 ==============
 
+2.1.0 (WIP)
+------------
+
+* [#29] Replaced drf-yasg with drf-spectacular
+* [#29] Removed management commands to generate markdown files for scopes and notifications channels:
+    * ``generate_autorisaties``
+    * ``generate_notificaties``
+
+
 2.0.1 (2024-11-22)
 
 * move zgw-consumers-oas to ``testutils`` instead of ``tests``, to avoid pulling in irrelevant test deps in other projects
