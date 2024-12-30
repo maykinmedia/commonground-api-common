@@ -5,7 +5,6 @@ from typing import Callable
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 from django.utils import timezone
 from django.utils.deconstruct import deconstructible
 from django.utils.module_loading import import_string
@@ -13,13 +12,96 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers, validators
 
-from .constants import RSIN_LENGTH
+from .constants import BSN_LIST_SIZE, RSIN_LIST_SIZE
 from .oas import fetcher, obj_has_shape
 
 logger = logging.getLogger(__name__)
 
 
 WORD_REGEX = re.compile(r"[\w\-]+$", re.ASCII)
+
+
+class BaseValidator:
+    """
+    Validator base class that performs common validation logic.
+    Digit check, length, and optional 11-proof check.
+    """
+
+    error_messages = {
+        "isdigit": _("Voer een numerieke waarde in"),
+        "length": _(
+            "De lengte van de waarde moet gelijk zijn aan een van deze waarden: %(list_size)s"
+        ),
+        "11proefnumber": _("Ongeldige code"),
+    }
+
+    def __init__(
+        self,
+        value: str,
+        list_size: list[int] | None = [],
+        check_11proefnumber: bool = False,
+    ):
+        self.value = value
+        self.list_size = list_size
+        self.check_11proefnumber = check_11proefnumber
+
+    def validate_isdigit(self) -> None:
+        """Validates that the value contains only digits."""
+        if not self.value.isdigit():
+            raise ValidationError(self.error_messages["isdigit"], code="only-digits")
+
+    def validate_length(self) -> None:
+        """Validates that the length of the value is within the allowed sizes."""
+        if len(self.value) not in self.list_size:
+            raise ValidationError(
+                self.error_messages["length"] % {"list_size": self.list_size},
+                code="invalid-length",
+            )
+
+    def validate_11proefnumber(self) -> None:
+        """Validates the value based on the 11-proof check."""
+        total = 0
+        for multiplier, char in enumerate(reversed(self.value), start=1):
+            if multiplier == 1:
+                total += -multiplier * int(char)
+            else:
+                total += multiplier * int(char)
+
+        if total % 11 != 0:
+            raise ValidationError(
+                self.error_messages["11proefnumber"], code="invalid-code"
+            )
+
+    def validate(self) -> None:
+        self.validate_isdigit()
+        self.validate_length()
+        if self.check_11proefnumber:
+            self.validate_11proefnumber()
+
+
+def validate_rsin(value):
+    """
+    Validates that a string value is a valid RSIN number by applying the
+    '11-proef' checking.
+
+    :param value: String object representing a presumably good RSIN number.
+    """
+
+    validator = BaseValidator(value, list_size=RSIN_LIST_SIZE, check_11proefnumber=True)
+    validator.error_messages["11proefnumber"] = _("Onjuist RSIN nummer")
+    validator.validate()
+
+
+def validate_bsn(value):
+    """
+    Validates that a string value is a valid BSN number by applying the
+    '11-proef' checking.
+
+    :param value: String object representing a presumably good BSN number.
+    """
+    validator = BaseValidator(value, list_size=BSN_LIST_SIZE, check_11proefnumber=True)
+    validator.error_messages["11proefnumber"] = _("Onjuist BSN nummer")
+    validator.validate()
 
 
 @deconstructible
@@ -71,37 +153,6 @@ def validate_non_negative_string(value):
         error = True
     if error or n < 0:
         raise ValidationError("De waarde moet een niet-negatief getal zijn.")
-
-
-validate_digits = RegexValidator(
-    regex="^[0-9]+$", message="Waarde moet numeriek zijn.", code="only-digits"
-)
-
-
-def validate_rsin(value):
-    """
-    Validates that a string value is a valid RSIN number by applying the
-    '11-proef' checking.
-
-    :param value: String object representing a presumably good RSIN number.
-    """
-    # Initial sanity checks.
-    validate_digits(value)
-    if len(value) != RSIN_LENGTH:
-        raise ValidationError(
-            "RSIN moet %s tekens lang zijn." % RSIN_LENGTH, code="invalid-length"
-        )
-
-    # 11-proef check.
-    total = 0
-    for multiplier, char in enumerate(reversed(value), start=1):
-        if multiplier == 1:
-            total += -multiplier * int(char)
-        else:
-            total += multiplier * int(char)
-
-    if total % 11 != 0:
-        raise ValidationError("Onjuist RSIN nummer.", code="invalid")
 
 
 class URLValidator:

@@ -8,6 +8,9 @@ from .choices import TextChoicesWithDescriptions
 BSN_LENGTH = 9
 RSIN_LENGTH = 9
 
+RSIN_LIST_SIZE = [8, 9]
+BSN_LIST_SIZE = [8, 9]
+
 VERSION_HEADER = "API-version"
 
 HEADER_AUDIT = "X-Audit-Toelichting"
