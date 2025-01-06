@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 WORD_REGEX = re.compile(r"[\w\-]+$", re.ASCII)
 
 
-class BaseValidator:
+class BaseIdentificationValidator:
     """
     Validator base class that performs common validation logic.
     Digit check, length, and optional 11-proof check.
@@ -68,9 +68,7 @@ class BaseValidator:
                 total += multiplier * int(char)
 
         if total % 11 != 0:
-            raise ValidationError(
-                self.error_messages["11proefnumber"], code="invalid-code"
-            )
+            raise ValidationError(self.error_messages["11proefnumber"], code="invalid")
 
     def validate(self) -> None:
         self.validate_isdigit()
@@ -79,7 +77,7 @@ class BaseValidator:
             self.validate_11proefnumber()
 
 
-def validate_rsin(value):
+def validate_rsin(value: str) -> None:
     """
     Validates that a string value is a valid RSIN number by applying the
     '11-proef' checking.
@@ -87,19 +85,23 @@ def validate_rsin(value):
     :param value: String object representing a presumably good RSIN number.
     """
 
-    validator = BaseValidator(value, list_size=RSIN_LIST_SIZE, check_11proefnumber=True)
+    validator = BaseIdentificationValidator(
+        value, list_size=RSIN_LIST_SIZE, check_11proefnumber=True
+    )
     validator.error_messages["11proefnumber"] = _("Onjuist RSIN nummer")
     validator.validate()
 
 
-def validate_bsn(value):
+def validate_bsn(value: str) -> None:
     """
     Validates that a string value is a valid BSN number by applying the
     '11-proef' checking.
 
     :param value: String object representing a presumably good BSN number.
     """
-    validator = BaseValidator(value, list_size=BSN_LIST_SIZE, check_11proefnumber=True)
+    validator = BaseIdentificationValidator(
+        value, list_size=BSN_LIST_SIZE, check_11proefnumber=True
+    )
     validator.error_messages["11proefnumber"] = _("Onjuist BSN nummer")
     validator.validate()
 

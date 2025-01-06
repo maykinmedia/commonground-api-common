@@ -4,7 +4,7 @@ import pytest
 
 from vng_api_common.validators import (
     AlphanumericExcludingDiacritic,
-    BaseValidator,
+    BaseIdentificationValidator,
     validate_bsn,
 )
 
@@ -42,12 +42,16 @@ def test_equality_validator_instances():
 
 
 def test_valid():
-    validator = BaseValidator("296648875", list_size=[8, 9], check_11proefnumber=True)
+    validator = BaseIdentificationValidator(
+        "296648875", list_size=[8, 9], check_11proefnumber=True
+    )
     validator.validate()
 
 
 def test_invalid_length():
-    validator = BaseValidator("1234", list_size=[8, 9], check_11proefnumber=True)
+    validator = BaseIdentificationValidator(
+        "1234", list_size=[8, 9], check_11proefnumber=True
+    )
 
     with pytest.raises(ValidationError) as error:
         validator.validate()
@@ -58,7 +62,9 @@ def test_invalid_length():
 
 
 def test_invalid_isdigit():
-    validator = BaseValidator("1234TEST", list_size=[8, 9], check_11proefnumber=True)
+    validator = BaseIdentificationValidator(
+        "1234TEST", list_size=[8, 9], check_11proefnumber=True
+    )
 
     with pytest.raises(ValidationError) as error:
         validator.validate()
@@ -66,7 +72,9 @@ def test_invalid_isdigit():
 
 
 def test_invalid_11proefnumber():
-    validator = BaseValidator("123456789", list_size=[8, 9], check_11proefnumber=True)
+    validator = BaseIdentificationValidator(
+        "123456789", list_size=[8, 9], check_11proefnumber=True
+    )
     with pytest.raises(ValidationError) as error:
         validator.validate()
     assert "Ongeldige code" in str(error.value)
