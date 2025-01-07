@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers, validators
 
-from .constants import BSN_LIST_SIZE, RSIN_LIST_SIZE
+from .constants import BSN_LENGTH, RSIN_LENGTH
 from .oas import fetcher, obj_has_shape
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 WORD_REGEX = re.compile(r"[\w\-]+$", re.ASCII)
 
 
-class BaseIdentificationValidator:
+class BaseIdentifierValidator:
     """
     Validator base class that performs common validation logic.
     Digit check, length, and optional 11-proof check.
@@ -29,21 +29,19 @@ class BaseIdentificationValidator:
 
     error_messages = {
         "isdigit": _("Voer een numerieke waarde in"),
-        "length": _(
-            "De lengte van de waarde moet gelijk zijn aan een van deze waarden: %(list_size)s"
-        ),
+        "length": _("Waarde moet %(identifier_length)s tekens lang zijn"),
         "11proefnumber": _("Ongeldige code"),
     }
 
     def __init__(
         self,
         value: str,
-        list_size: list[int] | None = [],
-        check_11proefnumber: bool = False,
+        identifier_length: int,
+        validate_11proef: bool = False,
     ):
         self.value = value
-        self.list_size = list_size
-        self.check_11proefnumber = check_11proefnumber
+        self.identifier_length = identifier_length
+        self.validate_11proef = validate_11proef
 
     def validate_isdigit(self) -> None:
         """Validates that the value contains only digits."""
@@ -52,9 +50,10 @@ class BaseIdentificationValidator:
 
     def validate_length(self) -> None:
         """Validates that the length of the value is within the allowed sizes."""
-        if len(self.value) not in self.list_size:
+        if len(self.value) != self.identifier_length:
             raise ValidationError(
-                self.error_messages["length"] % {"list_size": self.list_size},
+                self.error_messages["length"]
+                % {"identifier_length": self.identifier_length},
                 code="invalid-length",
             )
 
@@ -73,7 +72,7 @@ class BaseIdentificationValidator:
     def validate(self) -> None:
         self.validate_isdigit()
         self.validate_length()
-        if self.check_11proefnumber:
+        if self.validate_11proef:
             self.validate_11proefnumber()
 
 
@@ -85,8 +84,8 @@ def validate_rsin(value: str) -> None:
     :param value: String object representing a presumably good RSIN number.
     """
 
-    validator = BaseIdentificationValidator(
-        value, list_size=RSIN_LIST_SIZE, check_11proefnumber=True
+    validator = BaseIdentifierValidator(
+        value, identifier_length=RSIN_LENGTH, validate_11proef=True
     )
     validator.error_messages["11proefnumber"] = _("Onjuist RSIN nummer")
     validator.validate()
@@ -99,8 +98,8 @@ def validate_bsn(value: str) -> None:
 
     :param value: String object representing a presumably good BSN number.
     """
-    validator = BaseIdentificationValidator(
-        value, list_size=BSN_LIST_SIZE, check_11proefnumber=True
+    validator = BaseIdentifierValidator(
+        value, identifier_length=BSN_LENGTH, validate_11proef=True
     )
     validator.error_messages["11proefnumber"] = _("Onjuist BSN nummer")
     validator.validate()

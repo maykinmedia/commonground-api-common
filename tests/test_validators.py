@@ -4,8 +4,9 @@ import pytest
 
 from vng_api_common.validators import (
     AlphanumericExcludingDiacritic,
-    BaseIdentificationValidator,
+    BaseIdentifierValidator,
     validate_bsn,
+    validate_rsin,
 )
 
 
@@ -42,28 +43,25 @@ def test_equality_validator_instances():
 
 
 def test_valid():
-    validator = BaseIdentificationValidator(
-        "296648875", list_size=[8, 9], check_11proefnumber=True
+    validator = BaseIdentifierValidator(
+        "296648875", identifier_length=9, validate_11proef=True
     )
     validator.validate()
 
 
 def test_invalid_length():
-    validator = BaseIdentificationValidator(
-        "1234", list_size=[8, 9], check_11proefnumber=True
+    validator = BaseIdentifierValidator(
+        "1234", identifier_length=9, validate_11proef=True
     )
 
     with pytest.raises(ValidationError) as error:
         validator.validate()
-    assert (
-        "De lengte van de waarde moet gelijk zijn aan een van deze waarden: [8, 9]"
-        in str(error.value)
-    )
+    assert "Waarde moet 9 tekens lang zijn" in str(error.value)
 
 
 def test_invalid_isdigit():
-    validator = BaseIdentificationValidator(
-        "1234TEST", list_size=[8, 9], check_11proefnumber=True
+    validator = BaseIdentifierValidator(
+        "1234TEST", identifier_length=9, validate_11proef=True
     )
 
     with pytest.raises(ValidationError) as error:
@@ -72,8 +70,8 @@ def test_invalid_isdigit():
 
 
 def test_invalid_11proefnumber():
-    validator = BaseIdentificationValidator(
-        "123456789", list_size=[8, 9], check_11proefnumber=True
+    validator = BaseIdentifierValidator(
+        "123456789", identifier_length=9, validate_11proef=True
     )
     with pytest.raises(ValidationError) as error:
         validator.validate()
@@ -88,3 +86,13 @@ def test_invalid_bsn():
     with pytest.raises(ValidationError) as error:
         validate_bsn("123456789")
     assert "Onjuist BSN nummer" in str(error.value)
+
+
+def test_valid_rsin():
+    validate_rsin("296648875")
+
+
+def test_invalid_rsin():
+    with pytest.raises(ValidationError) as error:
+        validate_rsin("123456789")
+    assert "Onjuist RSIN nummer" in str(error.value)
