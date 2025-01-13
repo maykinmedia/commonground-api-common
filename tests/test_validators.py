@@ -84,8 +84,12 @@ def test_valid_bsn():
 
 def test_invalid_bsn():
     with pytest.raises(ValidationError) as error:
-        validate_bsn("123456789")
+        validate_bsn("123456789")  # validate_11proef
     assert "Onjuist BSN nummer" in str(error.value)
+
+    with pytest.raises(ValidationError) as error:
+        validate_bsn("12345678")  # validate_length
+    assert "Waarde moet 9 tekens lang zijn" in str(error.value)
 
 
 def test_valid_rsin():
@@ -94,5 +98,9 @@ def test_valid_rsin():
 
 def test_invalid_rsin():
     with pytest.raises(ValidationError) as error:
-        validate_rsin("123456789")
+        validate_rsin("123456789")  # validate_11proef
     assert "Onjuist RSIN nummer" in str(error.value)
+
+    with pytest.raises(ValidationError) as error:
+        validate_rsin("12345678")  # validate_length
+    assert "Waarde moet 9 tekens lang zijn" in str(error.value)
