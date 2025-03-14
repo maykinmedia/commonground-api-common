@@ -5,17 +5,15 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
-from iso639 import languages
+from iso639 import iter_langs
 
 from .constants import BSN_LENGTH, RSIN_LENGTH, VertrouwelijkheidsAanduiding
 from .validators import validate_rsin
 
-ISO_639_2B = languages.part2b
 
 LANGUAGE_CHOICES = tuple(
-    [(code, language.name) for code, language in ISO_639_2B.items()]
+    [(language.pt2b, language.name) for language in iter_langs() if language.pt2b]
 )
-
 
 class RSINField(models.CharField):
     default_validators = [validate_rsin]
