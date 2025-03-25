@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="autorisatie",
             name="max_vertrouwelijkheidaanduiding",
-            field=vng_api_common.fields.VertrouwelijkheidsAanduidingField(
+            field=vng_api_common.fields.VertrouwelijkheidsAanduidingFieldText(
                 blank=True,
                 choices=[
                     ("openbaar", "Openbaar"),

@@ -94,7 +94,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "max_vertrouwelijkheidaanduiding",
-                    vng_api_common.fields.VertrouwelijkheidsAanduidingField(
+                    vng_api_common.fields.VertrouwelijkheidsAanduidingFieldText(
                         choices=[
                             ("openbaar", "OPENBAAR"),
                             ("beperkt openbaar", "BEPERKT OPENBAAR"),
