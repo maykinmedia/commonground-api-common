@@ -102,9 +102,8 @@ class LanguageField(models.CharField):
         return []
 
 
-class VertrouwelijkheidsAanduidingField(models.CharField):
+class VertrouwelijkheidsAanduidingField(models.IntegerField):
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("max_length", 20)
         kwargs.setdefault("choices", VertrouwelijkheidsAanduiding.choices)
         super().__init__(*args, **kwargs)
 

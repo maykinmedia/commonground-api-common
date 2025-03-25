@@ -25,33 +25,44 @@ ZAAK_CHOICE = ZAAK_CONST, _("Zaak")
 VERZOEK_CONST = "verzoek"
 VERZOEK_CHOICE = VERZOEK_CONST, _("Verzoek")
 
+MAPPING = {
+    "openbaar": 10,
+    "beperkt_openbaar": 20,
+    "intern": 30,
+    "zaakvertrouwelijk": 40,
+    "vertrouwelijk": 50,
+    "confidentieel": 60,
+    "geheim": 70,
+    "zeer_geheim": 80
+}
 
-class VertrouwelijkheidsAanduiding(models.TextChoices):
-    openbaar = "openbaar", _("Openbaar")
-    beperkt_openbaar = "beperkt_openbaar", _("Beperkt openbaar")
-    intern = "intern", _("Intern")
-    zaakvertrouwelijk = "zaakvertrouwelijk", _("Zaakvertrouwelijk")
-    vertrouwelijk = "vertrouwelijk", _("Vertrouwelijk")
-    confidentieel = "confidentieel", _("Confidentieel")
-    geheim = "geheim", _("Geheim")
-    zeer_geheim = "zeer_geheim", _("Zeer geheim")
 
-    @classmethod
-    def get_order_expression(cls, field_name):
-        whens = []
-        for order, value in enumerate(cls.values):
-            whens.append(
-                models.When(**{field_name: value, "then": models.Value(order)})
-            )
-        return models.Case(*whens, output_field=models.IntegerField())
+class VertrouwelijkheidsAanduiding(models.IntegerChoices):
+    openbaar = 10, _("Openbaar")
+    beperkt_openbaar = 20, _("Beperkt openbaar")
+    intern = 30, _("Intern")
+    zaakvertrouwelijk = 40, _("Zaakvertrouwelijk")
+    vertrouwelijk = 50, _("Vertrouwelijk")
+    confidentieel = 60, _("Confidentieel")
+    geheim = 70, _("Geheim")
+    zeer_geheim = 80, _("Zeer geheim")
 
-    @classmethod
-    def get_choice_order(cls, value) -> Optional[int]:
-        orders = {
-            value: order
-            for order, value in enumerate(VertrouwelijkheidsAanduiding.values)
-        }
-        return orders.get(value)
+    # @classmethod
+    # def get_order_expression(cls, field_name):
+    #     whens = []
+    #     for order, value in enumerate(cls.values):
+    #         whens.append(
+    #             models.When(**{field_name: value, "then": models.Value(order)})
+    #         )
+    #     return models.Case(*whens, output_field=models.IntegerField())
+
+    # @classmethod
+    # def get_choice_order(cls, value) -> Optional[int]:
+    #     orders = {
+    #         value: order
+    #         for order, value in enumerate(VertrouwelijkheidsAanduiding.values)
+    #     }
+    #     return orders.get(value)
 
 
 class RolOmschrijving(TextChoicesWithDescriptions):
