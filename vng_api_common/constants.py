@@ -25,8 +25,22 @@ ZAAK_CHOICE = ZAAK_CONST, _("Zaak")
 VERZOEK_CONST = "verzoek"
 VERZOEK_CHOICE = VERZOEK_CONST, _("Verzoek")
 
+VA_MAPPING: dict[str, int] = {
+    "openbaar": 10,
+    "beperkt_openbaar": 20,
+    "intern": 30,
+    "zaakvertrouwelijk": 40,
+    "vertrouwelijk": 50,
+    "confidentieel": 60,
+    "geheim": 70,
+    "zeer_geheim": 80,
+}
+REVERSE_VA_MAPPING: dict[int, str] = {
+    int_value: str_value for str_value, int_value in VA_MAPPING.items()
+}
 
-class VertrouwelijkheidsAanduiding(models.TextChoices):
+
+class VertrouwelijkheidsAanduidingText(models.TextChoices):
     openbaar = "openbaar", _("Openbaar")
     beperkt_openbaar = "beperkt_openbaar", _("Beperkt openbaar")
     intern = "intern", _("Intern")
@@ -49,9 +63,20 @@ class VertrouwelijkheidsAanduiding(models.TextChoices):
     def get_choice_order(cls, value) -> Optional[int]:
         orders = {
             value: order
-            for order, value in enumerate(VertrouwelijkheidsAanduiding.values)
+            for order, value in enumerate(VertrouwelijkheidsAanduidingText.values)
         }
         return orders.get(value)
+
+
+class VertrouwelijkheidsAanduiding(models.IntegerChoices):
+    openbaar = 10, _("Openbaar")
+    beperkt_openbaar = 20, _("Beperkt openbaar")
+    intern = 30, _("Intern")
+    zaakvertrouwelijk = 40, _("Zaakvertrouwelijk")
+    vertrouwelijk = 50, _("Vertrouwelijk")
+    confidentieel = 60, _("Confidentieel")
+    geheim = 70, _("Geheim")
+    zeer_geheim = 80, _("Zeer geheim")
 
 
 class RolOmschrijving(TextChoicesWithDescriptions):
