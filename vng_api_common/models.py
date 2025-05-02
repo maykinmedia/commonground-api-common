@@ -1,7 +1,11 @@
+import threading
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.reverse import reverse
+
+_cache = threading.local()
 
 
 class APIMixin:
@@ -19,10 +23,30 @@ class APIMixin:
         # build the URL of the informatieobject
         resource_name = self._meta.model_name
 
-        reverse_kwargs = {"uuid": self.uuid}
-        reverse_kwargs.update(**kwargs)
+        # TODO make common util for this
+        if request:
+            if getattr(request, f"_{resource_name}", None):
+                url = getattr(request, f"_{resource_name}", None)
+            else:
+                reverse_kwargs = {"uuid": "id-placeholder"}
+                reverse_kwargs.update(**kwargs)
 
-        url = reverse(f"{resource_name}-detail", kwargs=reverse_kwargs, request=request)
+                url = reverse(
+                    f"{resource_name}-detail", kwargs=reverse_kwargs, request=request
+                )
+                setattr(request, f"_{resource_name}", url)
+        else:
+            if not (url := getattr(_cache, resource_name, None)):
+                reverse_kwargs = {"uuid": "id-placeholder"}
+                reverse_kwargs.update(**kwargs)
+
+                url = reverse(
+                    f"{resource_name}-detail", kwargs=reverse_kwargs, request=request
+                )
+                setattr(_cache, resource_name, url)
+
+        url = url.replace("id-placeholder", str(self.uuid))
+
         return url
 
 
