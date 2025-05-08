@@ -48,6 +48,17 @@ class Backend(DjangoFilterBackend):
 
         return QueryDict(urlencode(transformed, doseq=True))
 
+    def get_filterset(self, request, queryset, view):
+        # This filterset is retrieved for `CheckQueryParamsMixin` and when applying the
+        # actual filtering via django_filters. The initialized filterset is stored on the
+        # view object to avoid reinitializing the filterset multiple times for the same request
+        if hasattr(view, "_filterset"):
+            return view._filterset
+
+        filterset = super().get_filterset(request, queryset, view)
+        view._filterset = filterset
+        return filterset
+
     def get_filterset_kwargs(
         self, request: Request, queryset: models.QuerySet, view: APIView
     ):
