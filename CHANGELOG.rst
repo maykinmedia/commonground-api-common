@@ -2,6 +2,13 @@
 Change history
 ==============
 
+2.6.3 (2025-05-12)
+------------------
+
+* Fix BSNField validator to mention BSN instead of RSIN in validation error message
+* Migrate from ``iso639`` to ``iso639-lang``
+* [maykinmedia/open-klant#249] Add default to the help_text of the ``pageSize`` attribute
+
 2.6.2 (2025-04-16)
 ------------------
 
