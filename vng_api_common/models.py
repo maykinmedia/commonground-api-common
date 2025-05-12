@@ -12,17 +12,29 @@ class APIMixin:
     ``uuid``-field of a model instance.
     """
 
+    _cached_url_path = None
+
+    # Store as classvar to make sure it is cached per model
+    def _set_reverse_path(self, value: str) -> None:
+        type(self)._cached_url_path = value
+
+    def _get_reverse_path(self) -> str | None:
+        if hasattr(type(self), "_cached_url_path"):
+            return type(self)._cached_url_path
+
     def get_absolute_api_url(self, request=None, **kwargs) -> str:
-        """
-        Build the absolute URL of the object in the API.
-        """
-        # build the URL of the informatieobject
+        # FIXME this currently doesn't work with different API versions
         resource_name = self._meta.model_name
 
-        reverse_kwargs = {"uuid": self.uuid}
+        reverse_kwargs = {"uuid": "id-placeholder"}
         reverse_kwargs.update(**kwargs)
+        if not (url := self._get_reverse_path()):
+            url = reverse(f"{resource_name}-detail", kwargs=reverse_kwargs)
+            self._set_reverse_path(url)
 
-        url = reverse(f"{resource_name}-detail", kwargs=reverse_kwargs, request=request)
+        url = url.replace("id-placeholder", str(self.uuid))
+        if request:
+            url = request.build_absolute_uri(url)
         return url
 
 
