@@ -8,7 +8,7 @@ from django.utils.translation import gettext, gettext_lazy as _
 from iso639 import iter_langs
 
 from .constants import BSN_LENGTH, RSIN_LENGTH, VertrouwelijkheidsAanduiding
-from .validators import validate_rsin
+from .validators import validate_bsn, validate_rsin
 
 LANGUAGE_CHOICES = tuple([(lg.pt2b, lg.name) for lg in iter_langs() if lg.pt2b])
 
@@ -39,7 +39,7 @@ class RSINField(models.CharField):
 
 
 class BSNField(models.CharField):
-    default_validators = [validate_rsin]
+    default_validators = [validate_bsn]
     description = _("BSN")
 
     def __init__(self, *args, **kwargs):
