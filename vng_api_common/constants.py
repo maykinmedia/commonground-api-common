@@ -40,7 +40,7 @@ REVERSE_VA_MAPPING: dict[int, str] = {
 }
 
 
-class VertrouwelijkheidsAanduidingText(models.TextChoices):
+class VertrouwelijkheidsAanduiding(models.TextChoices):
     openbaar = "openbaar", _("Openbaar")
     beperkt_openbaar = "beperkt_openbaar", _("Beperkt openbaar")
     intern = "intern", _("Intern")
@@ -63,12 +63,12 @@ class VertrouwelijkheidsAanduidingText(models.TextChoices):
     def get_choice_order(cls, value) -> Optional[int]:
         orders = {
             value: order
-            for order, value in enumerate(VertrouwelijkheidsAanduidingText.values)
+            for order, value in enumerate(VertrouwelijkheidsAanduiding.values)
         }
         return orders.get(value)
 
 
-class VertrouwelijkheidsAanduiding(models.IntegerChoices):
+class VertrouwelijkheidsAanduidingInt(models.IntegerChoices):
     openbaar = 10, _("Openbaar")
     beperkt_openbaar = 20, _("Beperkt openbaar")
     intern = 30, _("Intern")

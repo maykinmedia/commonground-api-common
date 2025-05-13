@@ -10,8 +10,8 @@ from iso639 import iter_langs
 from .constants import (
     BSN_LENGTH,
     RSIN_LENGTH,
+    VertrouwelijkheidsAanduidingInt,
     VertrouwelijkheidsAanduiding,
-    VertrouwelijkheidsAanduidingText,
 )
 from .validators import validate_bsn, validate_rsin
 
@@ -113,7 +113,7 @@ class VertrouwelijkheidsAanduidingField(models.CharField):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("max_length", 20)
-        kwargs.setdefault("choices", VertrouwelijkheidsAanduidingText.choices)
+        kwargs.setdefault("choices", VertrouwelijkheidsAanduiding.choices)
         super().__init__(*args, **kwargs)
 
     def check(self, **kwargs):
@@ -122,7 +122,7 @@ class VertrouwelijkheidsAanduidingField(models.CharField):
         return errors
 
     def _check_choices(self, **kwargs):
-        if self.choices != VertrouwelijkheidsAanduidingText.choices:
+        if self.choices != VertrouwelijkheidsAanduiding.choices:
             return [
                 checks.Error(
                     "VertrouwelijkheidsAanduidingField may not override 'choices' attribute.",
