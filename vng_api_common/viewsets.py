@@ -6,7 +6,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.settings import api_settings
 from rest_framework_nested.viewsets import NestedViewSetMixin  # noqa
 
-from .filters import Backend
+from .filters_backend import Backend
 from .utils import underscore_to_camel
 
 
