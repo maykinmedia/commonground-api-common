@@ -12,7 +12,10 @@ from vng_api_common.client import Client, get_client
 
 from ..constants import ComponentTypes, VertrouwelijkheidsAanduiding
 from ..decorators import field_default
-from ..fields import VertrouwelijkheidsAanduidingField
+from ..fields import (
+    VertrouwelijkheidsAanduidingField,
+    VertrouwelijkheidsAanduidingFieldInt,
+)
 from ..models import APIMixin
 
 
@@ -157,6 +160,12 @@ class Autorisatie(APIMixin, models.Model):
     max_vertrouwelijkheidaanduiding = VertrouwelijkheidsAanduidingField(
         help_text=_("Maximaal toegelaten vertrouwelijkheidaanduiding (inclusief)."),
         blank=True,
+    )
+    _max_vertrouwelijkheidaanduiding = VertrouwelijkheidsAanduidingFieldInt(
+        help_text=_("Maximaal toegelaten vertrouwelijkheidaanduiding (inclusief)."),
+        blank=True,
+        null=True,
+        db_index=True,
     )
 
     objects = AutorisatieManager()
