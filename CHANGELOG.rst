@@ -2,6 +2,12 @@
 Change history
 ==============
 
+2.6.4 (2025-05-16)
+------------------
+
+* [maykinmedia/open-klant#414] Move ``vng_api_common.filters.Backend`` -> ``vng_api_common.filters_backend.Backend``
+* [maykinmedia/open-klant#414] Fix help texts not showing in generated OAS for ``vng_api_common.filters_backend.Backend``
+
 2.6.3 (2025-05-12)
 ------------------
 
