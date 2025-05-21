@@ -104,12 +104,12 @@ class GegevensGroepSerializerMetaclass(serializers.SerializerMetaclass):
     def __new__(cls, name, bases, attrs):
         Meta = attrs.get("Meta")
         if Meta:
-            assert hasattr(
-                Meta, "model"
-            ), "The 'model' class must be defined on the Meta."
-            assert hasattr(
-                Meta, "gegevensgroep"
-            ), "The 'gegevensgroep' name must be defined on the Meta."
+            assert hasattr(Meta, "model"), (
+                "The 'model' class must be defined on the Meta."
+            )
+            assert hasattr(Meta, "gegevensgroep"), (
+                "The 'gegevensgroep' name must be defined on the Meta."
+            )
 
             gegevensgroep = getattr(Meta.model, Meta.gegevensgroep)
             Meta.fields = []

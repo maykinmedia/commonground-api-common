@@ -37,7 +37,6 @@ def test_list_with_page_size_in_query(api_client):
 
 
 def test_page_size_query_description_property():
-
     class DummyPagination(DynamicPageSizeMixin):
         page_size = 42
 
