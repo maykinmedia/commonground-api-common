@@ -63,15 +63,12 @@ behaviour.
 
 ## Code and commit style
 
-**Imports**
+**Code formatting and Imports**
 
-We sort imports using [isort](https://pypi.org/project/isort/). The tests
-have an `isort` check, which you can run using `tox -e isort`.
+[`ruff`](https://docs.astral.sh/ruff/) to format and clean up code (removing unused imports, etc.)
 
-**Code formatting**
-
-Python code should be [black](https://github.com/psf/black) formatted, this
-leaves no discussion about formatting.
+Whenever a branch is pushed or a pull request is made, the code will be checked in CI by Ruff, so
+make sure to install and run it locally before pushing branches/making pull requests.
 
 **Commit messages**
 

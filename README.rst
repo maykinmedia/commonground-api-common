@@ -2,7 +2,7 @@
 Commonground-API-common - Tooling voor RESTful APIs
 ===================================================
 
-|build-status| |code-quality| |coverage| |docs| |black|
+|build-status| |code-quality| |coverage| |docs| |ruff|
 
 |python-versions| |django-versions| |pypi-version|
 
@@ -84,7 +84,8 @@ Features
 .. |pypi-version| image:: https://img.shields.io/pypi/v/commonground-api-common.svg
     :target: https://pypi.org/project/commonground-api-common/
 
-.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
+.. |ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff
 
 .. _documentatie: https://commonground-api-common.readthedocs.io/en/latest/?badge=latest
