@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 
 from django.db import models
 from django.http import QueryDict
-from django.utils.translation import gettext_lazy as _
 
 from django_filters.rest_framework import DjangoFilterBackend
 from djangorestframework_camel_case.parser import CamelCaseJSONParser

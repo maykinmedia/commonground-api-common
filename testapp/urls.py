@@ -19,7 +19,7 @@ router.register("hobbies", HobbyViewSet)
 router.register(
     "groups",
     GroupViewSet,
-    [routers.nested("nested-person", PersonViewSet, basename="nested-person")],
+    [routers.Nested("nested-person", PersonViewSet, basename="nested-person")],
 )
 router.register("paginate-hobbies", PaginateHobbyViewSet, basename="paginate-hobby")
 

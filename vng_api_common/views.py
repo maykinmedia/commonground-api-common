@@ -117,7 +117,7 @@ def _test_sites_config(request: HttpRequest) -> list:
         return []
     return [
         (_("Site domain"), domain, request.get_host() == domain),
-        (_("HTTPS"), settings.IS_HTTPS, settings.IS_HTTPS == request.is_secure()),
+        (_("HTTPS"), settings.IS_HTTPS, request.is_secure() == settings.IS_HTTPS),
     ]
 
 

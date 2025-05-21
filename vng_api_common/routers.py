@@ -55,7 +55,7 @@ class DefaultRouter(NestedRegisteringMixin, routers.DefaultRouter):
     APIRootView = APIRootView
 
 
-class nested:
+class Nested:
     def __init__(self, prefix, viewset, nested=None, **kwargs):
         self.prefix = prefix
         self.viewset = viewset
@@ -63,4 +63,4 @@ class nested:
         self.kwargs = kwargs
 
     def __repr__(self):
-        return "nested(prefix={!r}, viewset={!r}".format(self.prefix, self.viewset)
+        return "Nested(prefix={!r}, viewset={!r}".format(self.prefix, self.viewset)

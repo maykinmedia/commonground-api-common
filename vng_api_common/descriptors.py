@@ -45,7 +45,7 @@ class GegevensGroepType:
         fields = ", ".join(
             [
                 field if field not in self.optional else f"{field} (optional)"
-                for field in self.mapping.keys()
+                for field in self.mapping
             ]
         )
         return "<GegevensGroepType: fields=%r required=%r>" % (fields, self.required)

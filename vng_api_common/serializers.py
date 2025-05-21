@@ -391,6 +391,6 @@ class CachedNestedHyperlinkedRelatedField(CacheMixin, NestedHyperlinkedRelatedFi
             return None
 
         # Replace the placeholder from the cached base URI with the actual identifier
-        for k, v in self.parent_lookup_kwargs.items():
+        for v in self.parent_lookup_kwargs.values():
             url = url.replace(v, str(get_nested_fk_attribute(obj, v)))
         return url

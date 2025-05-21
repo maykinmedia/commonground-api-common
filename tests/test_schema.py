@@ -177,7 +177,7 @@ def test_geo_headers():
     }
 
     # parameters
-    for method, path in {
+    for method, url_path in {
         "post": "/api/geo",
         "put": "/api/geo/{id}",
         "patch": "/api/geo/{id}",
@@ -187,14 +187,14 @@ def test_geo_headers():
             "name": "Accept-Crs",
             "schema": {"type": "string", "enum": ["EPSG:4326"]},
             "description": "The desired 'Coordinate Reference System' (CRS) of the response data. According to the GeoJSON spec, WGS84 is the default (EPSG: 4326 is the same as WGS84).",
-        } in schema["paths"][path][method]["parameters"]
+        } in schema["paths"][url_path][method]["parameters"]
         assert {
             "in": "header",
             "name": "Content-Crs",
             "schema": {"type": "string", "enum": ["EPSG:4326"]},
             "description": "The 'Coordinate Reference System' (CRS) of the request data. According to the GeoJSON spec, WGS84 is the default (EPSG: 4326 is the same as WGS84).",
             "required": True,
-        } in schema["paths"][path][method]["parameters"]
+        } in schema["paths"][url_path][method]["parameters"]
 
     assert {
         "in": "header",

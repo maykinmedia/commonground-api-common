@@ -11,7 +11,6 @@ from zgw_consumers.constants import APITypes, AuthTypes
 from vng_api_common.client import Client, get_client
 
 from ..constants import ComponentTypes, VertrouwelijkheidsAanduiding
-from ..decorators import field_default
 from ..fields import VertrouwelijkheidsAanduidingField
 from ..models import APIMixin
 
