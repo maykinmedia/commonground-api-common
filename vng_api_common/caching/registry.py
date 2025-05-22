@@ -64,9 +64,9 @@ class Dependency:
         instance: models.Model,
         is_delete: bool = False,
     ) -> Iterable[models.Model]:
-        assert isinstance(
-            instance, self.source_model
-        ), "Instance is not of expected model class"
+        assert isinstance(instance, self.source_model), (
+            "Instance is not of expected model class"
+        )
 
         reverse_relation_field = self.field.remote_field
 

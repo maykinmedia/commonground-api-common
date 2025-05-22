@@ -234,7 +234,7 @@ class ResourceValidator(URLValidator):
         # at this point, we know the URL actually exists
         try:
             obj = response.json()
-        except json.JSONDecodeError as exc:
+        except json.JSONDecodeError:
             logger.info(
                 "URL %s doesn't seem to point to a JSON endpoint", url, exc_info=1
             )

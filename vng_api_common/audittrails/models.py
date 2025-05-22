@@ -20,8 +20,7 @@ class AuditTrail(models.Model):
         max_length=255,
         blank=True,
         help_text=_(
-            'Een globaal "request" ID om een verzoek door het '
-            "netwerk heen te traceren."
+            'Een globaal "request" ID om een verzoek door het netwerk heen te traceren.'
         ),
     )
     bron = models.CharField(

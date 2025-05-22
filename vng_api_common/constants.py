@@ -88,28 +88,40 @@ class RolTypes(models.TextChoices):
 
 
 class Archiefnominatie(models.TextChoices):
-    blijvend_bewaren = "blijvend_bewaren", _(
-        "Het zaakdossier moet bewaard blijven en op de Archiefactiedatum "
-        "overgedragen worden naar een archiefbewaarplaats."
+    blijvend_bewaren = (
+        "blijvend_bewaren",
+        _(
+            "Het zaakdossier moet bewaard blijven en op de Archiefactiedatum "
+            "overgedragen worden naar een archiefbewaarplaats."
+        ),
     )
-    vernietigen = "vernietigen", _(
-        "Het zaakdossier moet op of na de Archiefactiedatum vernietigd worden."
+    vernietigen = (
+        "vernietigen",
+        _("Het zaakdossier moet op of na de Archiefactiedatum vernietigd worden."),
     )
 
 
 class Archiefstatus(models.TextChoices):
-    nog_te_archiveren = "nog_te_archiveren", _(
-        "De zaak cq. het zaakdossier is nog niet als geheel gearchiveerd."
+    nog_te_archiveren = (
+        "nog_te_archiveren",
+        _("De zaak cq. het zaakdossier is nog niet als geheel gearchiveerd."),
     )
-    gearchiveerd = "gearchiveerd", _(
-        "De zaak cq. het zaakdossier is als geheel niet-wijzigbaar bewaarbaar gemaakt."
+    gearchiveerd = (
+        "gearchiveerd",
+        _(
+            "De zaak cq. het zaakdossier is als geheel niet-wijzigbaar bewaarbaar gemaakt."
+        ),
     )
-    gearchiveerd_procestermijn_onbekend = "gearchiveerd_procestermijn_onbekend", _(
-        "De zaak cq. het zaakdossier is als geheel niet-wijzigbaar bewaarbaar gemaakt "
-        "maar de vernietigingsdatum kan nog niet bepaald worden."
+    gearchiveerd_procestermijn_onbekend = (
+        "gearchiveerd_procestermijn_onbekend",
+        _(
+            "De zaak cq. het zaakdossier is als geheel niet-wijzigbaar bewaarbaar gemaakt "
+            "maar de vernietigingsdatum kan nog niet bepaald worden."
+        ),
     )
-    overgedragen = "overgedragen", _(
-        "De zaak cq. het zaakdossier is overgebracht naar een archiefbewaarplaats."
+    overgedragen = (
+        "overgedragen",
+        _("De zaak cq. het zaakdossier is overgebracht naar een archiefbewaarplaats."),
     )
 
 
@@ -190,17 +202,20 @@ class ZaakobjectTypes(models.TextChoices):
     buurt = "buurt", _("Buurt")
     enkelvoudig_document = "enkelvoudig_document", _("Enkelvoudig document")
     gemeente = "gemeente", _("Gemeente")
-    gemeentelijke_openbare_ruimte = "gemeentelijke_openbare_ruimte", _(
-        "Gemeentelijke openbare ruimte"
+    gemeentelijke_openbare_ruimte = (
+        "gemeentelijke_openbare_ruimte",
+        _("Gemeentelijke openbare ruimte"),
     )
     huishouden = "huishouden", _("Huishouden")
     inrichtingselement = "inrichtingselement", _("Inrichtingselement")
-    kadastrale_onroerende_zaak = "kadastrale_onroerende_zaak", _(
-        "Kadastrale onroerende zaak"
+    kadastrale_onroerende_zaak = (
+        "kadastrale_onroerende_zaak",
+        _("Kadastrale onroerende zaak"),
     )
     kunstwerkdeel = "kunstwerkdeel", _("Kunstwerkdeel")
-    maatschappelijke_activiteit = "maatschappelijke_activiteit", _(
-        "Maatschappelijke activiteit"
+    maatschappelijke_activiteit = (
+        "maatschappelijke_activiteit",
+        _("Maatschappelijke activiteit"),
     )
     medewerker = "medewerker", _("Medewerker")
     natuurlijk_persoon = "natuurlijk_persoon", _("Natuurlijk persoon")

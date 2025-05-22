@@ -1,5 +1,5 @@
 import logging
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -73,7 +73,7 @@ class URLModelChoiceFilter(filters.ModelChoiceFilter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.instance_path = kwargs.get("instance_path", None)
+        self.instance_path = kwargs.get("instance_path")
         self.queryset = kwargs.get("queryset")
 
     @property

@@ -70,7 +70,7 @@ def test_no_resolution():
 
     paths = [
         f"/api/groups/{group.pk}",
-        f"/api/groups/-3",
+        "/api/groups/-3",
     ]
 
     with pytest.raises(RuntimeError):

@@ -104,12 +104,12 @@ class GegevensGroepSerializerMetaclass(serializers.SerializerMetaclass):
     def __new__(cls, name, bases, attrs):
         Meta = attrs.get("Meta")
         if Meta:
-            assert hasattr(
-                Meta, "model"
-            ), "The 'model' class must be defined on the Meta."
-            assert hasattr(
-                Meta, "gegevensgroep"
-            ), "The 'gegevensgroep' name must be defined on the Meta."
+            assert hasattr(Meta, "model"), (
+                "The 'model' class must be defined on the Meta."
+            )
+            assert hasattr(Meta, "gegevensgroep"), (
+                "The 'gegevensgroep' name must be defined on the Meta."
+            )
 
             gegevensgroep = getattr(Meta.model, Meta.gegevensgroep)
             Meta.fields = []
@@ -391,6 +391,6 @@ class CachedNestedHyperlinkedRelatedField(CacheMixin, NestedHyperlinkedRelatedFi
             return None
 
         # Replace the placeholder from the cached base URI with the actual identifier
-        for k, v in self.parent_lookup_kwargs.items():
+        for v in self.parent_lookup_kwargs.values():
             url = url.replace(v, str(get_nested_fk_attribute(obj, v)))
         return url

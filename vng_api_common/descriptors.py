@@ -30,9 +30,9 @@ class GegevensGroepType:
         self.none_for_empty = none_for_empty
 
         all_fields_known = set(self.optional).issubset(set(mapping.keys()))
-        assert (
-            all_fields_known
-        ), "The fields in 'optional' must be a subset of the mapping keys"
+        assert all_fields_known, (
+            "The fields in 'optional' must be a subset of the mapping keys"
+        )
 
         # check if it's optional or not
         self.required = (
@@ -45,7 +45,7 @@ class GegevensGroepType:
         fields = ", ".join(
             [
                 field if field not in self.optional else f"{field} (optional)"
-                for field in self.mapping.keys()
+                for field in self.mapping
             ]
         )
         return "<GegevensGroepType: fields=%r required=%r>" % (fields, self.required)

@@ -40,7 +40,6 @@ class Client(APIClient):
     def request(
         self, method: str | bytes, url: str | bytes, *args, **kwargs
     ) -> Response:
-
         headers = kwargs.pop("headers", {})
         headers.setdefault("Accept", "application/json")
         headers.setdefault("Content-Type", "application/json")
