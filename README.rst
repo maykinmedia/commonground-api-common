@@ -36,7 +36,7 @@ Features
     * Niet-negatieve waarde validator
     * Alfanumerieke waarde (zonder diacritics)
     * URL-validator (test dat URL bestaat) met pluggable link-checker
-    * ``UntilNowValidator`` - valideer datetimes tot en met *nu*.
+    * ``UntilNowValidator`` - valideer datetimes tot en met *nu*. (Via de TIME_LEEWAY setting kan speling worden toegevoegd)
     * ``UniekeIdentificatieValidator`` (in combinatie met organisatie)
     * ``InformatieObjectUniqueValidator`` om te valideren dat M2M entries
       slechts eenmalig voorkomen
