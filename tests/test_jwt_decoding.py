@@ -42,7 +42,7 @@ def test_nbf_validated():
 @pytest.mark.django_db
 @freeze_time("2021-08-23T14:20:00")
 def test_nbf_validated_with_leeway(settings):
-    settings.JWT_LEEWAY = 3
+    settings.TIME_LEEWAY = 3
     JWTSecret.objects.create(identifier="client", secret="secret")
     payload = {
         "client_id": "client",

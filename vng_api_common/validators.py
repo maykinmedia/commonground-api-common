@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from datetime import timedelta
 from typing import Callable
 
 from django.conf import settings
@@ -277,6 +278,8 @@ class UntilNowValidator:
     Validate a datetime to not be in the future.
 
     This means that `now` is included.
+
+    Some leeway can be added with the TIME_LEEWAY setting.
     """
 
     message = _("Ensure this value is not in the future.")
@@ -284,7 +287,7 @@ class UntilNowValidator:
 
     @property
     def limit_value(self):
-        return timezone.now()
+        return timezone.now() + timedelta(seconds=settings.TIME_LEEWAY)
 
     def __call__(self, value):
         if value > self.limit_value:
