@@ -2,6 +2,20 @@
 Change history
 ==============
 
+2.6.5 (2025-05-27)
+------------------
+
+**Bugfixes/QOL**
+
+* No longer rely on zgw-consumers for generate_jwt util
+* [#90] Make requests_mock dependency optional (can be installed with ``pip install commonground-api-common[oas]``)
+
+**Maintenance**
+
+* [maykinmedia/open-api-framework#140] Upgrade python to 3.12
+* [maykinmedia/open-api-framework#132] Replace check_sphinx.py with make
+* [maykinmedia/open-api-framework#133] Replace black, isort and flake8 with ruff and update code-quality workflow
+
 2.6.4 (2025-05-16)
 ------------------
 
