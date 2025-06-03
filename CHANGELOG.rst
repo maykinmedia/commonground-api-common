@@ -2,6 +2,11 @@
 Change history
 ==============
 
+2.6.6 (2025-06-04)
+------------------
+
+* [open-zaak/open-zaak#635] Rename JWT_LEEWAY setting to TIME_LEEWAY and add it to UntilNowValidator
+
 2.6.5 (2025-05-27)
 ------------------
 
