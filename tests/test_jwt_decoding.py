@@ -3,7 +3,7 @@ from datetime import datetime
 import jwt
 import pytest
 from freezegun import freeze_time
-from jwt import ImmatureSignatureError
+from rest_framework.exceptions import PermissionDenied
 
 from vng_api_common.authorizations.middleware import JWTAuth
 from vng_api_common.models import JWTSecret
@@ -35,7 +35,7 @@ def test_nbf_validated():
 
     auth = JWTAuth(token)
 
-    with pytest.raises(ImmatureSignatureError):
+    with pytest.raises(PermissionDenied):
         auth.payload
 
 
