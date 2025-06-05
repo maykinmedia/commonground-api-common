@@ -153,6 +153,9 @@ class JWTAuth:
                 raise PermissionDenied(
                     "Client credentials zijn niet geldig", code="invalid-jwt-signature"
                 )
+            except jwt.PyJWTError as exc:
+                logger.info("Invalid JWT encountered")
+                raise PermissionDenied(*exc.args) from exc
 
             self._payload = payload
 
