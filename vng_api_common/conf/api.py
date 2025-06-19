@@ -9,6 +9,7 @@ __all__ = [
     "GEMMA_URL_INFORMATIEMODEL",
     "GEMMA_URL_TEMPLATE",
     "TIME_LEEWAY",
+    "JWT_EXPIRY",
     "JWT_SPECTACULAR_SETTINGS",
     "LINK_FETCHER",
     "NOTIFICATIONS_DISABLED",
@@ -96,5 +97,7 @@ vng_branch = "ref-responses"
 COMMON_SPEC = f"https://raw.githubusercontent.com/{vng_repo}/feature/{vng_branch}/vng_api_common/schemas/common.yaml"
 
 TIME_LEEWAY = 0  # default in PyJWT
+
+JWT_EXPIRY = 3600
 
 COMMONGROUND_API_COMMON_GET_DOMAIN = "vng_api_common.utils.get_site_domain"
