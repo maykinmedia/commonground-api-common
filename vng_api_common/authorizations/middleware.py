@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any, Dict, Iterable, List, Optional
 
 from django.conf import settings
@@ -147,6 +148,7 @@ class JWTAuth:
                     key,
                     algorithms=["HS256"],
                     leeway=settings.TIME_LEEWAY,
+                    options={"require": ["iat"]},
                 )
             except jwt.InvalidSignatureError:
                 logger.exception("Invalid signature - possible payload tampering?")
@@ -160,6 +162,8 @@ class JWTAuth:
                     code="jwt-{err}".format(err=type(exc).__name__.lower()),
                 )
 
+            self._check_jwt_expiry(payload)
+
             self._payload = payload
 
         return self._payload
@@ -169,6 +173,23 @@ class JWTAuth:
         if not self.payload:
             return None
         return self.payload["client_id"]
+
+    def _check_jwt_expiry(self, payload: Dict[str, Any]) -> None:
+        """
+        Verify that the token was issued recently enough.
+
+        The Django settings define how long a JWT is considered to be valid. Adding
+        that duration to the issued-at claim determines the upper limit for token
+        validity.
+        """
+        iat = payload.get("iat")
+        current_timestamp = time.time()
+        difference = current_timestamp - iat
+
+        if difference >= (settings.JWT_EXPIRY + settings.TIME_LEEWAY):
+            raise PermissionDenied(
+                _("The JWT used for this request is expired"), code="jwt-expired"
+            )
 
     def filter_vertrouwelijkheidaanduiding(self, base: QuerySet, value) -> QuerySet:
         if value is None:
