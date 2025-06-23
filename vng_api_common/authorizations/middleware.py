@@ -155,10 +155,29 @@ class JWTAuth:
                 raise PermissionDenied(
                     "Client credentials zijn niet geldig", code="invalid-jwt-signature"
                 )
+            except jwt.MissingRequiredClaimError as exc:
+                msg = "Missing required {} claim".format(exc.claim)
+                logger.exception(msg)
+                raise PermissionDenied(
+                    _(msg),
+                    code="jwt-missing-{}-claim".format(exc.claim),
+                )
+            except jwt.ImmatureSignatureError as exc:  # TODO warning?
+                claim = "iat" if "iat" in exc.args else "nbf"
+                msg = (
+                    "The JWT used for this request is not valid yet, the `{}` claim is "
+                    "newer than the current time stamp. You may want to check the clock drift "
+                    "on the server and/or tweak the `TIME_LEEWAY` setting."
+                ).format(claim)
+                logger.exception(msg)
+                raise PermissionDenied(
+                    _(msg),
+                    code="jwt-invalid-{}-claim".format(claim),
+                )
             except jwt.PyJWTError as exc:
                 logger.exception("Invalid JWT encountered")
                 raise PermissionDenied(
-                    _("JWT did not validate, try checking the `nbf` and `iat`"),
+                    _("JWT did not validate"),
                     code="jwt-{err}".format(err=type(exc).__name__.lower()),
                 )
 

@@ -159,11 +159,24 @@ def test_exp_ok():
 
 @pytest.mark.django_db
 @freeze_time("2021-08-23T14:20:00")
+def test_exp_within_exp_setting():
+    JWTSecret.objects.create(identifier="client", secret="secret")
+    timestamp = int(datetime.now().timestamp())
+    payload = {"client_id": "client", "iat": timestamp - 1000}
+    token = jwt.encode(payload, "secret", algorithm="HS256")
+
+    auth = JWTAuth(token)
+
+    assert auth.payload == payload
+
+
+@pytest.mark.django_db
+@freeze_time("2021-08-23T14:20:00")
 def test_exp_validated(settings):
     settings.JWT_EXPIRY = 3600
     JWTSecret.objects.create(identifier="client", secret="secret")
     timestamp = int(datetime.now().timestamp())
-    payload = {"client_id": "client", "iat": timestamp + 3601}
+    payload = {"client_id": "client", "iat": timestamp - 3601}
     token = jwt.encode(payload, "secret", algorithm="HS256")
 
     auth = JWTAuth(token)
@@ -176,26 +189,25 @@ def test_exp_validated(settings):
 @freeze_time("2021-08-23T14:20:00")
 def test_exp_validated_with_leeway(settings):
     settings.JWT_EXPIRY = 3600
-    settings.JWT_LEEWAY = 5
+    settings.TIME_LEEWAY = 5
     JWTSecret.objects.create(identifier="client", secret="secret")
     timestamp = int(datetime.now().timestamp())
-    payload = {"client_id": "client", "iat": timestamp + 3603}
+    payload = {"client_id": "client", "iat": timestamp - 3603}
     token = jwt.encode(payload, "secret", algorithm="HS256")
 
     auth = JWTAuth(token)
 
-    with pytest.raises(PermissionDenied):
-        auth.payload
+    assert auth.payload == payload
 
 
 @pytest.mark.django_db
 @freeze_time("2021-08-23T14:20:00")
 def test_exp_validated_with_leeway_not_enough(settings):
     settings.JWT_EXPIRY = 3600
-    settings.JWT_LEEWAY = 5
+    settings.TIME_LEEWAY = 5
     JWTSecret.objects.create(identifier="client", secret="secret")
     timestamp = int(datetime.now().timestamp())
-    payload = {"client_id": "client", "iat": timestamp + 3610}
+    payload = {"client_id": "client", "iat": timestamp - 3610}
     token = jwt.encode(payload, "secret", algorithm="HS256")
 
     auth = JWTAuth(token)

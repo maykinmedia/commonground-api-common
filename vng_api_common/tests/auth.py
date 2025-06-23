@@ -26,7 +26,7 @@ class AuthCheckMixin:
         request_kwargs = request_kwargs or {}
 
         with self.subTest(case="JWT missing"):
-            self.client.credentials()
+            self.client.credentials()  # explicity clear credentials
 
             response = do_request(url, **request_kwargs)
 
