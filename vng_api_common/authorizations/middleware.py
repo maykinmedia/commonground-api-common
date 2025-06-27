@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any, Dict, Iterable, List, Optional
 
 from django.conf import settings
@@ -147,12 +148,31 @@ class JWTAuth:
                     key,
                     algorithms=["HS256"],
                     leeway=settings.TIME_LEEWAY,
+                    options={
+                        "require": ["iat"],
+                        "verify_iat": False,
+                    },  # iat is validated in _check_jwt_expiry
                 )
             except jwt.InvalidSignatureError:
                 logger.exception("Invalid signature - possible payload tampering?")
                 raise PermissionDenied(
                     "Client credentials zijn niet geldig", code="invalid-jwt-signature"
                 )
+            except jwt.MissingRequiredClaimError as exc:
+                msg = "Missing required {} claim".format(exc.claim)
+                logger.exception(msg)
+                raise PermissionDenied(
+                    _(msg),
+                    code="jwt-missing-{}-claim".format(exc.claim),
+                )
+            except jwt.PyJWTError as exc:
+                logger.exception("Invalid JWT encountered")
+                raise PermissionDenied(
+                    _("JWT did not validate"),
+                    code="jwt-{}".format(type(exc).__name__.lower()),
+                )
+
+            self._check_jwt_expiry(payload)
 
             self._payload = payload
 
@@ -163,6 +183,37 @@ class JWTAuth:
         if not self.payload:
             return None
         return self.payload["client_id"]
+
+    def _check_jwt_expiry(self, payload: Dict[str, Any]) -> None:
+        """
+        Verify that the token was issued recently enough.
+
+        The Django settings define how long a JWT is considered to be valid. Adding
+        that duration to the issued-at claim determines the upper limit for token
+        validity.
+        """
+        iat = payload.get("iat")
+
+        try:
+            iat = int(iat)
+        except ValueError:
+            raise PermissionDenied(_("The iat claim must be an integer."))
+
+        current_timestamp = time.time()
+        difference = current_timestamp - iat
+
+        if difference < -settings.TIME_LEEWAY:
+            logger.warning(
+                "The JWT used for this request is not valid yet, the `iat` claim is "
+                "newer than the current time stamp. You may want to check the clock drift "
+                "on the Open Zaak server and/or tweak the `TIME_LEEWAY` setting.",
+                extra={"payload": payload},
+            )
+
+        if difference >= (settings.JWT_EXPIRY + settings.TIME_LEEWAY):
+            raise PermissionDenied(
+                _("The JWT used for this request is expired"), code="jwt-expired"
+            )
 
     def filter_vertrouwelijkheidaanduiding(self, base: QuerySet, value) -> QuerySet:
         if value is None:
