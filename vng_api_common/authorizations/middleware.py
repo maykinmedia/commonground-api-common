@@ -148,7 +148,10 @@ class JWTAuth:
                     key,
                     algorithms=["HS256"],
                     leeway=settings.TIME_LEEWAY,
-                    options={"require": ["iat"]},
+                    options={
+                        "require": ["iat"],
+                        "verify_iat": False,
+                    },  # iat is validated in _check_jwt_expiry
                 )
             except jwt.InvalidSignatureError:
                 logger.exception("Invalid signature - possible payload tampering?")
@@ -162,23 +165,11 @@ class JWTAuth:
                     _(msg),
                     code="jwt-missing-{}-claim".format(exc.claim),
                 )
-            except jwt.ImmatureSignatureError as exc:  # TODO warning?
-                claim = "iat" if "iat" in exc.args else "nbf"
-                msg = (
-                    "The JWT used for this request is not valid yet, the `{}` claim is "
-                    "newer than the current time stamp. You may want to check the clock drift "
-                    "on the server and/or tweak the `TIME_LEEWAY` setting."
-                ).format(claim)
-                logger.exception(msg)
-                raise PermissionDenied(
-                    _(msg),
-                    code="jwt-invalid-{}-claim".format(claim),
-                )
             except jwt.PyJWTError as exc:
                 logger.exception("Invalid JWT encountered")
                 raise PermissionDenied(
                     _("JWT did not validate"),
-                    code="jwt-{err}".format(err=type(exc).__name__.lower()),
+                    code="jwt-{}".format(type(exc).__name__.lower()),
                 )
 
             self._check_jwt_expiry(payload)
@@ -202,8 +193,22 @@ class JWTAuth:
         validity.
         """
         iat = payload.get("iat")
+
+        try:
+            iat = int(iat)
+        except ValueError:
+            raise PermissionDenied(_("The iat claim must be an integer."))
+
         current_timestamp = time.time()
         difference = current_timestamp - iat
+
+        if difference < -settings.TIME_LEEWAY:
+            logger.warning(
+                "The JWT used for this request is not valid yet, the `iat` claim is "
+                "newer than the current time stamp. You may want to check the clock drift "
+                "on the Open Zaak server and/or tweak the `TIME_LEEWAY` setting.",
+                extra={"payload": payload},
+            )
 
         if difference >= (settings.JWT_EXPIRY + settings.TIME_LEEWAY):
             raise PermissionDenied(

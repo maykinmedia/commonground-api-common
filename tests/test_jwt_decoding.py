@@ -38,6 +38,21 @@ def test_jwt_decode_missing_iat():
 
 
 @pytest.mark.django_db
+def test_jwt_decode_str_iat():
+    JWTSecret.objects.create(identifier="client", secret="secret")
+    payload = {
+        "client_id": "client",
+        "iat": "timestamp",
+    }
+    token = jwt.encode(payload, "secret", algorithm="HS256")
+
+    auth = JWTAuth(token)
+
+    with pytest.raises(PermissionDenied):
+        auth.payload
+
+
+@pytest.mark.django_db
 @freeze_time("2021-08-23T14:20:00")
 def test_nbf_validated():
     JWTSecret.objects.create(identifier="client", secret="secret")
@@ -95,6 +110,7 @@ def test_nbf_validated_with_leeway_not_enough(settings):
 @pytest.mark.django_db
 @freeze_time("2021-08-23T14:20:00")
 def test_iat_validated():
+    """jwt iat in future only logs a warning"""
     JWTSecret.objects.create(identifier="client", secret="secret")
     timestamp = int(datetime.now().timestamp())
     payload = {
@@ -105,8 +121,7 @@ def test_iat_validated():
 
     auth = JWTAuth(token)
 
-    with pytest.raises(PermissionDenied):
-        auth.payload
+    assert auth.payload == payload
 
 
 @pytest.mark.django_db
@@ -129,6 +144,7 @@ def test_iat_validated_with_leeway(settings):
 @pytest.mark.django_db
 @freeze_time("2021-08-23T14:20:00")
 def test_iat_validated_with_leeway_not_enough(settings):
+    """jwt iat in future only logs a warning"""
     settings.TIME_LEEWAY = 3
     JWTSecret.objects.create(identifier="client", secret="secret")
     timestamp = int(datetime.now().timestamp())
@@ -140,8 +156,7 @@ def test_iat_validated_with_leeway_not_enough(settings):
 
     auth = JWTAuth(token)
 
-    with pytest.raises(PermissionDenied):
-        auth.payload
+    assert auth.payload == payload
 
 
 @pytest.mark.django_db
