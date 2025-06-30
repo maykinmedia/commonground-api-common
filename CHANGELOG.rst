@@ -2,6 +2,18 @@
 Change history
 ==============
 
+2.6.7 (2025-06-30)
+------------------
+
+**Bugfixes**
+
+* [#103] Fix 500 error that occurred with ``iat`` in future, log a warning
+* Add JWT expiry validation based on ``iat``
+
+**Maintenance**
+
+* Upgrade PyJWT to 2.10.1
+
 2.6.6 (2025-06-04)
 ------------------
 
