@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from vng_api_common.caching import ETagMixin
 from vng_api_common.descriptors import GegevensGroepType
+from vng_api_common.notes.models import NotitieMixin
 
 
 class Group(models.Model):
