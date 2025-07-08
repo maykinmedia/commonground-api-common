@@ -38,6 +38,9 @@ class NotitieMixin(models.Model):
         max_length=50,
         default=NotitieType.INTERN,
         choices=NotitieType.choices,
+        help_text=_(
+            "Intern mag enkel een medewerker zien, extern mag gezien worden door medewerker en de initiator."
+        ),
     )
     status = models.CharField(
         max_length=50,

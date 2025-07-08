@@ -15,6 +15,8 @@ ALLOWED_HOSTS = ["*"]
 
 USE_TZ = True
 
+TIME_ZONE = "UTC"
+
 DATABASES = {
     "default": {
         "ENGINE": "django.contrib.gis.db.backends.postgis",

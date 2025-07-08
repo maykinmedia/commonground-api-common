@@ -11,11 +11,18 @@ from drf_spectacular.views import (
 from vng_api_common import routers
 from vng_api_common.views import ViewConfigView
 
-from .viewsets import GroupViewSet, HobbyViewSet, PaginateHobbyViewSet, PersonViewSet
+from .viewsets import (
+    GroupViewSet,
+    HobbyViewSet,
+    NotitieViewSet,
+    PaginateHobbyViewSet,
+    PersonViewSet,
+)
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register("persons", PersonViewSet)
 router.register("hobbies", HobbyViewSet)
+router.register("notities", NotitieViewSet)
 router.register(
     "groups",
     GroupViewSet,

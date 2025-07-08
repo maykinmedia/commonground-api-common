@@ -22,3 +22,12 @@ class HobbyFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = "testapp.Hobby"
+
+
+class NotitieFactory(factory.django.DjangoModelFactory):
+    onderwerp = factory.Faker("sentence")
+    tekst = factory.Faker("paragraph")
+    aangemaakt_door = factory.Faker("name")
+
+    class Meta:
+        model = "testapp.Notitie"

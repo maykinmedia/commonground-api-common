@@ -80,3 +80,9 @@ class GeometryModel(models.Model):
         null=True,
         help_text="Punt, lijn of (multi-)vlak geometrie-informatie.",
     )
+
+
+class Notitie(NotitieMixin):
+    class Meta:
+        verbose_name = "notitie"
+        verbose_name_plural = "notities"
