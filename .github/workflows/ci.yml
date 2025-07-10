@@ -58,7 +58,9 @@ jobs:
           DJANGO: ${{ matrix.django }}
 
       - name: Publish coverage report
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
     name: Publish package to PyPI
@@ -68,8 +70,8 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
