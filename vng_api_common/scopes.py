@@ -20,10 +20,13 @@ class Scope:
     Define a single scope object.
 
     A scope is characterized by a label, whereas the actual permissions related
-    to it are implemented in the view(set)s. Scopes can be OR-ed together:
+    to it are implemented in the view(set)s. Scopes can be OR-ed/AND-d together:
 
         >>> Scope("foo") | Scope("bar")
         Scope("foo | bar")
+
+        >>> Scope("foo") & Scope("bar")
+        Scope("foo & bar")
 
     this is interpreted as: you have permission if you have one of either
     scopes in your authorization configuration.
@@ -59,6 +62,12 @@ class Scope:
         new = type(self)(label=f"{self.label} | {other.label}")
         new.children = [self, other]
         new.operator = OPERATOR_OR
+        return new
+
+    def __and__(self, other):
+        new = type(self)(label=f"{self.label} & {other.label}")
+        new.children = [self, other]
+        new.operator = OPERATOR_AND
         return new
 
     def is_contained_in(self, scope_set: List[str]) -> bool:
