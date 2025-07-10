@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from vng_api_common.caching import ETagMixin
 from vng_api_common.descriptors import GegevensGroepType
-from vng_api_common.notes.models import NotitieMixin
+from vng_api_common.notes.models import NotitieBaseClass
 
 
 class Group(models.Model):
@@ -82,7 +82,7 @@ class GeometryModel(models.Model):
     )
 
 
-class Notitie(NotitieMixin):
+class Notitie(NotitieBaseClass):
     class Meta:
         verbose_name = "notitie"
         verbose_name_plural = "notities"

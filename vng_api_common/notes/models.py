@@ -6,10 +6,10 @@ from django.utils.translation import gettext_lazy as _
 from .constants import NotitieStatus, NotitieType
 
 
-class NotitieMixin(models.Model):
+class NotitieBaseClass(models.Model):
     """
     Abstract model mixin that provides common fields and functionality for notes models.
-    This mixin is intended to be inherited by other models that require notes.
+    This base class is intended to be inherited by other models that require notes.
 
     Note:
         This is an abstract base class and does not create a database table by itself.
@@ -18,15 +18,13 @@ class NotitieMixin(models.Model):
     uuid = models.UUIDField(
         unique=True,
         default=uuid.uuid4,
-        help_text=_("Unieke identificatie door notitie"),
+        help_text=_("Unieke identificatie voor deze notitie"),
     )
     onderwerp = models.CharField(
         max_length=255,
-        blank=True,
         help_text=_("Korte omschrijving of titel van de notitie"),
     )
     tekst = models.TextField(
-        blank=True,
         help_text=_("De volledige inhoud of beschrijving van de notitie"),
     )
     aangemaakt_door = models.CharField(
@@ -58,14 +56,16 @@ class NotitieMixin(models.Model):
     gerelateerd_aan = models.URLField(
         blank=True,
         null=True,
-        help_text=_("URL van het gerelateerde object"),
+        help_text=_(
+            "URL van het gerelateerde object waarop deze notitie van toepassing is"
+        ),
     )
 
     class Meta:
         abstract = True
 
-        verbose_name = "Notitie"
-        verbose_name_plural = "Notities"
+        verbose_name = _("notitie")
+        verbose_name_plural = _("notities")
 
     def __str__(self):
         return f"{self.onderwerp} ({self.status})"
