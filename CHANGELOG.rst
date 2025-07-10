@@ -2,6 +2,18 @@
 Change history
 ==============
 
+2.7.0 (2025-07-10)
+------------------
+
+**New features**
+
+* Add ``__and__`` operator for ``Scope`` class
+
+**Maintenance**
+
+* Add support for Django 5.2
+* [#105] Remove ``coreapi`` dependency
+
 2.6.7 (2025-06-30)
 ------------------
 
