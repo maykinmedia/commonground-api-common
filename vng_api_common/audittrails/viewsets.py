@@ -21,13 +21,17 @@ logger = logging.getLogger(__name__)
 class AuditTrailMixin:
     audit = None
 
-    def get_audittrail_main_object_url(self, data, main_resource):
+    def get_main_object(self, data):
         """
-        Retrieve the URL that points to the main resource
+        Retrieve the URL that points to the main object
         """
+
+        if self.basename == self.audit.main_resource:
+            return data["url"]
+
         if hasattr(self, "audittrail_main_resource_key"):
             return data[self.audittrail_main_resource_key]
-        return data[main_resource]
+        return data[self.audit.main_resource]
 
     def create_audittrail(
         self,
@@ -36,17 +40,18 @@ class AuditTrailMixin:
         version_before_edit,
         version_after_edit,
         unique_representation,
+        audit=None,
+        basename=None,
+        main_object=None,
     ):
         """
         Create the audittrail for the action that has been carried out.
         """
         data = version_after_edit if version_after_edit else version_before_edit
-        if self.basename == self.audit.main_resource:
-            main_object = data["url"]
-        else:
-            main_object = self.get_audittrail_main_object_url(
-                data, self.audit.main_resource
-            )
+
+        audit = audit if audit else self.audit
+        basename = basename if basename else self.basename
+        main_object = main_object if main_object else self.get_main_object(data)
 
         jwt_auth = self.request.jwt_auth
         applications = jwt_auth.applicaties
@@ -74,7 +79,7 @@ class AuditTrailMixin:
         )
 
         trail = AuditTrail(
-            bron=self.audit.component_name,
+            bron=audit.component_name,
             logrecord_id=logrecord_id,
             applicatie_id=app_id,
             applicatie_weergave=app_presentation,
@@ -84,7 +89,7 @@ class AuditTrailMixin:
             gebruikers_weergave=user_representation,
             resultaat=status_code,
             hoofd_object=main_object,
-            resource=self.basename,
+            resource=basename,
             resource_url=data["url"],
             toelichting=toelichting,
             resource_weergave=unique_representation,
