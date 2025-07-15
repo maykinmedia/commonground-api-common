@@ -64,8 +64,13 @@ class Scope:
         new.operator = OPERATOR_OR
         return new
 
+    def _wrap_label(self, node):
+        if node.operator == OPERATOR_OR:
+            return f"({node.label})"
+        return node.label
+
     def __and__(self, other):
-        new = type(self)(label=f"{self.label} & {other.label}")
+        new = type(self)(label=f"{self._wrap_label(self)} & {self._wrap_label(other)}")
         new.children = [self, other]
         new.operator = OPERATOR_AND
         return new
