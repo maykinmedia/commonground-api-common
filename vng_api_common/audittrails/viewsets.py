@@ -21,17 +21,17 @@ logger = logging.getLogger(__name__)
 class AuditTrailMixin:
     audit = None
 
-    def get_main_object(self, data):
+    def get_audittrail_main_object_url(self, data, main_resource):
         """
-        Retrieve the URL that points to the main object
+        Retrieve the URL that points to the main resource
         """
 
-        if self.basename == self.audit.main_resource:
+        if self.basename == main_resource:
             return data["url"]
 
         if hasattr(self, "audittrail_main_resource_key"):
             return data[self.audittrail_main_resource_key]
-        return data[self.audit.main_resource]
+        return data[main_resource]
 
     def create_audittrail(
         self,
@@ -51,7 +51,11 @@ class AuditTrailMixin:
 
         audit = audit if audit else self.audit
         basename = basename if basename else self.basename
-        main_object = main_object if main_object else self.get_main_object(data)
+        main_object = (
+            main_object
+            if main_object
+            else self.get_audittrail_main_object_url(data, self.audit.main_resource)
+        )
 
         jwt_auth = self.request.jwt_auth
         applications = jwt_auth.applicaties
