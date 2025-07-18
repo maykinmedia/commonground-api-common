@@ -3,14 +3,16 @@ from rest_framework import viewsets
 
 from vng_api_common.caching import conditional_retrieve
 from vng_api_common.geo import GeoMixin
+from vng_api_common.notes.api.viewsets import NotitieViewSetMixin
 from vng_api_common.pagination import DynamicPageSizePagination
 
-from .models import GeometryModel, Group, Hobby, MediaFileModel, Person, Poly
+from .models import GeometryModel, Group, Hobby, MediaFileModel, Notitie, Person, Poly
 from .serializers import (
     GeometryModelSerializer,
     GroupSerializer,
     HobbySerializer,
     MediaFileModelSerializer,
+    NotitieSerializer,
     PersonSerializer,
     PolySerializer,
 )
@@ -58,3 +60,8 @@ class MediaFileViewSet(viewsets.ModelViewSet):
 class GeometryViewSet(GeoMixin, viewsets.ModelViewSet):
     queryset = GeometryModel.objects.all()
     serializer_class = GeometryModelSerializer
+
+
+class NotitieViewSet(NotitieViewSetMixin, viewsets.ModelViewSet):
+    queryset = Notitie.objects.order_by("-pk")
+    serializer_class = NotitieSerializer

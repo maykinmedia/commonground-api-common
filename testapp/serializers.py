@@ -7,11 +7,13 @@ from testapp.models import (
     Group,
     Hobby,
     MediaFileModel,
+    Notitie,
     Person,
     Poly,
     PolyChoice,
     Record,
 )
+from vng_api_common.notes.api.serializers import NotitieSerializerMixin
 from vng_api_common.polymorphism import Discriminator, PolymorphicSerializer
 from vng_api_common.serializers import (
     CachedHyperlinkedIdentityField,
@@ -124,3 +126,8 @@ class PolySerializer(PolymorphicSerializer):
     class Meta:
         model = Poly
         fields = ("name",)
+
+
+class NotitieSerializer(NotitieSerializerMixin, serializers.ModelSerializer):
+    class Meta(NotitieSerializerMixin.Meta):
+        model = Notitie
