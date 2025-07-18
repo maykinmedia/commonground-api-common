@@ -2,6 +2,25 @@
 Change history
 ==============
 
+2.8.0 (2025-07-18)
+------------------
+
+**New features**
+
+* [open-zaak/open-zaak#2071] Add Notitie model and serializer. ``NotitieBaseClass`` can be
+  subclassed in projects together with ``NotitieSerializerMixin`` and ``NotitieViewSetMixin`` to create a notitie
+  endpoint for a specific resource (see :ref:`ref_notities`)
+
+**Bugfixes**
+
+* [#115] Add brackets to scope label to make sure scopes with ``AND`` and ``OR`` operators
+  are shown correctly in OAS
+
+**Maintenance**
+
+* [open-zaak/open-zaak#2114] add optional parameters to ``create_audittrail`` for easier overwrite
+* [#113] Use codecov with token to avoid 429 errors
+
 2.7.0 (2025-07-10)
 ------------------
 

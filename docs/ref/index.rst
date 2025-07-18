@@ -8,6 +8,7 @@ Modules reference
 
    fields
    validators
+   notitie
    filters
    permissions
    exceptions
