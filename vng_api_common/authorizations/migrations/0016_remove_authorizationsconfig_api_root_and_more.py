@@ -38,11 +38,23 @@ def migrate_authorization_config_to_service(apps, _) -> None:
 
 def migrate_authorization_config_to_config(apps, _) -> None:
     AuthorizationsConfig = apps.get_model("authorizations", "AuthorizationsConfig")
+    Service = apps.get_model("zgw_consumers", "Service")
 
     config, _ = AuthorizationsConfig.objects.get_or_create()
-    if config.authorizations_api_service:
-        config.api_root = config.authorizations_api_service.api_root
+
+    service = None
+    if getattr(config, "authorizations_api_service_id", None):
+        service = (
+            Service.objects.filter(pk=config.authorizations_api_service_id)
+            .only("api_root")
+            .first()
+        )
+
+    if service:
+        config.api_root = service.api_root
+
     config.save()
+
 
 
 class Migration(migrations.Migration):
