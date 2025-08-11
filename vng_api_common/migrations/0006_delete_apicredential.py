@@ -82,7 +82,16 @@ def migrate_service_to_credentials(apps, _) -> None:
     APICredential = apps.get_model("vng_api_common", "APICredential")
     Service = apps.get_model("zgw_consumers", "Service")
 
-    services = Service.objects.filter(auth_type=AuthTypes.zgw)
+    services = (
+        Service.objects.filter(auth_type=AuthTypes.zgw)
+        .only(
+            "client_id",
+            "secret",
+            "user_id",
+            "user_representation",
+            "api_root",
+        )
+    )
 
     for service in services:
         logger.info(f"Creating APICredentials for {service.client_id}")
