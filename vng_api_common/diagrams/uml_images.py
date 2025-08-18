@@ -3,8 +3,6 @@ import os
 from docutils import nodes
 from docutils.parsers.rst import Directive
 
-from .generate_graphs import generate_model_graphs
-
 
 class UmlImagesDirective(Directive):
     has_content = False
@@ -38,4 +36,3 @@ class UmlImagesDirective(Directive):
 
 def setup(app):
     app.add_directive("uml_images", UmlImagesDirective)
-    app.connect("builder-inited", generate_model_graphs)

@@ -9,29 +9,35 @@ def generate_model_graphs(
     grouped_apps=None,
     excluded_models=None,
     output_dirname="_static/uml",
+    components_dir=None,
 ):
     """
     Generate UML diagrams for Django models.
 
     :param app: Sphinx app (provides srcdir).
-    :param apps: List of apps to generate diagrams for (if None, auto-detect).
+    :param apps: List of apps to generate diagrams for. If None, will autodetect
+                 inside components_dir.
     :param grouped_apps: Dict of {group_name: [apps]} to generate grouped diagrams.
     :param excluded_models: List of models to exclude.
     :param output_dirname: Subdir (relative to app.srcdir) where UMLs are stored.
+    :param components_dir: Path to Django components (must be provided if apps=None).
     """
     output_dir = os.path.join(app.srcdir, output_dirname)
     os.makedirs(output_dir, exist_ok=True)
 
-    project_root = os.path.abspath(os.path.join(app.srcdir, ".."))
-
-    # autodetect apps if not provided
     if apps is None:
-        components_dir = os.path.join(project_root, "src", "openzaak", "components")
+        if not components_dir:
+            raise ValueError("components_dir must be provided when apps is None")
+
+        if not os.path.isdir(components_dir):
+            raise FileNotFoundError(f"Components dir not found: {components_dir}")
+
         apps = [
             d
             for d in os.listdir(components_dir)
             if os.path.isdir(os.path.join(components_dir, d))
             and os.path.isfile(os.path.join(components_dir, d, "__init__.py"))
+            and d not in excluded_models
         ]
 
     exclude_models_str = ",".join(excluded_models or [])
