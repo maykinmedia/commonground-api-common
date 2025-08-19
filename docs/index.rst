@@ -34,6 +34,7 @@ Features
 
    quickstart
    setup_config
+   docs_helpers/index
    ref/index
    changelog
 
