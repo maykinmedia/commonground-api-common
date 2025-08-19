@@ -1,3 +1,5 @@
+.. _uml_images:
+
 =========================================
 Generating UML diagrams for Django models
 =========================================

@@ -2,6 +2,17 @@
 Change history
 ==============
 
+2.9.0 (2025-08-21)
+------------------
+
+**New features**
+
+* [maykinmedia/open-api-framework#159] Add sphinx directive ``uml_images`` to generate UML images for documentation (see :ref:`uml_images`)
+
+**Maintenance**
+
+* [maykinmedia/open-api-framework#172] Upgrade ``zgw-consumers`` to 1.0.0
+
 2.8.0 (2025-07-18)
 ------------------
 
