@@ -5,11 +5,10 @@ from django.core.management import call_command
 
 def generate_model_graphs(
     app,
-    apps=None,
+    apps,
     grouped_apps=None,
     excluded_models=None,
     output_dirname="_static/uml",
-    components_dir=None,
 ):
     """
     Generate UML diagrams for Django models.
@@ -24,21 +23,6 @@ def generate_model_graphs(
     """
     output_dir = os.path.join(app.srcdir, output_dirname)
     os.makedirs(output_dir, exist_ok=True)
-
-    if apps is None:
-        if not components_dir:
-            raise ValueError("components_dir must be provided when apps is None")
-
-        if not os.path.isdir(components_dir):
-            raise FileNotFoundError(f"Components dir not found: {components_dir}")
-
-        apps = [
-            d
-            for d in os.listdir(components_dir)
-            if os.path.isdir(os.path.join(components_dir, d))
-            and os.path.isfile(os.path.join(components_dir, d, "__init__.py"))
-            and d not in excluded_models
-        ]
 
     exclude_models_str = ",".join(excluded_models or [])
 
