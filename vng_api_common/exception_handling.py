@@ -11,7 +11,14 @@ from rest_framework import exceptions
 from .serializers import FoutSerializer, ValidatieFoutSerializer
 from .utils import underscore_to_camel
 
-logger = logging.getLogger(__name__)
+try:
+    import structlog
+
+    logger = structlog.stdlib.get_logger(__name__)
+except ImportError:
+    import logging
+
+    logger = logging.getLogger(__name__)
 
 ErrorSerializer = FoutSerializer | ValidatieFoutSerializer
 
