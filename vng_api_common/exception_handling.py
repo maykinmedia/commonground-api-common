@@ -1,7 +1,6 @@
 import logging
 import uuid
 from collections import OrderedDict
-from typing import List, Union
 
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
@@ -14,9 +13,7 @@ from .utils import underscore_to_camel
 
 logger = logging.getLogger(__name__)
 
-ErrorSerializer = Union[FoutSerializer, ValidatieFoutSerializer]
-
-STATUS_TO_TITLE = {}  # TODO
+ErrorSerializer = FoutSerializer | ValidatieFoutSerializer
 
 
 def _translate_exceptions(exc):
@@ -73,6 +70,13 @@ class HandledException:
 
         self._exc_id = str(uuid.uuid4())
 
+        try:
+            import structlog  # type: ignore  # noqa
+        except ImportError:
+            pass
+        else:
+            structlog.contextvars.bind_contextvars(exception_id=self._exc_id)
+
     @property
     def _error_detail(self) -> str:
         if isinstance(self.exc, exceptions.ValidationError):
@@ -125,9 +129,7 @@ class HandledException:
         """
         Return the generic message for this type of exception.
         """
-        default_title = getattr(self.exc, "default_detail", str(self._error_detail))
-        title = STATUS_TO_TITLE.get(self.response.status_code, default_title)
-        return title
+        return getattr(self.exc, "default_detail", str(self._error_detail))
 
     @property
     def status(self) -> int:
@@ -142,5 +144,5 @@ class HandledException:
         return f"urn:uuid:{self._exc_id}"
 
     @property
-    def invalid_params(self) -> Union[None, List]:
+    def invalid_params(self) -> None | list:
         return [error for error in get_validation_errors(self.exc.detail)]
