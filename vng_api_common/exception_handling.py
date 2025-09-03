@@ -1,4 +1,3 @@
-import logging
 import uuid
 from collections import OrderedDict
 
@@ -10,15 +9,6 @@ from rest_framework import exceptions
 
 from .serializers import FoutSerializer, ValidatieFoutSerializer
 from .utils import underscore_to_camel
-
-try:
-    import structlog
-
-    logger = structlog.stdlib.get_logger(__name__)
-except ImportError:
-    import logging
-
-    logger = logging.getLogger(__name__)
 
 ErrorSerializer = FoutSerializer | ValidatieFoutSerializer
 
@@ -78,11 +68,12 @@ class HandledException:
         self._exc_id = str(uuid.uuid4())
 
         try:
-            import structlog  # type: ignore  # noqa
+            import structlog
         except ImportError:
-            pass
+            self.logger = None
         else:
             structlog.contextvars.bind_contextvars(exception_id=self._exc_id)
+            self.logger = structlog.stdlib.get_logger(__name__)
 
     @property
     def _error_detail(self) -> str:
@@ -113,7 +104,15 @@ class HandledException:
         return serializer_class(instance=self)
 
     def log(self):
-        logger.exception("Exception %s ocurred", self._exc_id)
+        if self.logger:
+            self.logger.exception(
+                "api_exception_handled",
+                title=self.title,
+                code=self.code,
+                status=self.status,
+                invalid_params=self.invalid_params,
+                exc_info=False,
+            )
 
     @property
     def type(self) -> str:
