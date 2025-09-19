@@ -1,10 +1,12 @@
 from unittest.mock import patch
 
-from django.test import tag
+from django.test import TestCase, tag
 from django.utils.translation import gettext as _
 
+from rest_framework import exceptions
 from rest_framework.test import APIRequestFactory, APITestCase
 
+from vng_api_common.exception_handling import get_validation_errors
 from vng_api_common.views import exception_handler
 
 from .utils import error_views as views
@@ -44,7 +46,7 @@ class ExceptionHandlerTests(APITestCase):
                 "code": "invalid",
                 "title": _("Invalid input."),
                 "status": 400,
-                "detail": "",
+                "detail": _("Invalid input."),
                 "invalid_params": [
                     {
                         "name": "foo",
@@ -187,3 +189,190 @@ class ExceptionHandlerTests(APITestCase):
             raise self.failureException("Exception handler may not crash")
 
         self.assertIsNotNone(result)
+
+
+class ExceptionHandlerMethodsTests(TestCase):
+    def test_perform_detail(self):
+        exception = exceptions.ValidationError("Invalid data.", code="invalid-test")
+        expected = [{"name": "", "code": "invalid-test", "reason": "Invalid data."}]
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+    # get_validation_errors method
+    def test_get_validation_errors_string_value(self):
+        value = "Invalid data."
+        expected = [{"name": "", "code": "invalid", "reason": "Invalid data."}]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+    def test_get_validation_errors_list_value(self):
+        # 1 item
+        value = ["Invalid data."]
+        expected = [{"name": "", "code": "invalid", "reason": "Invalid data."}]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+        # n str items
+        value = ["Invalid data 1.", "Invalid data 2."]
+        expected = [
+            {"name": "", "code": "invalid", "reason": "Invalid data 1."},
+            {"name": "", "code": "invalid", "reason": "Invalid data 2."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+        # n list items
+        value = [["Invalid data 1.", "Test 1."], ["Invalid data 2.", "Test 2."]]
+        expected = [
+            {"name": "", "code": "invalid", "reason": "Invalid data 1."},
+            {"name": "", "code": "invalid", "reason": "Test 1."},
+            {"name": "", "code": "invalid", "reason": "Invalid data 2."},
+            {"name": "", "code": "invalid", "reason": "Test 2."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+    def test_get_validation_errors_dict_value(self):
+        # value: str
+        value = {"foo": "Invalid data."}
+        expected = [
+            {"name": "foo", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+        # value: list(str)
+        value = {"foo": ["Invalid data."]}
+        expected = [
+            {"name": "foo", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+        value = {"foo": ["Invalid data 1.", "Invalid data 2."]}
+        expected = [
+            {"name": "foo", "code": "invalid", "reason": "Invalid data 1."},
+            {"name": "foo", "code": "invalid", "reason": "Invalid data 2."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+        assert result == expected
+
+    def test_get_validation_errors_nested_dict(self):
+        # value: dict
+        value = {"foo": {"test": "Invalid data."}}
+        expected = [
+            {"name": "foo.test", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+        # value: dict(list)
+        value = {"foo": {"test": ["Invalid data."]}}
+        expected = [
+            {"name": "foo.test", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+        # value: dict(dict)
+        value = {"foo": {"test_a": {"test_b": "Invalid data."}}}
+        expected = [
+            {"name": "foo.testA.testB", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+    def test_get_validation_errors_nested_dict_with_list(self):
+        # value: dict(list)
+        value = {"foo": [{"test": "Invalid data."}]}
+        expected = [
+            {"name": "foo.0.test", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+        value = {"foo": [{"test_a": "Invalid data 1."}, {"test_b": "Invalid data 2."}]}
+        expected = [
+            # underscore_to_camel
+            {"name": "foo.0.testA", "code": "invalid", "reason": "Invalid data 1."},
+            {"name": "foo.1.testB", "code": "invalid", "reason": "Invalid data 2."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+    def test_get_validation_errors_nested_list(self):
+        # value: list(dict)
+        value = [{"test": "Invalid data."}]
+        expected = [
+            {"name": "test", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+        value = [{"test_a": "Invalid data 1.", "test_b": "Invalid data 2."}]
+        expected = [
+            {"name": "testA", "code": "invalid", "reason": "Invalid data 1."},
+            {"name": "testB", "code": "invalid", "reason": "Invalid data 2."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+        value = [{"test_a": "Invalid data 1."}, {"test_b": "Invalid data 2."}]
+        expected = [
+            {"name": "testA", "code": "invalid", "reason": "Invalid data 1."},
+            {"name": "testB", "code": "invalid", "reason": "Invalid data 2."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+    def test_get_validation_errors_nested_list_with_dict(self):
+        # value: list(dict(list))
+        value = [{"foo": [{"test": "Invalid data."}]}]
+        expected = [
+            {"name": "foo.0.test", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+        value = [{"foo": [{"test": ["Invalid data."]}]}]
+        expected = [
+            {"name": "foo.0.test", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
+
+        value = [{"foo": [{"test": {"test_a": "Invalid data."}}]}]
+        expected = [
+            {"name": "foo.0.test.testA", "code": "invalid", "reason": "Invalid data."},
+        ]
+        exception = exceptions.ValidationError(value)
+        result = [e for e in get_validation_errors(exception.detail)]
+
+        assert result == expected
