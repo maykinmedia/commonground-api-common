@@ -145,7 +145,7 @@ class HandledException:
     def log(self):
         if self.logger:
             self.logger.exception(
-                "api_exception_handled",
+                "api.handled_exception",
                 title=self.title,
                 code=self.code,
                 status=self.status,

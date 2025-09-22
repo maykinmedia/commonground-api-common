@@ -1,4 +1,3 @@
-import logging
 import os
 from collections import OrderedDict
 from typing import Optional
@@ -24,9 +23,19 @@ from .exception_handling import HandledException
 from .scopes import SCOPE_REGISTRY
 from .utils import get_domain
 
-logger = logging.getLogger(__name__)
-
 ERROR_CONTENT_TYPE = "application/problem+json"
+
+try:
+    import structlog
+except ImportError:
+    structlog = None
+
+if structlog:
+    logger = structlog.stdlib.get_logger(__name__)
+else:
+    import logging
+
+    logger = logging.getLogger(__name__)
 
 
 def exception_handler(exc, context):
@@ -38,7 +47,10 @@ def exception_handler(exc, context):
         if os.getenv("DEBUG", "").lower() in ["yes", "1", "true"]:
             return None
 
-        logger.exception(exc.args[0], exc_info=1)
+        if structlog:
+            logger.exception("api.uncaught_exception", message=str(exc), exc_info=True)
+        else:
+            logger.exception(exc.args[0], exc_info=1)
         # make sure the exception still ends up in Sentry
         sentry_client.captureException()
 
