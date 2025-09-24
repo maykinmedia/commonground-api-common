@@ -2,6 +2,13 @@
 Change history
 ==============
 
+2.10.0 (2025-09-24)
+-------------------
+
+**New features**
+
+* [maykinmedia/open-api-framework#175] Add exception error logger event with ``code``, ``status`` and ``invalidParams`` message
+
 2.9.0 (2025-08-21)
 ------------------
 
