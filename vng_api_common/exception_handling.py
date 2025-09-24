@@ -1,22 +1,22 @@
-import logging
 import uuid
 from collections import OrderedDict
-from typing import List, Union
+from typing import Any, Dict, Generator, List, Union
 
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 from rest_framework import exceptions
 
 from .serializers import FoutSerializer, ValidatieFoutSerializer
 from .utils import underscore_to_camel
 
-logger = logging.getLogger(__name__)
+ErrorSerializer = FoutSerializer | ValidatieFoutSerializer
 
-ErrorSerializer = Union[FoutSerializer, ValidatieFoutSerializer]
-
-STATUS_TO_TITLE = {}  # TODO
+DEFAULT_CODE = "invalid"
+DEFAULT_DETAIL = _("Invalid input.")
+DEFAULT_STATUS = 400
 
 
 def _translate_exceptions(exc):
@@ -28,40 +28,69 @@ def _translate_exceptions(exc):
     return exc
 
 
-def get_validation_errors(validation_errors: dict):
-    for field_name, error_list in validation_errors.items():
-        # nested validation for fields where many=True
-        if isinstance(error_list, list):
-            for i, nested_error_dict in enumerate(error_list):
-                if isinstance(nested_error_dict, dict):
-                    for err in get_validation_errors(nested_error_dict):
-                        err["name"] = (
-                            f"{underscore_to_camel(field_name)}.{i}.{err['name']}"
-                        )
-                        yield err
+def perform_list(
+    errors: List[Any], field_name: str = ""
+) -> Generator[OrderedDict, None, None]:
+    """
+    Handle the case when `errors` is a list.
+    - Each item can be a dict, an ErrorDetail, or another nested structure.
+    - Adds the index (e.g., `foo.0.bar`) to the error path.
+    """
+    for i, nested_error in enumerate(errors):
+        for err in get_validation_errors(nested_error):
+            if field_name:
+                prefix = underscore_to_camel(field_name)
+                err["name"] = (
+                    f"{prefix}.{i}.{err['name']}" if err["name"] else f"{prefix}"
+                )
+            yield err
 
-        # nested validation - recursively call the function
-        if isinstance(error_list, dict):
-            for err in get_validation_errors(error_list):
-                err["name"] = f"{underscore_to_camel(field_name)}.{err['name']}"
-                yield err
-            continue
 
-        if isinstance(error_list, exceptions.ErrorDetail):
-            error_list = [error_list]
+def perform_dict(
+    errors: Dict[str, Any], field_name: str = ""
+) -> Generator[OrderedDict, None, None]:
+    """
+    Handle the case when `errors` is a dictionary.
+    - Each key represents a field, and each value represents sub-errors.
+    - Propagates the parent field name (e.g., `parent.child`).
+    """
+    for sub_field, sub_errors in errors.items():
+        for err in get_validation_errors(sub_errors, field_name=sub_field):
+            prefix = underscore_to_camel(field_name)
+            err["name"] = f"{prefix}.{err['name']}" if prefix else err["name"]
+            yield err
 
-        for error in error_list:
-            if isinstance(error, dict):
-                continue
-            yield OrderedDict(
-                [
-                    # see https://tools.ietf.org/html/rfc7807#section-3.1
-                    # ('type', 'about:blank'),
-                    ("name", underscore_to_camel(field_name)),
-                    ("code", error.code),
-                    ("reason", str(error)),
-                ]
-            )
+
+def perform_detail(
+    error: exceptions.ErrorDetail, field_name: str = ""
+) -> Generator[OrderedDict, None, None]:
+    """
+    Handle the base case: a single ErrorDetail.
+    - Returns an OrderedDict with keys: name, code, reason.
+    """
+    yield OrderedDict(
+        [
+            ("name", underscore_to_camel(field_name)),
+            ("code", error.code),
+            ("reason", str(error)),
+        ]
+    )
+
+
+def get_validation_errors(
+    errors: Union[List[Any], Dict[str, Any], exceptions.ErrorDetail, str],
+    field_name: str = "",
+) -> Generator[OrderedDict, None, None]:
+    """
+    Recursively flatten a `ValidationError.detail` structure
+    into a uniform list of error objects.
+    """
+    if isinstance(errors, list):
+        yield from perform_list(errors, field_name)
+    elif isinstance(errors, dict):
+        yield from perform_dict(errors, field_name)
+    elif isinstance(errors, exceptions.ErrorDetail):
+        yield from perform_detail(errors, field_name)
 
 
 class HandledException:
@@ -72,6 +101,18 @@ class HandledException:
         self.request = request
 
         self._exc_id = str(uuid.uuid4())
+
+        try:
+            import structlog
+        except ImportError:
+            self.logger = None
+        else:
+            structlog.contextvars.bind_contextvars(exception_id=self._exc_id)
+            self.logger = structlog.stdlib.get_logger(__name__)
+
+    @property
+    def is_drf_exception(self):
+        return isinstance(self.exc, exceptions.ValidationError)
 
     @property
     def _error_detail(self) -> str:
@@ -102,7 +143,15 @@ class HandledException:
         return serializer_class(instance=self)
 
     def log(self):
-        logger.exception("Exception %s ocurred", self._exc_id)
+        if self.logger:
+            self.logger.exception(
+                "api.handled_exception",
+                title=self.title,
+                code=self.code,
+                status=self.status,
+                invalid_params=self.invalid_params,
+                exc_info=False,
+            )
 
     @property
     def type(self) -> str:
@@ -116,25 +165,33 @@ class HandledException:
 
     @property
     def code(self) -> str:
-        if isinstance(self.exc, exceptions.ValidationError):
-            return self.exc.default_code
+        """
+        Return the generic code for this type of exception.
+        """
+        if self.is_drf_exception:
+            return getattr(self.exc, "default_code", DEFAULT_CODE)
         return self._error_detail.code if self._error_detail else ""
 
     @property
     def title(self) -> str:
         """
-        Return the generic message for this type of exception.
+        Return the generic title for this type of exception.
         """
-        default_title = getattr(self.exc, "default_detail", str(self._error_detail))
-        title = STATUS_TO_TITLE.get(self.response.status_code, default_title)
-        return title
+        if self.is_drf_exception:
+            return self.detail
+        return getattr(self.exc, "default_detail", str(self._error_detail))
 
     @property
     def status(self) -> int:
-        return self.response.status_code
+        return getattr(self.response, "status_code", DEFAULT_STATUS)
 
     @property
     def detail(self) -> str:
+        """
+        Return the generic detail for this type of exception.
+        """
+        if self.is_drf_exception:
+            return getattr(self.exc, "default_detail", DEFAULT_DETAIL)
         return str(self._error_detail)
 
     @property
@@ -142,5 +199,5 @@ class HandledException:
         return f"urn:uuid:{self._exc_id}"
 
     @property
-    def invalid_params(self) -> Union[None, List]:
+    def invalid_params(self) -> None | list:
         return [error for error in get_validation_errors(self.exc.detail)]
