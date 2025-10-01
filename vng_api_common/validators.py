@@ -72,7 +72,10 @@ def validate_rsin(value: str) -> None:
     """
 
     validator = BaseIdentifierValidator(value, validate_11proef=True)
-    validator.error_messages["11proefnumber"] = _("Onjuist RSIN nummer")
+    validator.error_messages = {
+        **validator.error_messages,
+        "11proefnumber": _("Onjuist RSIN nummer"),
+    }
     validator.validate()
 
 
@@ -84,7 +87,10 @@ def validate_bsn(value: str) -> None:
     :param value: String object representing a presumably good BSN number.
     """
     validator = BaseIdentifierValidator(value, validate_11proef=True)
-    validator.error_messages["11proefnumber"] = _("Onjuist BSN nummer")
+    validator.error_messages = {
+        **validator.error_messages,
+        "11proefnumber": _("Onjuist BSN nummer"),
+    }
     validator.validate()
 
 
