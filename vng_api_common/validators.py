@@ -13,7 +13,6 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers, validators
 
-from .constants import BSN_LENGTH, RSIN_LENGTH
 from .oas import fetcher, obj_has_shape
 
 logger = logging.getLogger(__name__)
@@ -30,33 +29,21 @@ class BaseIdentifierValidator:
 
     error_messages = {
         "isdigit": _("Voer een numerieke waarde in"),
-        "length": _("Waarde moet %(identifier_length)s tekens lang zijn"),
         "11proefnumber": _("Ongeldige code"),
     }
 
     def __init__(
         self,
         value: str,
-        identifier_length: int,
         validate_11proef: bool = False,
     ):
         self.value = value
-        self.identifier_length = identifier_length
         self.validate_11proef = validate_11proef
 
     def validate_isdigit(self) -> None:
         """Validates that the value contains only digits."""
         if not self.value.isdigit():
             raise ValidationError(self.error_messages["isdigit"], code="only-digits")
-
-    def validate_length(self) -> None:
-        """Validates that the length of the value is within the allowed sizes."""
-        if len(self.value) != self.identifier_length:
-            raise ValidationError(
-                self.error_messages["length"]
-                % {"identifier_length": self.identifier_length},
-                code="invalid-length",
-            )
 
     def validate_11proefnumber(self) -> None:
         """Validates the value based on the 11-proof check."""
@@ -72,7 +59,6 @@ class BaseIdentifierValidator:
 
     def validate(self) -> None:
         self.validate_isdigit()
-        self.validate_length()
         if self.validate_11proef:
             self.validate_11proefnumber()
 
@@ -85,9 +71,7 @@ def validate_rsin(value: str) -> None:
     :param value: String object representing a presumably good RSIN number.
     """
 
-    validator = BaseIdentifierValidator(
-        value, identifier_length=RSIN_LENGTH, validate_11proef=True
-    )
+    validator = BaseIdentifierValidator(value, validate_11proef=True)
     validator.error_messages["11proefnumber"] = _("Onjuist RSIN nummer")
     validator.validate()
 
@@ -99,9 +83,7 @@ def validate_bsn(value: str) -> None:
 
     :param value: String object representing a presumably good BSN number.
     """
-    validator = BaseIdentifierValidator(
-        value, identifier_length=BSN_LENGTH, validate_11proef=True
-    )
+    validator = BaseIdentifierValidator(value, validate_11proef=True)
     validator.error_messages["11proefnumber"] = _("Onjuist BSN nummer")
     validator.validate()
 

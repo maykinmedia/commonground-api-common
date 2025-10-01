@@ -1,0 +1,26 @@
+import pytest
+from django.core.exceptions import ValidationError
+
+from testapp.models import Medewerker
+
+def test_bsn_lenght():
+
+    with pytest.raises(ValidationError):
+        Medewerker(bsn="11122233").full_clean()
+
+    with pytest.raises(ValidationError):
+        Medewerker(bsn="1112223333").full_clean()
+
+
+    Medewerker(bsn="111222333")
+
+def test_rsin_lenght():
+
+    with pytest.raises(ValidationError):
+        Medewerker(rsin="11122233").full_clean()
+
+    with pytest.raises(ValidationError):
+        Medewerker(rsin="1112223333").full_clean()
+
+
+    Medewerker(rsin="111222333")

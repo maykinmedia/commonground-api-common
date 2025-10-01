@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from vng_api_common.caching import ETagMixin
 from vng_api_common.descriptors import GegevensGroepType
+from vng_api_common.fields import BSNField, RSINField
 from vng_api_common.notes.models import NotitieBaseClass
 
 
@@ -86,3 +87,8 @@ class Notitie(NotitieBaseClass):
     class Meta:
         verbose_name = "notitie"
         verbose_name_plural = "notities"
+
+
+class Medewerker(models.Model):
+    bsn = BSNField(blank=True, null=True)
+    rsin = RSINField(blank=True, null=True)
