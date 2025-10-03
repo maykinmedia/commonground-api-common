@@ -2,6 +2,13 @@
 Change history
 ==============
 
+2.10.1 (2025-10-03)
+-------------------
+
+**Bugfixes**
+
+* Do not log uncaught exceptions as ``api.handled_exception``
+
 2.10.0 (2025-09-24)
 -------------------
 
