@@ -1,7 +1,11 @@
 from datetime import timedelta
 
 from django.core import checks
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import (
+    MaxValueValidator,
+    MinLengthValidator,
+    MinValueValidator,
+)
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
@@ -14,7 +18,7 @@ LANGUAGE_CHOICES = tuple([(lg.pt2b, lg.name) for lg in iter_langs() if lg.pt2b])
 
 
 class RSINField(models.CharField):
-    default_validators = [validate_rsin]
+    default_validators = [validate_rsin, MinLengthValidator(RSIN_LENGTH)]
     description = _("RSIN")
 
     def __init__(self, *args, **kwargs):
@@ -39,7 +43,7 @@ class RSINField(models.CharField):
 
 
 class BSNField(models.CharField):
-    default_validators = [validate_bsn]
+    default_validators = [validate_bsn, MinLengthValidator(BSN_LENGTH)]
     description = _("BSN")
 
     def __init__(self, *args, **kwargs):
