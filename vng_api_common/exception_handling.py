@@ -143,7 +143,7 @@ class HandledException:
         return serializer_class(instance=self)
 
     def log(self):
-        if self.logger:
+        if self.logger and self.response.status_code < 500:
             self.logger.exception(
                 "api.handled_exception",
                 title=self.title,
