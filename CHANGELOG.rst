@@ -2,6 +2,12 @@
 Change history
 ==============
 
+2.10.2 (2025-10-13)
+-------------------
+
+* [#127] Add ``MinLengthValidator`` to RSIN & BSN fields and remove length check from BaseIdentifierValidator,
+  to make sure that the length for these fields in API schemas is 9
+
 2.10.1 (2025-10-03)
 -------------------
 
