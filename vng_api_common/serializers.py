@@ -27,6 +27,10 @@ except ImportError:
         parse_relativedelta = None
 
 
+def field_allows_empty_values(field: fields.Field) -> bool:
+    return field.allow_null or getattr(field, "allow_blank", False)
+
+
 class DurationField(fields.DurationField):
     def to_internal_value(self, value):
         if isinstance(value, relativedelta):
@@ -195,7 +199,7 @@ class GegevensGroepSerializer(
 
         return (is_empty_value, data)
 
-    def to_representation(self, instance) -> dict:
+    def to_representation(self, instance) -> dict | None:
         """
         Output the result of accessing the descriptor.
         """
@@ -208,6 +212,18 @@ class GegevensGroepSerializer(
                 ret[field.field_name] = None
             else:
                 ret[field.field_name] = field.to_representation(attribute)
+
+        if self.allow_null:
+            fields_disallow_empty = not all(
+                field_allows_empty_values(field) for field in self.fields.values()
+            )
+            all_values_empty = all(v in ("", None) for v in ret.values())
+
+            # If the gegevensgroep is empty, but there are fields that do not allow
+            # empty values, the only way for the serialized object to be valid according
+            # to the OAS is if the entire gegevensgroep is serialized as `null`
+            if fields_disallow_empty and all_values_empty:
+                return None
 
         return ret
 
