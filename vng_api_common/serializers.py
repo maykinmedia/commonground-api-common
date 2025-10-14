@@ -119,10 +119,16 @@ class GegevensGroepSerializerMetaclass(serializers.SerializerMetaclass):
             for field_name, model_field in gegevensgroep.mapping.items():
                 Meta.fields.append(field_name)
 
+                allow_blank = model_field.blank
+                # For fields with choices, we do not allow empty strings unless the
+                # field is marked as optional
+                if model_field.choices:
+                    allow_blank = field_name in gegevensgroep.optional
+
                 default_extra_kwargs = {
                     "required": field_name not in gegevensgroep.optional,
                     "allow_null": False,
-                    "allow_blank": field_name in gegevensgroep.optional,
+                    "allow_blank": allow_blank,
                 }
 
                 if model_field.name != field_name:
