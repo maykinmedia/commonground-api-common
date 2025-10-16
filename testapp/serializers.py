@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework_gis.fields import GeometryField
 
 from testapp.models import (
+    FkModel,
     GeometryModel,
     Group,
     Hobby,
@@ -56,10 +57,19 @@ class PersonSerializer(serializers.ModelSerializer):
 
 class PersonSerializer2(serializers.ModelSerializer):
     address = AddressSerializer(allow_null=True, required=False)
+    address_not_null = AddressSerializer(
+        allow_null=False, source="address", required=False
+    )
 
     class Meta:
         model = Person
-        fields = ("address", "name")
+        fields = ("address", "address_not_null", "name")
+
+
+class SubgroupSerializer(GegevensGroepSerializer):
+    class Meta:
+        model = Group
+        gegevensgroep = "subgroup"
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -131,3 +141,39 @@ class PolySerializer(PolymorphicSerializer):
 class NotitieSerializer(NotitieSerializerMixin, serializers.ModelSerializer):
     class Meta(NotitieSerializerMixin.Meta):
         model = Notitie
+
+
+class FkModelGegevensGroepSerializer(GegevensGroepSerializer):
+    class Meta:
+        model = FkModel
+        gegevensgroep = "gegevensgroep"
+
+
+class FkModelOptionalGegevensGroepSerializer(GegevensGroepSerializer):
+    class Meta:
+        model = FkModel
+        gegevensgroep = "gegevensgroep_optional"
+
+
+class FkModelAllowBlankGegevensGroepSerializer(GegevensGroepSerializer):
+    class Meta:
+        model = FkModel
+        gegevensgroep = "gegevensgroep_allow_blank"
+
+
+class FkModelSerializer(serializers.ModelSerializer):
+    gegevensgroep = FkModelGegevensGroepSerializer(allow_null=True, required=False)
+    gegevensgroep_optional = FkModelOptionalGegevensGroepSerializer(
+        allow_null=True, required=False
+    )
+    gegevensgroep_allow_blank = FkModelAllowBlankGegevensGroepSerializer(
+        allow_null=True, required=False
+    )
+
+    class Meta:
+        model = FkModel
+        fields = (
+            "gegevensgroep",
+            "gegevensgroep_optional",
+            "gegevensgroep_allow_blank",
+        )

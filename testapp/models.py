@@ -64,6 +64,27 @@ class FkModel(models.Model):
         on_delete=models.deletion.CASCADE,
         to=Poly,
     )
+    attribute1 = models.CharField(
+        _("attribute1"), max_length=100, blank=True, help_text="charfield"
+    )
+    attribute2 = models.CharField(
+        _("attribute2"),
+        choices=[("op1", "Option 1"), ("op2", "Option 2")],
+        blank=True,
+        help_text="choicefield",
+    )
+
+    gegevensgroep = GegevensGroepType(
+        {"attribute1": attribute1, "attribute2": attribute2},
+    )
+    gegevensgroep_optional = GegevensGroepType(
+        {"attribute1": attribute1, "attribute2": attribute2},
+        optional=(
+            "attribute1",
+            "attribute2",
+        ),
+    )
+    gegevensgroep_allow_blank = GegevensGroepType({"attribute1": attribute1})
 
 
 class MediaFileModel(models.Model):
