@@ -2,6 +2,16 @@
 Change history
 ==============
 
+2.10.3 (2025-10-16)
+-------------------
+
+**Bugfixes**
+
+* [open-zaak/open-zaak#1878] Properly derive allow_blank for gegevensgroep fields
+  by taking the value from model_field.blank, instead of whether the field is required or not
+* [open-zaak/open-zaak#1878] Serialize gegevensgroep as null if all values are empty,
+  if null is allowed and if some fields do not allow empty values
+
 2.10.2 (2025-10-13)
 -------------------
 
