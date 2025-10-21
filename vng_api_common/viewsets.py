@@ -9,6 +9,8 @@ from rest_framework_nested.viewsets import NestedViewSetMixin  # noqa
 from .filters_backend import Backend
 from .utils import underscore_to_camel
 
+UNKNOWN_PARAMETERS_CODE = "unknown-parameters"
+
 
 class CheckQueryParamsMixin:
     def _check_query_params(self, request) -> None:
@@ -27,7 +29,7 @@ class CheckQueryParamsMixin:
         known_params = set()
         if filterset_class:
             # build a list of known params from the filters
-            filters = filterset_class().get_filters().keys()
+            filters = filterset_class.get_filters().keys()
             known_params = {underscore_to_camel(param) for param in filters}
 
         # add the pagination params to the known params
@@ -50,9 +52,14 @@ class CheckQueryParamsMixin:
         if unknown_params:
             msg = _("Onbekende query parameters: %s" % ", ".join(unknown_params))
             raise ValidationError(
-                {api_settings.NON_FIELD_ERRORS_KEY: msg}, code="unknown-parameters"
+                {api_settings.NON_FIELD_ERRORS_KEY: msg},
+                code=UNKNOWN_PARAMETERS_CODE,
             )
 
     def list(self, request, *args, **kwargs):
         self._check_query_params(request)
         return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        self._check_query_params(request)
+        return super().retrieve(request, *args, **kwargs)
