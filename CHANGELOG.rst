@@ -2,6 +2,11 @@
 Change history
 ==============
 
+2.10.4 (2025-10-21)
+-------------------
+
+* [maykinmedia/open-klant#250] Extend detail view to validate query parameters
+
 2.10.3 (2025-10-16)
 -------------------
 
