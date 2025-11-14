@@ -2,6 +2,11 @@
 Change history
 ==============
 
+2.10.5 (2025-11-14)
+-------------------
+
+* [#134] Ensure exceptions raised in API endpoints are forwarded to Sentry
+
 2.10.4 (2025-10-21)
 -------------------
 
