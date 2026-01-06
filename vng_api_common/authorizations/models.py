@@ -93,6 +93,11 @@ class Applicatie(APIMixin, models.Model):
 
     objects = ApplicatieManager()
 
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = _("applicatie")
+        verbose_name_plural = _("applicaties")
+
     def natural_key(self):
         return (str(self.uuid),)
 
@@ -159,6 +164,11 @@ class Autorisatie(APIMixin, models.Model):
     )
 
     objects = AutorisatieManager()
+
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = _("autorisatie")
+        verbose_name_plural = _("autorisaties")
 
     def natural_key(self):
         return (

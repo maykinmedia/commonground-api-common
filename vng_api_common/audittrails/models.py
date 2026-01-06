@@ -94,6 +94,7 @@ class AuditTrail(models.Model):
     )
 
     class Meta:
+        ordering = ["pk"]
         indexes = [
             GinIndex(
                 fields=["hoofd_object"],

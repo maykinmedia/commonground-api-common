@@ -56,6 +56,7 @@ class JWTSecret(models.Model):
         return (self.identifier,)
 
     class Meta:
+        ordering = ["pk"]
         verbose_name = _("client credential")
         verbose_name_plural = _("client credentials")
 
