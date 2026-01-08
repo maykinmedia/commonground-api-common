@@ -2,6 +2,13 @@
 Change history
 ==============
 
+2.10.6 (2026-01-08)
+-------------------
+
+* [open-zaak/open-zaak#2278] Add explicit ordering on pk for models to avoid inconsistent ordering in tests
+* [open-zaak/open-zaak#2261] Mark afleidingswijze ``gerelateerde_zaak`` as deprecated
+  (also experimental, because this is a deviation from the VNG Catalogi API spec)
+
 2.10.5 (2025-11-14)
 -------------------
 
