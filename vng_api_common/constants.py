@@ -129,7 +129,10 @@ class BrondatumArchiefprocedureAfleidingswijze(TextChoicesWithDescriptions):
     afgehandeld = "afgehandeld", _("Afgehandeld")
     ander_datumkenmerk = "ander_datumkenmerk", _("Ander datumkenmerk")
     eigenschap = "eigenschap", _("Eigenschap")
-    gerelateerde_zaak = "gerelateerde_zaak", _("Gerelateerde zaak")
+    gerelateerde_zaak = (
+        "gerelateerde_zaak",
+        _("**EXPERIMENTEEL DEPRECATED**: Gerelateerde zaak"),
+    )
     hoofdzaak = "hoofdzaak", _("Hoofdzaak")
     ingangsdatum_besluit = "ingangsdatum_besluit", _("Ingangsdatum besluit")
     termijn = "termijn", _("Termijn")
