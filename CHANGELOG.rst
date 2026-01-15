@@ -2,6 +2,11 @@
 Change history
 ==============
 
+2.10.7 (2026-01-15)
+-------------------
+
+* [maykinmedia/open-api-framework#197] Make sure the maximum ``pageSize`` for pagination is documented in the OAS
+
 2.10.6 (2026-01-08)
 -------------------
 
