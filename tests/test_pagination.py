@@ -43,5 +43,5 @@ def test_page_size_query_description_property():
     pagination = DummyPagination()
     assert (
         pagination.page_size_query_description
-        == "Het aantal resultaten terug te geven per pagina. (default: 42)."
+        == "Het aantal resultaten terug te geven per pagina. (default: 42, maximum: 500)."
     )
