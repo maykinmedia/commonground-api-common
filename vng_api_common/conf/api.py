@@ -45,7 +45,7 @@ BASE_REST_FRAMEWORK = {
     "VERSION_PARAM": "version",
     #
     # # Exception handling
-    "EXCEPTION_HANDLER": "vng_api_common.views.exception_handler",
+    "EXCEPTION_HANDLER": "vng_api_common.exception_handling.exception_handler",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 BASE_SPECTACULAR_SETTINGS = {

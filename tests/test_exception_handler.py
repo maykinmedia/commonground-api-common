@@ -5,13 +5,19 @@ from django.test import TestCase, tag
 from django.utils.translation import gettext as _
 
 import sentry_sdk
-from rest_framework import exceptions
+from rest_framework import exceptions, status
+from rest_framework.exceptions import APIException, ErrorDetail
+from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory, APITestCase
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.transport import Transport
 
-from vng_api_common.exception_handling import get_validation_errors
-from vng_api_common.views import exception_handler
+from vng_api_common.exception_handling import (
+    EXCEPTION_HANDLER_REGISTRY,
+    exception_handler,
+    get_validation_errors,
+    register_exception_handler,
+)
 
 from .utils import error_views as views
 
@@ -35,6 +41,14 @@ class ExceptionHandlerTests(APITestCase):
 
     maxDiff = None
     factory = APIRequestFactory()
+
+    def setUp(self):
+        super().setUp()
+        EXCEPTION_HANDLER_REGISTRY.clear()
+
+    def tearDown(self):
+        super().tearDown()
+        EXCEPTION_HANDLER_REGISTRY.clear()
 
     def assertErrorResponse(self, view, expected_data: dict):
         _view = view.as_view()
@@ -236,6 +250,35 @@ class ExceptionHandlerTests(APITestCase):
         assert event.items[0].payload.json["level"] == "error"
         exception = event.items[0].payload.json["exception"]["values"][-1]
         assert exception["value"] == "Something went wrong"
+
+    def test_custom_exception_handler_registry_is_used(self):
+        class CustomLocked(APIException):
+            status_code = 409
+            default_detail = "Resource is locked"
+            default_code = "resource_locked"
+
+        def custom_handler(exc, context):
+            exc.detail = ErrorDetail(
+                "Handled by custom registry",
+                code="custom_locked",
+            )
+            return Response(
+                {"detail": exc.detail},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        register_exception_handler(CustomLocked, custom_handler)
+
+        request = self.factory.get("/some/url")
+        response = exception_handler(CustomLocked(), {"request": request})
+
+        assert response is not None
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["detail"], "Handled by custom registry")
+
+        self.assertIn("type", response.data)
+        self.assertIn("status", response.data)
 
 
 class ExceptionHandlerMethodsTests(TestCase):

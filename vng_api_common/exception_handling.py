@@ -1,22 +1,44 @@
 import uuid
 from collections import OrderedDict
-from typing import Any, Dict, Generator, List, Union
+from typing import Any, Callable, Dict, Generator, List, Type, Union
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework import exceptions
+import sentry_sdk
+from rest_framework import exceptions, exceptions as drf_exceptions, status
+from rest_framework.response import Response
+from rest_framework.views import exception_handler as drf_exception_handler
 
 from .serializers import FoutSerializer, ValidatieFoutSerializer
 from .utils import underscore_to_camel
+
+ERROR_CONTENT_TYPE = "application/problem+json"
+ExceptionHandler = Callable[[Exception, dict[str, object]], Response]
+
+EXCEPTION_HANDLER_REGISTRY: Dict[Type[Exception], ExceptionHandler] = {}
 
 ErrorSerializer = FoutSerializer | ValidatieFoutSerializer
 
 DEFAULT_CODE = "invalid"
 DEFAULT_DETAIL = _("Invalid input.")
 DEFAULT_STATUS = 400
+
+
+try:
+    import structlog
+except ImportError:
+    structlog = None
+
+if structlog:
+    logger = structlog.stdlib.get_logger(__name__)
+else:
+    import logging
+
+    logger = logging.getLogger(__name__)
 
 
 def _translate_exceptions(exc):
@@ -122,7 +144,7 @@ class HandledException:
             return data.get("detail", "")
         # any other exception -> return the raw ErrorDetails object so we get
         # access to the code later
-        return self.exc.detail
+        return getattr(self.exc, "detail", str(self.exc))
 
     @classmethod
     def as_serializer(
@@ -170,7 +192,11 @@ class HandledException:
         """
         if self.is_drf_exception:
             return getattr(self.exc, "default_code", DEFAULT_CODE)
-        return self._error_detail.code if self._error_detail else ""
+        detail = self._error_detail
+        if hasattr(detail, "code"):
+            return detail.code
+
+        return getattr(self.exc, "default_code", "error")
 
     @property
     def title(self) -> str:
@@ -201,3 +227,126 @@ class HandledException:
     @property
     def invalid_params(self) -> None | list:
         return [error for error in get_validation_errors(self.exc.detail)]
+
+
+def register_exception_handler(
+    exc_type: Type[Exception],
+    handler: ExceptionHandler,
+) -> None:
+    """
+    Register a custom exception handler.
+
+    Projects using ``commonground-api-common`` may want to customize the error
+    response for specific domain exceptions without duplicating the full
+    :func:`exception_handler` implementation.
+
+    This function allows registering a handler for a specific exception type.
+
+    The handler:
+
+    * receives the raised exception and the DRF exception context
+    * must return a DRF ``Response``
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        from rest_framework import status
+        from rest_framework.response import Response
+        from rest_framework.exceptions import ErrorDetail
+
+        from vng_api_common.exception_handling import register_exception_handler
+
+
+        class ZaakLockedError(Exception):
+            status_code = 409
+            default_detail = "Zaak is locked"
+            default_code = "zaak_locked"
+
+
+        def zaak_locked_handler(exc, context):
+            exc.detail = ErrorDetail(
+                "Zaak is locked and cannot be updated",
+                code="zaak_locked",
+            )
+            return Response(
+                {"detail": exc.detail},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
+        register_exception_handler(ZaakLockedError, zaak_locked_handler)
+
+    Notes
+    -----
+
+    * Handlers are matched using ``isinstance`` so subclasses are supported.
+    * Responses are still finalized into the DSO-compliant problem format.
+    """
+    EXCEPTION_HANDLER_REGISTRY[exc_type] = handler
+
+
+def get_custom_exception_response(
+    exc: Exception, context: dict[str, object]
+) -> Response | None:
+    for exc_type, handler in EXCEPTION_HANDLER_REGISTRY.items():
+        if isinstance(exc, exc_type):
+            return handler(exc, context)
+    return None
+
+
+def finalize_response(
+    exc: Exception, response: Response, context: dict[str, object]
+) -> Response:
+    request = context.get("request")
+
+    serializer = HandledException.as_serializer(exc, response, request)
+    response.data = OrderedDict(serializer.data.items())
+    response["Content-Type"] = ERROR_CONTENT_TYPE
+    return response
+
+
+def exception_handler(exc: Exception, context: dict[str, object]) -> Response | None:
+    """
+    Transform 4xx and 5xx errors into DSO-compliant Problem JSON shape.
+
+    Supports project-level custom exception handlers via the registry.
+    """
+    response = get_custom_exception_response(exc, context)
+
+    if response is None:
+        response = drf_exception_handler(exc, context)
+
+    if response is None:
+        if settings.DEBUG:
+            return None
+
+        if structlog:
+            logger.exception(
+                "api.uncaught_exception",
+                exc_info=True,
+            )
+        else:
+            logger.exception(str(exc), exc_info=True)
+
+        sentry_sdk.capture_exception(exc)
+
+        exc = drf_exceptions.APIException("Internal Server Error")
+        response = Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif response.status_code >= 500:
+        if settings.DEBUG:
+            return None
+
+        if structlog:
+            logger.exception(
+                "api.handled_server_exception",
+                exc_info=True,
+            )
+        else:
+            logger.exception(str(exc), exc_info=True)
+
+        sentry_sdk.capture_exception(exc)
+
+    return finalize_response(exc, response, context)
