@@ -23,3 +23,4 @@ Modules reference
    oas
    utils
    testing
+   exception_handlers
