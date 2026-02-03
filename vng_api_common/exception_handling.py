@@ -311,6 +311,17 @@ def exception_handler(exc: Exception, context: dict[str, object]) -> Response | 
     """
     Transform 4xx and 5xx errors into DSO-compliant Problem JSON shape.
 
+    This exception handler can be enabled by either using the ``BASE_REST_FRAMEWORK``
+    settings from ``vng_api_common.api`` or by explicitly setting:
+
+    .. code-block:: python
+
+        REST_FRAMEWORK = {
+            ...
+            "EXCEPTION_HANDLER": "vng_api_common.exception_handling.exception_handler",
+            ...
+        }
+
     Supports project-level custom exception handlers via the registry.
     """
     response = get_custom_exception_response(exc, context)

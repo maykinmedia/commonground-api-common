@@ -9,4 +9,4 @@ Projects can register custom exception handlers using the exception handler
 registry.
 
 .. automodule:: vng_api_common.exception_handling
-    :members: register_exception_handler
+    :members: exception_handler, register_exception_handler
