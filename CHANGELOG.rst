@@ -2,6 +2,13 @@
 Change history
 ==============
 
+2.11.0 (2026-02-10)
+-------------------
+
+* [#142] Add pluggable exception handler registry to allow projects
+  to register custom exception-to-response mappings without duplicating the global
+  DRF exception handler (see :ref:`ref_exception_handlers`).
+
 2.10.7 (2026-01-15)
 -------------------
 
