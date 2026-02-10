@@ -47,14 +47,12 @@ class AuditTrailMixin:
         """
         Create the audittrail for the action that has been carried out.
         """
-        data = version_after_edit if version_after_edit else version_before_edit
+        data = version_after_edit or version_before_edit
 
-        audit = audit if audit else self.audit
-        basename = basename if basename else self.basename
-        main_object = (
-            main_object
-            if main_object
-            else self.get_audittrail_main_object_url(data, self.audit.main_resource)
+        audit = audit or self.audit
+        basename = basename or self.basename
+        main_object = main_object or self.get_audittrail_main_object_url(
+            data, self.audit.main_resource
         )
 
         jwt_auth = self.request.jwt_auth

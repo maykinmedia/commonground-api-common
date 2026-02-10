@@ -1,3 +1,5 @@
+.. _ref_exception_handlers:
+
 =========================
 Exception handlers
 =========================
