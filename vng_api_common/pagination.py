@@ -15,7 +15,7 @@ class DynamicPageSizeMixin:
     max_page_size = 500
 
     @property
-    def page_size_query_description(self):
+    def page_size_query_description(self) -> str:
         return _(
             "Het aantal resultaten terug te geven per pagina. (default: {page_size}, maximum: {max_page_size})."
         ).format(
@@ -24,4 +24,4 @@ class DynamicPageSizeMixin:
         )
 
 
-class DynamicPageSizePagination(DynamicPageSizeMixin, PageNumberPagination): ...
+class DynamicPageSizePagination(DynamicPageSizeMixin, PageNumberPagination): ...  # type: ignore[override]

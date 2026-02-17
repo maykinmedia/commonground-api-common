@@ -37,7 +37,7 @@ class AutorisatieBaseSerializer(PolymorphicSerializer):
         help_text=_("Omschrijving van `component`."),
     )
 
-    class Meta:
+    class Meta:  # type: ignore
         model = Autorisatie
         fields = ("component", "component_weergave", "scopes")
         extra_kwargs = {
@@ -55,14 +55,19 @@ class AutorisatieBaseSerializer(PolymorphicSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        value_display_mapping = add_choice_values_help_text(ComponentTypes)
-        self.fields["component"].help_text += f"\n\n{value_display_mapping}"
+        value_display_mapping = add_choice_values_help_text(
+            [(item.value, item.name) for item in ComponentTypes]
+        )
+        current_help = self.fields["component"].help_text or ""
+        self.fields["component"].help_text = (
+            current_help + f"\n\n{value_display_mapping}"
+        )
 
 
 class ApplicatieSerializer(serializers.HyperlinkedModelSerializer):
     autorisaties = AutorisatieBaseSerializer(many=True, required=False)
 
-    class Meta:
+    class Meta:  # type: ignore
         model = Applicatie
         fields = (
             "url",

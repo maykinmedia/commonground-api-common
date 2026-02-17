@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, cast
 
 from django.db import transaction
 from django.http import Http404
@@ -18,6 +18,16 @@ from .models import AuditTrail
 logger = logging.getLogger(__name__)
 
 
+if TYPE_CHECKING:
+    from rest_framework.viewsets import ViewSet
+
+    # _audittrail_serializer: Optional[serializers.Serializer]
+
+    # def get_object(self): ...
+    # def get_serializer(self, *args, **kwargs): ...
+    # def get_queryset(self) -> QuerySet: ...
+
+
 class AuditTrailMixin:
     audit = None
 
@@ -25,12 +35,14 @@ class AuditTrailMixin:
         """
         Retrieve the URL that points to the main resource
         """
+        if TYPE_CHECKING:
+            self = cast("ViewSet", self)
 
         if self.basename == main_resource:
             return data["url"]
 
         if hasattr(self, "audittrail_main_resource_key"):
-            return data[self.audittrail_main_resource_key]
+            return data[self.audittrail_main_resource_key]  # type: ignore
         return data[main_resource]
 
     def create_audittrail(
@@ -47,15 +59,19 @@ class AuditTrailMixin:
         """
         Create the audittrail for the action that has been carried out.
         """
+        if TYPE_CHECKING:
+            self = cast("ViewSet", self)
+
         data = version_after_edit or version_before_edit
 
-        audit = audit or self.audit
+        audit = audit or self.audit  # type: ignore
         basename = basename or self.basename
-        main_object = main_object or self.get_audittrail_main_object_url(
-            data, self.audit.main_resource
+        main_object = main_object or self.get_audittrail_main_object_url(  # type: ignore
+            data,
+            self.audit.main_resource,  # type: ignore
         )
 
-        jwt_auth = self.request.jwt_auth
+        jwt_auth = self.request.jwt_auth  # type: ignore
         applications = jwt_auth.applicaties
         if len(applications) > 1:
             logger.warning(
@@ -108,23 +124,23 @@ class AuditTrailCreateMixin(AuditTrailMixin):
         if self._audittrail_serializer is not None:
             return self._audittrail_serializer.instance
         zaak_uuid = get_uuid_from_path(response.data["url"])
-        instance = self.get_queryset().get(uuid=zaak_uuid)
+        instance = self.get_queryset().get(uuid=zaak_uuid)  # type: ignore
         return instance
 
     def perform_create(self, serializer):
-        super().perform_create(serializer)
+        super().perform_create(serializer)  # type: ignore
         # cache for future re-use
         self._audittrail_serializer = serializer
 
     def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
+        response = super().create(request, *args, **kwargs)  # type: ignore
         instance = self.get_audittrail_instance(response)
         self.create_audittrail(
             response.status_code,
             CommonResourceAction.create,
             version_before_edit=None,
             version_after_edit=response.data,
-            unique_representation=instance.unique_representation(),
+            unique_representation=instance.unique_representation(),  # type: ignore
         )
         return response
 
@@ -134,8 +150,8 @@ class AuditTrailUpdateMixin(AuditTrailMixin):
 
     def update(self, request, *args, **kwargs):
         # Retrieve the data stored in the object before updating
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        instance = self.get_object()  # type: ignore
+        serializer = self.get_serializer(instance)  # type: ignore
         version_before_edit = serializer.data
 
         action = (
@@ -144,7 +160,7 @@ class AuditTrailUpdateMixin(AuditTrailMixin):
             else CommonResourceAction.update
         )
 
-        response = super().update(request, *args, **kwargs)
+        response = super().update(request, *args, **kwargs)  # type: ignore
         self.create_audittrail(
             response.status_code,
             action,
@@ -160,19 +176,19 @@ class AuditTrailDestroyMixin(AuditTrailMixin):
 
     def destroy(self, request, *args, **kwargs):
         # Retrieve the data stored in the object before updating
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        instance = self.get_object()  # type: ignore
+        serializer = self.get_serializer(instance)  # type: ignore
         version_before_edit = serializer.data
 
         # If the resource being deleted is the main resource, delete all the
         # audittrails associated with it
-        if self.basename == self.audit.main_resource:
+        if self.basename == self.audit.main_resource:  # type: ignore
             with transaction.atomic():
-                response = super().destroy(request, *args, **kwargs)
+                response = super().destroy(request, *args, **kwargs)  # type: ignore
                 self._destroy_related_audittrails(version_before_edit["url"])
                 return response
         else:
-            response = super().destroy(request, *args, **kwargs)
+            response = super().destroy(request, *args, **kwargs)  # type: ignore
             self.create_audittrail(
                 response.status_code,
                 CommonResourceAction.destroy,
@@ -220,9 +236,12 @@ class AuditTrailViewSet(NestedViewSetMixin, viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         if not self.kwargs:  # this happens during schema generation, and causes crashes
-            return self.queryset.all()
+            return self.queryset.all()  # type: ignore
 
         qs = super().get_queryset()
+
+        if not self.main_resource_lookup_field:
+            raise ValueError("main_resource_lookup_field must be set in subclasses")
 
         identifier = self.kwargs.get(self.main_resource_lookup_field)
         if identifier:

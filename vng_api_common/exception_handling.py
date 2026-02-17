@@ -1,6 +1,6 @@
 import uuid
 from collections import OrderedDict
-from typing import Any, Callable, Dict, Generator, List, Type, Union
+from typing import Any, Callable, Dict, Generator, List, Type, Union, cast
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 import sentry_sdk
 from rest_framework import exceptions, exceptions as drf_exceptions, status
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
@@ -41,7 +42,7 @@ DEFAULT_STATUS = 400
 
 
 try:
-    import structlog
+    import structlog  # type: ignore[import]
 except ImportError:
     structlog = None
 
@@ -137,7 +138,7 @@ class HandledException:
         self._exc_id = str(uuid.uuid4())
 
         try:
-            import structlog
+            import structlog  # type: ignore[import]
         except ImportError:
             self.logger = None
         else:
@@ -205,7 +206,7 @@ class HandledException:
         if self.is_drf_exception:
             return getattr(self.exc, "default_code", DEFAULT_CODE)
         detail = self._error_detail
-        if hasattr(detail, "code"):
+        if hasattr(detail, "code") and not isinstance(detail, str):
             return detail.code
 
         return getattr(self.exc, "default_code", "error")
@@ -229,7 +230,7 @@ class HandledException:
         Return the generic detail for this type of exception.
         """
         if self.is_drf_exception:
-            return getattr(self.exc, "default_detail", DEFAULT_DETAIL)
+            return str(getattr(self.exc, "default_detail", DEFAULT_DETAIL))
         return str(self._error_detail)
 
     @property
@@ -313,7 +314,9 @@ def finalize_response(
 ) -> Response:
     request = context.get("request")
 
-    serializer = HandledException.as_serializer(exc, response, request)
+    serializer = HandledException.as_serializer(
+        cast(APIException, exc), response, request
+    )
     response.data = OrderedDict(serializer.data.items())
     response["Content-Type"] = ERROR_CONTENT_TYPE
     return response

@@ -105,7 +105,7 @@ class GeometryModel(models.Model):
 
 
 class Notitie(NotitieBaseClass):
-    class Meta:
+    class Meta:  # pyright: ignore
         verbose_name = "notitie"
         verbose_name_plural = "notities"
 

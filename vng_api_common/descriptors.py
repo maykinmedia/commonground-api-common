@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from django.db import models
 
@@ -21,7 +21,7 @@ class GegevensGroepType:
     def __init__(
         self,
         mapping: Dict[str, models.Field],
-        optional: tuple = None,
+        optional: Optional[Tuple] = None,
         required=None,
         none_for_empty=False,
     ):

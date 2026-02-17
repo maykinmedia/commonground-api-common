@@ -95,7 +95,7 @@ def mark_m2m_related_instances_for_etag_update(
 
     # involved objects on the "other side of the relationship"
     pk_set = kwargs["pk_set"] or ()
-    instances = model._default_manager.filter(pk__in=pk_set)
+    instances = model._default_manager.filter(pk__in=pk_set)  # type: ignore[attr-defined]
     related_is_etag = is_etag_model(model)
     dependency_for = DEPENDENCY_REGISTRY.get(model)
 
@@ -108,7 +108,7 @@ def mark_m2m_related_instances_for_etag_update(
 
 def is_etag_model(model: ModelBase) -> bool:
     try:
-        model._meta.get_field("_etag")
+        model._meta.get_field("_etag")  # type: ignore[attr-defined]
     # model doesn't support ETags, nothing to do
     except FieldDoesNotExist:
         return False

@@ -6,7 +6,7 @@ added to the scope registry, which can be introspected for automatic
 documentation.
 """
 
-from typing import List
+from typing import List, Optional
 
 OPERATOR_OR = "OR"
 OPERATOR_AND = "AND"
@@ -36,7 +36,9 @@ class Scope:
     :arg private: Private scopes are not added to the registry.
     """
 
-    def __init__(self, label: str, description: str = None, private: bool = False):
+    def __init__(
+        self, label: str, description: Optional[str] = None, private: bool = False
+    ):
         self.label = label
         self.description = description
 

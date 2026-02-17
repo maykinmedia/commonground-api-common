@@ -5,7 +5,8 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from drf_spectacular import openapi
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiTypes
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter
 from rest_framework import exceptions, serializers, status
 
 from .audittrails.utils import _view_supports_audittrail
@@ -184,7 +185,7 @@ class AutoSchema(openapi.AutoSchema):
 
         return responses
 
-    def get_response_serializers(
+    def get_response_serializers(  # type: ignore[override]
         self,
     ) -> Dict[int, Optional[Type[serializers.Serializer]]]:
         """append error serializers"""
@@ -231,7 +232,7 @@ class AutoSchema(openapi.AutoSchema):
             response["description"] = HTTP_STATUS_CODE_TITLES.get(int(status_code), "")
         return response
 
-    def get_override_parameters(self):
+    def get_override_parameters(self) -> list[OpenApiParameter]:  # type: ignore[override]
         """Add request and response headers"""
         version_headers = self.get_version_headers()
         content_type_headers = self.get_content_type_headers()
@@ -427,7 +428,7 @@ class AutoSchema(openapi.AutoSchema):
             }
         return super().get_summary()
 
-    def get_description(self):
+    def get_description(self):  # type: ignore[override]
         if self.method == "HEAD":
             return _("Vraag de headers op die je bij een GET request zou krijgen.")
         return super().get_description()

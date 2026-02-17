@@ -28,7 +28,8 @@ def _get_api_type(api_root: str) -> APITypes:
 
 
 def _get_service_slug(credential: models.Model, existing_slugs: Set[str]) -> str:
-    default_slug: str = slugify(credential.label)
+    label = getattr(credential, "label", "")
+    default_slug: str = slugify(label)
 
     if default_slug not in existing_slugs or not existing_slugs:
         return default_slug

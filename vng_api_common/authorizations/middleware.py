@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 from django.conf import settings
 from django.db import models, transaction
@@ -45,13 +45,13 @@ class JWTAuth:
         """
         Retrieve all authorizations relevant to this component.
         """
-        app_ids = [app.id for app in self.applicaties]
+        app_ids = [app.id for app in self.applicaties]  # type: ignore[attr-defined]
         config = AuthorizationsConfig.get_solo()
         return Autorisatie.objects.filter(
             applicatie_id__in=app_ids, component=config.component
         )
 
-    def _request_auth(self) -> list:
+    def _request_auth(self) -> list[Any]:
         client = AuthorizationsConfig.get_client()
 
         if not client:
@@ -77,7 +77,8 @@ class JWTAuth:
             logger.warning("Authorization component can't be accessed")
             return []
 
-        return underscoreize(data["results"])
+        data_dict = cast(Dict[str, Any], data)
+        return cast(List[Dict[str, Any]], underscoreize(data_dict["results"]))
 
     def _get_auth(self):
         return Applicatie.objects.filter(client_ids__contains=[self.client_id])
@@ -193,6 +194,8 @@ class JWTAuth:
         validity.
         """
         iat = payload.get("iat")
+        if iat is None:
+            raise PermissionDenied(_("The iat claim is missing."))
 
         try:
             iat = int(iat)
@@ -253,7 +256,7 @@ class JWTAuth:
             if applicatie.heeft_alle_autorisaties is True:
                 return True
 
-            autorisaties = applicatie.autorisaties.filter(component=component)
+            autorisaties = applicatie.autorisaties.filter(component=component)  # type: ignore[attr-defined]
 
             # filter on all additional components
             for field_name, field_value in fields.items():
@@ -269,7 +272,7 @@ class JWTAuth:
             for autorisatie in autorisaties:
                 scopes_provided.update(autorisatie.scopes)
 
-        return scopes.is_contained_in(list(scopes_provided))
+        return scopes.is_contained_in(list(scopes_provided))  # type: ignore[attr-defined]
 
 
 class AuthMiddleware:

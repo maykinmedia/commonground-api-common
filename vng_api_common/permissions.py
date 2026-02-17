@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -33,16 +33,17 @@ def get_required_scopes(
     action = getattr(view, "action", None)
 
     # auto-generated head method doesn't get an action assigned
-    if action is None and detail and view.request.method == "HEAD":
+    if action is None and detail and view.request.method == "HEAD":  # type: ignore[attr-defined]
         action = "retrieve"
 
     from rest_framework.viewsets import ViewSetMixin
 
     # if action is not set, fall back to the request method
     if action is None and not isinstance(view, ViewSetMixin):
+        assert request.method is not None
         action = request.method.lower()
 
-    scopes_required = view.required_scopes.get(action)
+    scopes_required = view.required_scopes.get(action)  # type: ignore[attr-defined]
     return scopes_required
 
 
@@ -67,7 +68,7 @@ class ClientIdRequired(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         else:
-            client_id = request.jwt_auth.client_id
+            client_id = request.jwt_auth.client_id  # type: ignore[attr-defined]
             return client_id == obj.client_id
 
 
@@ -107,7 +108,7 @@ class BaseAuthRequired(permissions.BasePermission):
 
     permission_fields = ()
     get_obj = None
-    obj_path = None
+    obj_path: Optional[str] = None
 
     def _get_obj(self, view, request):
         if not isinstance(self.get_obj, str):
@@ -133,11 +134,14 @@ class BaseAuthRequired(permissions.BasePermission):
         return getattr(main_obj, field)
 
     def _has_create_permission(
-        self, request: Request, view: "APIView", scopes_required: Scope
+        self, request: Request, view: "APIView", scopes_required: Scope | None
     ) -> bool:
         try:
             main_obj = self._get_obj(view, request)
         except ObjectDoesNotExist:
+            assert isinstance(self.obj_path, str), (
+                "'obj_path' must be set for ValidationError"
+            )
             raise ValidationError(
                 {
                     # using self.obj_path here ASSUMES that the same serializer is used
@@ -151,7 +155,7 @@ class BaseAuthRequired(permissions.BasePermission):
         fields = {
             k: self._extract_field_value(main_obj, k) for k in self.permission_fields
         }
-        return request.jwt_auth.has_auth(scopes_required, **fields)
+        return request.jwt_auth.has_auth(scopes_required, **fields)  # type: ignore[attr-defined]
 
     def has_permission(self, request: Request, view) -> bool:
         from rest_framework.viewsets import ViewSetMixin
@@ -170,7 +174,7 @@ class BaseAuthRequired(permissions.BasePermission):
             return True
 
         # by default - check if the action is allowed at all
-        return request.jwt_auth.has_auth(scopes_required)
+        return request.jwt_auth.has_auth(scopes_required)  # type: ignore[attr-defined]
 
     def has_object_permission(self, request: Request, view, obj) -> bool:
         if bypass_permissions(request):
@@ -180,7 +184,7 @@ class BaseAuthRequired(permissions.BasePermission):
         main_obj = self._get_obj_from_path(obj)
         fields = {k: getattr(main_obj, k) for k in self.permission_fields}
 
-        return request.jwt_auth.has_auth(scopes_required, **fields)
+        return request.jwt_auth.has_auth(scopes_required, **fields)  # type: ignore[attr-defined]
 
 
 class AuthScopesRequired(BaseAuthRequired):

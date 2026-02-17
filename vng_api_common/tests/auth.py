@@ -1,5 +1,5 @@
 import time
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import jwt
 from rest_framework import status
@@ -8,8 +8,13 @@ from ..authorizations.models import Applicatie, AuthorizationsConfig, Autorisati
 from ..constants import VertrouwelijkheidsAanduiding
 from ..models import JWTSecret
 
+if TYPE_CHECKING:
+    from rest_framework.test import APITestCase as _Base
+else:
+    _Base = object
 
-class AuthCheckMixin:
+
+class AuthCheckMixin(_Base):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
@@ -64,7 +69,7 @@ def generate_jwt_auth(
     return f"Bearer {encoded}"
 
 
-class JWTAuthMixin:
+class JWTAuthMixin(_Base):
     """
     Configure the local auth cache.
 

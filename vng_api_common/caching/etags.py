@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError, models, transaction
 from django.http import Http404, HttpRequest
+from django.utils.module_loading import import_string
 
 from djangorestframework_camel_case.render import CamelCaseJSONRenderer
 from rest_framework import serializers
@@ -70,9 +71,11 @@ def get_etag_serializer(instance: models.Model) -> serializers.Serializer:
 
     # build a dummy request with the configured domain, since we're doing STRONG
     # comparison. Required as context for hyperlinked serializers
-    request = Request(StaticRequest())
+    request = Request(StaticRequest())  # type: ignore
     request.version = api_settings.DEFAULT_VERSION
-    request.versioning_scheme = api_settings.DEFAULT_VERSIONING_CLASS()
+    versioning_class = api_settings.DEFAULT_VERSIONING_CLASS
+    if isinstance(versioning_class, str):
+        versioning_class = import_string(versioning_class)
 
     serializer = serializer_class(instance=instance, context={"request": request})
     return serializer
@@ -103,13 +106,13 @@ def etag_func(request: HttpRequest, etag_field: str = "_etag", **view_kwargs):
         raise Http404
     etag_value = getattr(obj, etag_field)
     if not etag_value:  # calculate missing value and store it
-        etag_value = obj.calculate_etag_value()
+        etag_value = getattr(obj, "calculate_etag_value")()
     return etag_value
 
 
 @dataclass
 class MethodCallback:
-    callback: callable
+    callback: callable  # type: ignore[attr-defined]
 
     def __eq__(self, other):
         # NOTE: before Python 3.7 you could compare bound methods, as method.__eq__(other_method)
@@ -178,8 +181,8 @@ class EtagUpdate:
             # track the actions _inside_ the on_commit handler, to prevent infinite
             # loops/stack overflows
             try:
-                self.instance._updating_etag = True
-                self.instance.calculate_etag_value()
+                self.instance._updating_etag = True  # type: ignore[attr-defined]
+                self.instance.calculate_etag_value()  # type: ignore[attr-defined]
             except DatabaseError as exc:
                 # the record may already have been deleted via a cascade delete. rather
                 # than always checking if the record still exists (which performs a query
@@ -191,4 +194,4 @@ class EtagUpdate:
                     return
                 raise
             finally:
-                del self.instance._updating_etag
+                del self.instance._updating_etag  # type: ignore[attr-defined]

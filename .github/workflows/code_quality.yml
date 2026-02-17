@@ -58,7 +58,7 @@ jobs:
           pip install uv
           uv pip install \
             --system \
-            -e .[type-checking,tests,cors,csp,structlog]
+            -e .[type-checking,tests]
       - uses: jakebailey/pyright-action@v1
         with:
           version: 1.1.407

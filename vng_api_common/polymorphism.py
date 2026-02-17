@@ -36,7 +36,7 @@ The serializer output will then either contain ``field_for_value2`` or
 
 import logging
 from collections import OrderedDict
-from typing import Any, Dict, Union
+from typing import Any, ClassVar, Dict, Union
 
 from django.core.exceptions import FieldDoesNotExist
 
@@ -60,22 +60,22 @@ class Discriminator:
         self.group_field = group_field
         self.same_model = same_model
 
-    def to_representation(self, instance) -> OrderedDict:
+    def to_representation(self, instance) -> OrderedDict | None:
         discriminator_value = getattr(instance, self.discriminator_field)
         serializer = self.mapping.get(discriminator_value)
         if serializer is None:
             return None
 
-        representation = serializer.to_representation(instance)
-        return representation
+        representation = serializer.to_representation(instance)  # type: ignore
+        return OrderedDict(representation)
 
-    def to_internal_value(self, data) -> OrderedDict:
+    def to_internal_value(self, data) -> OrderedDict | None:
         discriminator_value = data[self.discriminator_field]
         serializer = self.mapping.get(discriminator_value)
         if serializer is None:
             return None
 
-        internal_value = serializer.to_internal_value(data)
+        internal_value = serializer.to_internal_value(data)  # type: ignore
         # if nested serializer was generated in _sanitize_discriminator name if group_field
         # was changed in the internal_value. We need to return it
         if (
@@ -175,7 +175,7 @@ class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
 class PolymorphicSerializer(
     serializers.HyperlinkedModelSerializer, metaclass=PolymorphicSerializerMetaclass
 ):
-    discriminator: Discriminator = None
+    discriminator: ClassVar[Discriminator]
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

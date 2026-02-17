@@ -43,7 +43,7 @@ class AuthorizationsConfig(SingletonModel):
 
     objects = AuthorizationsConfigManager()
 
-    class Meta:
+    class Meta:  # type: ignore
         verbose_name = _("Autorisatiecomponentconfiguratie")
 
     @classmethod
@@ -178,10 +178,7 @@ class Autorisatie(APIMixin, models.Model):
         )
 
     def satisfy_vertrouwelijkheid(self, vertrouwelijkheidaanduiding: str) -> bool:
-        max_confid_level = VertrouwelijkheidsAanduiding.get_choice(
-            self.max_vertrouwelijkheidaanduiding
-        ).order
-        provided_confid_level = VertrouwelijkheidsAanduiding.get_choice(
-            vertrouwelijkheidaanduiding
-        ).order
+        get_choice = VertrouwelijkheidsAanduiding.get_choice  # type: ignore[attr-defined]
+        max_confid_level = get_choice(self.max_vertrouwelijkheidaanduiding).order
+        provided_confid_level = get_choice(vertrouwelijkheidaanduiding).order
         return max_confid_level >= provided_confid_level

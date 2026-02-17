@@ -6,6 +6,9 @@ from vng_api_common.models import JWTSecret
 
 
 class SingleJWTSecretConfigurationModel(ConfigurationModel):
+    identifier: str
+    secret: str
+
     class Meta:
         django_model_refs = {
             JWTSecret: [
@@ -24,7 +27,10 @@ class JWTSecretsConfigurationModel(ConfigurationModel):
 
 
 class SingleApplicatieConfigurationModel(ConfigurationModel):
+    uuid: str
     client_ids: list[str]
+    label: str
+    heeft_alle_autorisaties: bool
 
     class Meta:
         django_model_refs = {

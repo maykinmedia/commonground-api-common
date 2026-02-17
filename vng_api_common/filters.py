@@ -44,6 +44,8 @@ class URLModelChoiceField(fields.ModelChoiceField):
         if self.instance_path:
             for bit in self.instance_path.split("."):
                 instance = getattr(instance, bit)
+        if self.queryset is None:
+            raise ValueError("queryset must be set before calling url_to_pk")
         model = self.queryset.model
         if not isinstance(instance, model):
             raise ValidationError(
@@ -80,7 +82,7 @@ class URLModelChoiceFilter(filters.ModelChoiceFilter):
     def field(self):
         field = super().field
         # we need access to the request in the backing field...
-        field._get_request = self.get_request
+        field._get_request = self.get_request  # type: ignore[attr-defined]
         return field
 
     def filter(self, qs, value):

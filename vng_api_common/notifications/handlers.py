@@ -26,7 +26,7 @@ class AuthHandler:
 
         response = client.get(url)
         data = to_internal_data(response)
-        return underscoreize(data)
+        return underscoreize(data)  # type: ignore
 
     def handle(self, message: dict) -> None:
         uuid = get_uuid_from_path(message["resource_url"])

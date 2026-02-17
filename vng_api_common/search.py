@@ -1,6 +1,13 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
 
 from rest_framework.response import Response
+
+if TYPE_CHECKING:
+    from rest_framework.viewsets import GenericViewSet as _BaseView  # or ViewSet
+else:
+    _BaseView = object
 
 
 def is_search_view(view):
@@ -11,14 +18,16 @@ def is_search_view(view):
     return getattr(action, "is_search_action", False)
 
 
-class SearchMixin:
+class SearchMixin(_BaseView):
     search_input_serializer_class = None
 
     def get_search_input_serializer_class(self):
         return self.search_input_serializer_class or self.serializer_class
 
     def get_search_input(self):
-        serializer = self.get_search_input_serializer_class()(data=self.request.data)
+        SerializerClass = self.get_search_input_serializer_class()
+        assert SerializerClass is not None, "No serializer class set"
+        serializer = SerializerClass(data=self.request.data)
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
 

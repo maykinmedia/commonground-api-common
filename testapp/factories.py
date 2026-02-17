@@ -1,33 +1,34 @@
-import factory
+from factory.django import DjangoModelFactory
+from factory.faker import Faker
 
 
-class GroupFactory(factory.django.DjangoModelFactory):
-    name = factory.Faker("bs")
+class GroupFactory(DjangoModelFactory):
+    name = Faker("bs")
 
-    class Meta:
+    class Meta:  # pyright: ignore
         model = "testapp.Group"
 
 
-class PersonFactory(factory.django.DjangoModelFactory):
-    name = factory.Faker("name")
-    address_street = factory.Faker("street_name")
-    address_number = factory.Faker("building_number")
+class PersonFactory(DjangoModelFactory):
+    name = Faker("name")
+    address_street = Faker("street_name")
+    address_number = Faker("building_number")
 
-    class Meta:
+    class Meta:  # pyright: ignore
         model = "testapp.Person"
 
 
-class HobbyFactory(factory.django.DjangoModelFactory):
-    name = factory.Faker("bs")
+class HobbyFactory(DjangoModelFactory):
+    name = Faker("bs")
 
-    class Meta:
+    class Meta:  # pyright: ignore
         model = "testapp.Hobby"
 
 
-class NotitieFactory(factory.django.DjangoModelFactory):
-    onderwerp = factory.Faker("sentence")
-    tekst = factory.Faker("paragraph")
-    aangemaakt_door = factory.Faker("name")
+class NotitieFactory(DjangoModelFactory):
+    onderwerp = Faker("sentence")
+    tekst = Faker("paragraph")
+    aangemaakt_door = Faker("name")
 
-    class Meta:
+    class Meta:  # pyright: ignore
         model = "testapp.Notitie"

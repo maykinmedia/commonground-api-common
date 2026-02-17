@@ -42,9 +42,7 @@ class Backend(DjangoFilterBackend):
 
         return QueryDict(urlencode(transformed, doseq=True))
 
-    def get_filterset_kwargs(
-        self, request: Request, queryset: models.QuerySet, view: APIView
-    ):
+    def get_filterset_kwargs(self, request: Request, queryset: models.QuerySet, view: APIView): # type: ignore[override],
         """
         Get the initialization parameters for the filterset.
 
@@ -55,6 +53,6 @@ class Backend(DjangoFilterBackend):
         filter_parameters = (
             request.query_params if not is_search_view(view) else request.data
         )
-        query_params = self._transform_query_params(view, filter_parameters)
+        query_params = self._transform_query_params(view, filter_parameters)  # type: ignore[arg-type]
         kwargs["data"] = query_params
         return kwargs
