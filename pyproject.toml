@@ -98,6 +98,10 @@ setup-configuration = [
     "django-setup-configuration>=0.7.0",
 ]
 
+notifications = [
+    "notifications-api-common>=0.3.1",
+]
+
 coverage = [
     "pytest-cov",
 ]
@@ -129,15 +133,23 @@ DJANGO_SETTINGS_MODULE = "testapp.settings"
 [tool.coverage.run]
 branch = true
 source = ["vng_api_common"]
-
-[tool.coverage.report]
+patch = ["subprocess"]
 omit = [
-    "*/tests/*",
     "*/migrations/*",
 ]
-exclude_lines = [
-    "pragma: no cover",
+
+[tool.coverage.report]
+skip_covered = true
+exclude_also = [
+    "if (typing\\.)?TYPE_CHECKING:",
+    "@(typing\\.)?overload",
+    "class .*\\(.*Protocol.*\\):",
+    "@(abc\\.)?abstractmethod",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+    "\\bpass$",
 ]
+
 
 [tool.ruff]
 line-length = 88
