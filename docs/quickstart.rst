@@ -8,7 +8,7 @@ Installation
 Pre-requisites
 --------------
 
-* Python 3.10 or higher
+* Python 3.11 or higher
 * Setuptools 30.3.0 or higher
 * Only the PostgreSQL database is supported
 
@@ -75,8 +75,8 @@ Configure the Django settings
 
 
 5. The ``SITE_DOMAIN`` setting must be explicitly defined in your ``settings`` or set using an environment variable,
-    as it is used to defines the main domain of the site. 
-    
+    as it is used to defines the main domain of the site.
+
 
 Usage
 =====
