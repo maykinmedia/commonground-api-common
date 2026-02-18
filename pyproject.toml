@@ -1,3 +1,143 @@
 [build-system]
-requires = ["setuptools >= 40.8.0", "wheel"]
+requires = ["setuptools >= 77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "commonground-api-common"
+version = "2.11.0"
+description = "Commonground API tooling"
+readme = "README.rst"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Maykin Media, VNG-Realisatie", email = "support@maykinmedia.nl" }
+]
+keywords = ["openapi", "swagger", "django"]
+requires-python = ">=3.10"
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 4.2",
+    "Intended Audience :: Developers",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "django>=4.2.0",
+    "django-filter>=23.1,<=25.1",
+    "django-solo",
+    "djangorestframework>=3.15.0",
+    "djangorestframework_camel_case>=1.2.0",
+    "django-rest-framework-condition",
+    "drf-nested-routers>=0.94.1",
+    "drf-spectacular",
+    "iso639-lang",
+    "notifications-api-common>=0.3.1",
+    "zgw-consumers>=1.0.0",
+    "oyaml",
+    "PyJWT>=2.10.1",
+    "requests",
+    "ape-pie",
+    "sentry-sdk",
+]
+
+[project.urls]
+Homepage = "https://github.com/maykinmedia/commonground-api-common"
+Documentation = "https://commonground-api-common.readthedocs.io/en/latest/?badge=latest"
+"Bug Tracker" = "https://github.com/maykinmedia/commonground-api-common/issues"
+"Source Code" = "https://github.com/maykinmedia/commonground-api-common"
+
+[project.optional-dependencies]
+markdown_docs = [
+    "django-markup<=1.3",
+    "markdown",
+]
+
+djangorestframework_gis = [
+    "djangorestframework-gis>=1.0",
+]
+
+drf_extra_fields = [
+    "drf-extra-fields>=3.7.0",
+]
+
+tests = [
+    "psycopg2",
+    "pytest",
+    "pytest-django",
+    "pytest-dotenv",
+    "pytest-factoryboy>=2.8.0",
+    "tox",
+    "ruff",
+    "requests-mock",
+    "freezegun",
+    "zgw-consumers-oas",
+    "djangorestframework-gis",
+    "drf-extra-fields",
+]
+
+oas = [
+    "requests-mock",
+]
+
+testutils = [
+    "zgw-consumers-oas",
+]
+
+setup-configuration = [
+    "django-setup-configuration>=0.7.0",
+]
+
+coverage = [
+    "pytest-cov",
+]
+
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+release = [
+    "bump-my-version",
+]
+
+[project.scripts]
+generate_schema = "bin/generate_schema"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["vng_api_common*"]
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+DJANGO_SETTINGS_MODULE = "testapp.settings"
+
+[tool.coverage.run]
+branch = true
+source = ["vng_api_common"]
+
+[tool.coverage.report]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+]
+exclude_lines = [
+    "pragma: no cover",
+]
+
+[tool.ruff]
+line-length = 88
