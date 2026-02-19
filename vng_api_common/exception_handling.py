@@ -14,7 +14,19 @@ from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
 from .serializers import FoutSerializer, ValidatieFoutSerializer
+from .settings import get_setting
 from .utils import underscore_to_camel
+
+
+def format_field_name(value: str) -> str:
+    if not value:
+        return value
+
+    if get_setting("API_EXCEPTION_CAMELIZE"):
+        return underscore_to_camel(value)
+
+    return value
+
 
 ERROR_CONTENT_TYPE = "application/problem+json"
 ExceptionHandler = Callable[[Exception, dict[str, object]], Response]
@@ -61,7 +73,7 @@ def perform_list(
     for i, nested_error in enumerate(errors):
         for err in get_validation_errors(nested_error):
             if field_name:
-                prefix = underscore_to_camel(field_name)
+                prefix = format_field_name(field_name)
                 err["name"] = (
                     f"{prefix}.{i}.{err['name']}" if err["name"] else f"{prefix}"
                 )
@@ -78,7 +90,7 @@ def perform_dict(
     """
     for sub_field, sub_errors in errors.items():
         for err in get_validation_errors(sub_errors, field_name=sub_field):
-            prefix = underscore_to_camel(field_name)
+            prefix = format_field_name(field_name)
             err["name"] = f"{prefix}.{err['name']}" if prefix else err["name"]
             yield err
 
@@ -92,7 +104,7 @@ def perform_detail(
     """
     yield OrderedDict(
         [
-            ("name", underscore_to_camel(field_name)),
+            ("name", format_field_name(field_name)),
             ("code", error.code),
             ("reason", str(error)),
         ]
