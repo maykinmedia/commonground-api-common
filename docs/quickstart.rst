@@ -82,22 +82,6 @@ Configure the Django settings
 Usage
 =====
 
-API Spec generation
--------------------
-
-To generate the API spec, run:
-
-.. code-block:: bash
-
-    generate_schema
-
-This will output:
-
-* ``src/openapi.yaml``: the OAS 3 specification
-
-See the reference implementations of `ZRC`_, `DRC`_, `BRC`_ en `ZTC`_ to see it
-in action.
-
 Run-time functionality
 ----------------------
 
