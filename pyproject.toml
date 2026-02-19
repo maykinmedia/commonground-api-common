@@ -141,3 +141,13 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 88
+
+[tool.bumpversion]
+current_version = "2.11.0"
+files = [
+    {filename = "pyproject.toml"},
+    {filename = "README.rst"},
+    {filename = "docs/conf.py"},
+    {filename = "vng_api_common/__init__.py"},
+    {filename = "vng_api_common/locale/nl/LC_MESSAGES/django.po"},
+]
