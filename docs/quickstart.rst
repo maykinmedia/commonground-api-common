@@ -8,8 +8,9 @@ Installation
 Pre-requisites
 --------------
 
-* Python 3.10 or higher
-* Setuptools 30.3.0 or higher
+* Python 3.11 or higher
+* Setuptools 77.0.0 or higher
+* Django 5.2 or newer
 * Only the PostgreSQL database is supported
 
 Install from PyPI
@@ -75,27 +76,11 @@ Configure the Django settings
 
 
 5. The ``SITE_DOMAIN`` setting must be explicitly defined in your ``settings`` or set using an environment variable,
-    as it is used to defines the main domain of the site. 
-    
+    as it is used to defines the main domain of the site.
+
 
 Usage
 =====
-
-API Spec generation
--------------------
-
-To generate the API spec, run:
-
-.. code-block:: bash
-
-    generate_schema
-
-This will output:
-
-* ``src/openapi.yaml``: the OAS 3 specification
-
-See the reference implementations of `ZRC`_, `DRC`_, `BRC`_ en `ZTC`_ to see it
-in action.
 
 Run-time functionality
 ----------------------

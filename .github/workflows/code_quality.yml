@@ -7,30 +7,25 @@ on:
       - main
     tags:
       - '*'
-    paths:
-      - '**.py'
   pull_request:
-    paths:
-      - '**.py'
   workflow_dispatch:
 
 jobs:
   linting:
     name: Code-quality checks
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         toxenv:
           - ruff
           - docs
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.12'
 
-      - name: Install pip dependencies
-        run: pip install tox tox-gh-actions
+    steps:
+      - name: Install OS packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes gettext
 
       - name: Install system dependencies
         run: |
@@ -38,6 +33,13 @@ jobs:
           && sudo apt-get install -y --no-install-recommends \
             libgdal-dev \
             gdal-bin
-      - run: tox
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install tox
+      - run: tox --colored=yes
         env:
           TOXENV: ${{ matrix.toxenv }}
+          FORCE_COLOR: '1'
