@@ -9,7 +9,8 @@ Pre-requisites
 --------------
 
 * Python 3.11 or higher
-* Setuptools 30.3.0 or higher
+* Setuptools 77.0.0 or higher
+* Django 5.2 or newer
 * Only the PostgreSQL database is supported
 
 Install from PyPI

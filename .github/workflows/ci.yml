@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         python: ['3.11', '3.12', '3.13']
-        django: ['4.2', '5.2']
+        django: ['5.2']
     services:
       postgres:
         image: postgis/postgis:14-3.2
