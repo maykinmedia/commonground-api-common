@@ -17,7 +17,7 @@ def test_validation_errors_are_camelized_by_default():
     assert invalid_params[0]["name"] == "productTypeUuid"
 
 
-@override_settings(API_EXCEPTION_CAMELIZE=False)
+@override_settings(COMMONGROUND_API_COMMON={"API_EXCEPTION_CAMELIZE": False})
 def test_validation_errors_can_be_snake_case():
     response = _get_response({"product_type_uuid": ["error"]})
 
