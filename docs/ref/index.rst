@@ -24,3 +24,4 @@ Modules reference
    utils
    testing
    exception_handlers
+   settings
