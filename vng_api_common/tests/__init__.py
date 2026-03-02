@@ -1,7 +1,8 @@
 from .auth import AuthCheckMixin, JWTAuthMixin, generate_jwt_auth
 from .caching import CacheMixin
-from .schema import TypeCheckMixin, get_operation_url, get_validation_errors
+from .schema import TypeCheckMixin, get_operation_url
 from .urls import reverse, reverse_lazy
+from .utils import get_validation_errors
 
 __all__ = [
     "AuthCheckMixin",
