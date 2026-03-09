@@ -4,6 +4,6 @@ from ..models import JWTSecret
 
 
 class JWTSecretSerializer(serializers.ModelSerializer):
-    class Meta:  # type: ignore
+    class Meta:
         model = JWTSecret
         fields = ("identifier", "secret")

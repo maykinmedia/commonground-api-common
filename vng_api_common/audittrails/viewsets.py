@@ -21,12 +21,6 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from rest_framework.viewsets import ViewSet
 
-    # _audittrail_serializer: Optional[serializers.Serializer]
-
-    # def get_object(self): ...
-    # def get_serializer(self, *args, **kwargs): ...
-    # def get_queryset(self) -> QuerySet: ...
-
 
 class AuditTrailMixin:
     audit = None
@@ -234,9 +228,9 @@ class AuditTrailViewSet(NestedViewSetMixin, viewsets.ReadOnlyModelViewSet):
 
     main_resource_lookup_field = None  # Must be overwritten by subclasses
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore
         if not self.kwargs:  # this happens during schema generation, and causes crashes
-            return self.queryset.all()  # type: ignore
+            return self.queryset.all()
 
         qs = super().get_queryset()
 

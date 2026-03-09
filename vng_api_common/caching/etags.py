@@ -71,14 +71,14 @@ def get_etag_serializer(instance: models.Model) -> serializers.Serializer:
 
     # build a dummy request with the configured domain, since we're doing STRONG
     # comparison. Required as context for hyperlinked serializers
-    request = Request(StaticRequest())  # type: ignore
-    request.version = api_settings.DEFAULT_VERSION
+    request = Request(StaticRequest())
+    request.version = api_settings.DEFAULT_VERSION  # type: ignore
     versioning_class = api_settings.DEFAULT_VERSIONING_CLASS
     if isinstance(versioning_class, str):
         versioning_class = import_string(versioning_class)
 
     serializer = serializer_class(instance=instance, context={"request": request})
-    return serializer
+    return serializer  # type: ignore
 
 
 def calculate_etag(instance: models.Model) -> str:

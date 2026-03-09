@@ -1,4 +1,4 @@
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 from django.utils.translation import gettext_lazy as _
 
@@ -12,13 +12,12 @@ class Base64FileFileFieldExtension(OpenApiSerializerFieldExtension):
     match_subclasses = True
 
     def map_serializer_field(self, auto_schema, direction):  # type: ignore[override]
-        base64_schema: Dict[str, Any] = cast(
-            Dict[str, Any], build_basic_type(OpenApiTypes.BYTE)
+        base64_schema: dict[str, Any] = cast(
+            dict[str, Any], build_basic_type(OpenApiTypes.BYTE)
         )
         base64_schema["description"] = _("Base64 encoded binary content.")
-
-        uri_schema: Dict[str, Any] = cast(
-            Dict[str, Any], build_basic_type(OpenApiTypes.URI)
+        uri_schema: dict[str, Any] = cast(
+            dict[str, Any], build_basic_type(OpenApiTypes.URI)
         )
         uri_schema["description"] = _("Download URL of the binary content.")
 

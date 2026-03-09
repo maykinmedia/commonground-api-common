@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, Dict, Iterable, List, Optional, cast
+from typing import Any, Iterable, cast
 
 from django.conf import settings
 from django.db import models, transaction
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class JWTAuth:
-    def __init__(self, encoded: Optional[str] = None):
+    def __init__(self, encoded: str | None = None):
         self.encoded = encoded
 
     @property
@@ -77,8 +77,8 @@ class JWTAuth:
             logger.warning("Authorization component can't be accessed")
             return []
 
-        data_dict = cast(Dict[str, Any], data)
-        return cast(List[Dict[str, Any]], underscoreize(data_dict["results"]))
+        data_dict = cast(dict[str, Any], data)
+        return cast(list[dict[str, Any]], underscoreize(data_dict["results"]))
 
     def _get_auth(self):
         return Applicatie.objects.filter(client_ids__contains=[self.client_id])
@@ -97,7 +97,7 @@ class JWTAuth:
         return applicaties
 
     @property
-    def payload(self) -> Optional[Dict[str, Any]]:
+    def payload(self) -> dict[str, Any] | None:
         if self.encoded is None:
             return None
 
@@ -180,12 +180,12 @@ class JWTAuth:
         return self._payload
 
     @property
-    def client_id(self) -> Optional[str]:
+    def client_id(self) -> str | None:
         if not self.payload:
             return None
         return self.payload["client_id"]
 
-    def _check_jwt_expiry(self, payload: Dict[str, Any]) -> None:
+    def _check_jwt_expiry(self, payload: dict[str, Any]) -> None:
         """
         Verify that the token was issued recently enough.
 
@@ -241,7 +241,7 @@ class JWTAuth:
         return base.filter(**{name: value})
 
     def has_auth(
-        self, scopes: List[str], component: Optional[str] = None, **fields
+        self, scopes: list[str], component: str | None = None, **fields
     ) -> bool:
         if scopes is None:
             return False

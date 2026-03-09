@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Callable, MutableMapping
 
 from django.conf import settings
@@ -282,7 +282,7 @@ class UntilNowValidator:
     code = "future_not_allowed"
 
     @property
-    def limit_value(self):
+    def limit_value(self) -> datetime | date:
         return timezone.now() + timedelta(seconds=settings.TIME_LEEWAY)
 
     def __call__(self, value):
@@ -299,8 +299,9 @@ class UntilNowValidator:
 
 class UntilTodayValidator(UntilNowValidator):
     @property
-    def limit_value(self):  # type: ignore
+    def limit_value(self) -> date:
         limit_value = super().limit_value
+        assert isinstance(limit_value, datetime)
         return limit_value.date()
 
 

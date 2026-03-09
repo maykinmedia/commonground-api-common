@@ -1,4 +1,4 @@
-from typing import List, Mapping, Optional
+from typing import Mapping
 
 from django.db import models
 from django.utils.functional import Promise
@@ -39,7 +39,7 @@ class VertrouwelijkheidsAanduiding(models.TextChoices):
 
     @classmethod
     def get_order_expression(cls, field_name: str) -> models.Case:
-        whens: List[models.When] = []
+        whens: list[models.When] = []
         for order, value in enumerate(cls.values):
             whens.append(
                 models.When(**{field_name: value, "then": models.Value(order)})
@@ -47,7 +47,7 @@ class VertrouwelijkheidsAanduiding(models.TextChoices):
         return models.Case(*whens, output_field=models.IntegerField())
 
     @classmethod
-    def get_choice_order(cls, value: str) -> Optional[int]:
+    def get_choice_order(cls, value: str) -> int | None:
         orders: dict[str, int] = {
             value: order
             for order, value in enumerate(VertrouwelijkheidsAanduiding.values)

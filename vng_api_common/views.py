@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from django.apps import apps
 from django.conf import settings
@@ -20,7 +20,7 @@ from .utils import get_domain
 if TYPE_CHECKING:
     from .scopes import Scope
 
-SCOPE_REGISTRY: Set["Scope"] = set()
+SCOPE_REGISTRY: set["Scope"] = set()  # noqa: F811
 
 
 class ErrorDetailView(TemplateView):
@@ -78,7 +78,7 @@ class ViewConfigView(TemplateView):
         return context
 
 
-def _test_sites_config(request: HttpRequest) -> List[Tuple[Any, str, bool]]:
+def _test_sites_config(request: HttpRequest) -> list[tuple[Any, str, bool]]:
     try:
         domain = get_domain()
     except ImproperlyConfigured:
@@ -102,11 +102,11 @@ def _test_ac_config() -> list[Any]:
     has_ac_auth = ac_client.auth is not None if ac_client else False
 
     checks: list[Any] = [
-        (_("Type of component"), auth_config.get_component_display(), None),  # type: ignore
+        (_("Type of component"), auth_config.get_component_display(), None),  # type: ignore[attr-defined]
         (
             _("AC"),
             (
-                auth_config.authorizations_api_service.api_root  # type: ignore
+                auth_config.authorizations_api_service.api_root
                 if ac_client
                 else _("Missing")
             ),
@@ -128,7 +128,7 @@ def _test_ac_config() -> list[Any]:
         try:
             response: requests.Response = ac_client.get(  # type: ignore
                 "applicaties",
-                params={"clientIds": client_id},  # type: ignore
+                params={"clientIds": client_id},
             )
 
             response.raise_for_status()

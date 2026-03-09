@@ -36,7 +36,7 @@ The serializer output will then either contain ``field_for_value2`` or
 
 import logging
 from collections import OrderedDict
-from typing import Any, ClassVar, Dict, Union
+from typing import Any, Dict, Union
 
 from django.core.exceptions import FieldDoesNotExist
 
@@ -86,13 +86,13 @@ class Discriminator:
             key, value = internal_value.popitem()
             internal_value = OrderedDict({self.group_field: value})
 
-        return internal_value
+        return internal_value  # type: ignore
 
 
 class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
     @classmethod
-    def _sanitize_discriminator(cls, name, attrs) -> Union[Discriminator, None]:
-        discriminator = attrs["discriminator"]
+    def _sanitize_discriminator(cls, name, attrs) -> Discriminator | None:
+        discriminator = attrs.get("discriminator")
         if discriminator is None:
             return None
 
@@ -168,25 +168,35 @@ class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
         return discriminator
 
     def __new__(cls, name, bases, attrs):
-        attrs["discriminator"] = cls._sanitize_discriminator(name, attrs)
+        discriminator = cls._sanitize_discriminator(name, attrs)
+
+        if discriminator is not None:
+            attrs["discriminator"] = discriminator
+
         return super().__new__(cls, name, bases, attrs)
 
 
 class PolymorphicSerializer(
     serializers.HyperlinkedModelSerializer, metaclass=PolymorphicSerializerMetaclass
 ):
-    discriminator: ClassVar[Discriminator]
+    discriminator: Discriminator
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        extra_fields = self.discriminator.to_representation(instance)
-        if extra_fields:
-            representation.update(extra_fields)
+
+        if self.discriminator is not None:
+            extra_fields = self.discriminator.to_representation(instance)
+            if extra_fields:
+                representation.update(extra_fields)
+
         return representation
 
     def to_internal_value(self, data):
         internal_value = super().to_internal_value(data)
-        extra_fields = self.discriminator.to_internal_value(data)
-        if extra_fields:
-            internal_value.update(extra_fields)
+
+        if self.discriminator is not None:
+            extra_fields = self.discriminator.to_internal_value(data)
+            if extra_fields:
+                internal_value.update(extra_fields)
+
         return internal_value

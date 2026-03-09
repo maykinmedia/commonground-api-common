@@ -86,10 +86,8 @@ tests = [
 ]
 type-checking = [
     "pyright",
-    "decouple-types",
     "django-stubs",
     "django-stubs-ext",
-    "gitpython",
 ]
 
 oas = [

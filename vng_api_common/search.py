@@ -27,7 +27,7 @@ class SearchMixin(_BaseView):
     def get_search_input(self):
         SerializerClass = self.get_search_input_serializer_class()
         assert SerializerClass is not None, "No serializer class set"
-        serializer = SerializerClass(data=self.request.data)
+        serializer = SerializerClass(data=self.request.data)  # type: ignore
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
 

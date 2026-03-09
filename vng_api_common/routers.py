@@ -54,7 +54,7 @@ class NestedSimpleRouter(NestedRegisteringMixin, routers.NestedSimpleRouter):
     pass
 
 
-class DefaultRouter(NestedRegisteringMixin, routers.DefaultRouter):  # type: ignore
+class DefaultRouter(NestedRegisteringMixin, DRFDefaultRouter):
     APIRootView: type[_APIRootView] = APIRootView
 
 

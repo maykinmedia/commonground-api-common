@@ -18,4 +18,4 @@ class JWTCreatePermission(BaseAuthRequired):
             view.action = "create"  # type: ignore
 
         scopes_required = get_required_scopes(request, view)
-        return request.jwt_auth.has_auth(scopes_required, component=ComponentTypes.ac)  # type: ignore
+        return request.jwt_auth.has_auth(scopes_required, component=ComponentTypes.ac)

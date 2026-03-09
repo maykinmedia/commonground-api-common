@@ -1,5 +1,3 @@
-from typing import Dict, Optional, Tuple
-
 from django.db import models
 
 
@@ -20,8 +18,8 @@ class GegevensGroepType:
 
     def __init__(
         self,
-        mapping: Dict[str, models.Field],
-        optional: Optional[Tuple] = None,
+        mapping: dict[str, models.Field],
+        optional: tuple | None = None,
         required=None,
         none_for_empty=False,
     ):
@@ -70,7 +68,7 @@ class GegevensGroepType:
 
         return {key: _value_getter(field.name) for key, field in self.mapping.items()}
 
-    def __set__(self, obj, value: Optional[dict]):
+    def __set__(self, obj, value: dict | None):
         # value can be empty, if that's the case, empty all model fields
         if not value:
             if self.required:

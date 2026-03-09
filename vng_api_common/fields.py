@@ -199,12 +199,6 @@ class DaysDurationField(models.DurationField):
         defaults.update(**kwargs)
 
         # Ensure form_class and choices_form_class are types, not strings
-        if isinstance(form_class, str):
-            from django.forms import CharField
-
-            form_class = CharField
-        if isinstance(choices_form_class, str):
-            choices_form_class = ChoiceField
         return super().formfield(
             form_class=form_class, choices_form_class=choices_form_class, **defaults
         )

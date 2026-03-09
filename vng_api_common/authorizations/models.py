@@ -43,7 +43,7 @@ class AuthorizationsConfig(SingletonModel):
 
     objects = AuthorizationsConfigManager()
 
-    class Meta:  # type: ignore
+    class Meta(SingletonModel.Meta):
         verbose_name = _("Autorisatiecomponentconfiguratie")
 
     @classmethod

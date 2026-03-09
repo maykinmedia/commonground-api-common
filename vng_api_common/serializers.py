@@ -1,7 +1,7 @@
 import inspect
 from collections import OrderedDict
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Tuple, Union
 
 from django.db import models, transaction
 from django.db.models import Model
@@ -31,8 +31,8 @@ parse_relativedelta: Optional[Callable[[str], relativedelta]]
 try:
     # 1.1.x
     from relativedeltafield.utils import (
-        format_relativedelta,  # type: ignore[attr-defined]
-        parse_relativedelta,  # type: ignore[attr-defined]
+        format_relativedelta,
+        parse_relativedelta,  # type: ignore[override]
     )
 except ImportError:
     try:
@@ -105,14 +105,14 @@ class ValidatieFoutSerializer(FoutSerializer):
 
 
 def add_choice_values_help_text(
-    choices: Union[models.Choices, List[Tuple[str, str]]],
+    choices: Union[type[models.Choices], Iterable[Tuple[str, str]]],
 ) -> str:
     is_dj_choices = inspect.isclass(choices) and issubclass(choices, models.Choices)
 
     if is_dj_choices:
         _choices = choices.choices  # type: ignore[attr-defined]
         if issubclass(choices, TextChoicesWithDescriptions):  # type: ignore[attr-defined]
-            descriptions = choices.descriptions()  # type: ignore[attr-defined]
+            descriptions = choices.descriptions()
             _choices = [
                 (key, f"({value}) {descriptions[key]}") for key, value in _choices
             ]
@@ -193,7 +193,7 @@ class GegevensGroepSerializer(
     Where ``Zaak.verlenging`` is a :class:``GegevensGroepType``.
     """
 
-    def validate_empty_values(self, data):
+    def validate_empty_values(self, data):  # type: ignore[override]
         """
         Even if we're in partial-serializer mode, the full gegevensgroep
         _must_ be provided.
@@ -269,7 +269,7 @@ class NestedGegevensGroepMixin(_BaseNested):
     """
 
     def _is_gegevensgroep(self, name: str):
-        attr = getattr(self.Meta.model, name)
+        attr = getattr(self.Meta.model, name)  # type: ignore
         return isinstance(attr, GegevensGroepType)
 
     def create(self, validated_data):

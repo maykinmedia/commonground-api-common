@@ -2,13 +2,13 @@ import logging
 from urllib.parse import urlencode
 
 from django.db import models
-from django.http import QueryDict
+from django.http import HttpRequest, QueryDict
 
 from django_filters.rest_framework import DjangoFilterBackend
 from djangorestframework_camel_case.parser import CamelCaseJSONParser
 from djangorestframework_camel_case.render import CamelCaseJSONRenderer
 from djangorestframework_camel_case.util import underscoreize
-from rest_framework.request import Request
+from rest_framework.request import Request as DRFRequest
 from rest_framework.views import APIView
 
 from .filtersets import FilterSet
@@ -42,16 +42,25 @@ class Backend(DjangoFilterBackend):
 
         return QueryDict(urlencode(transformed, doseq=True))
 
-    def get_filterset_kwargs(self, request: Request, queryset: models.QuerySet, view: APIView): # type: ignore[override],
+    def get_filterset_kwargs(
+        self,
+        request: HttpRequest,
+        queryset: models.QuerySet,
+        view: APIView,
+    ):
         """
         Get the initialization parameters for the filterset.
 
         * filter on request.data if request.query_params is empty
         * do the camelCase transformation of filter parameters
         """
+        drf_request = (
+            request if isinstance(request, DRFRequest) else DRFRequest(request)
+        )
+
         kwargs = super().get_filterset_kwargs(request, queryset, view)
         filter_parameters = (
-            request.query_params if not is_search_view(view) else request.data
+            drf_request.query_params if not is_search_view(view) else drf_request.data
         )
         query_params = self._transform_query_params(view, filter_parameters)  # type: ignore[arg-type]
         kwargs["data"] = query_params

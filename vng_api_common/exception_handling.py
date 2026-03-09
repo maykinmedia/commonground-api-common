@@ -175,7 +175,7 @@ class HandledException:
         else:
             serializer_class = FoutSerializer
 
-        return serializer_class(instance=self)
+        return serializer_class(instance=self)  # type: ignore
 
     def log(self):
         if self.logger and self.response.status_code < 500:

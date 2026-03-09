@@ -24,4 +24,4 @@ class DynamicPageSizeMixin:
         )
 
 
-class DynamicPageSizePagination(DynamicPageSizeMixin, PageNumberPagination): ...  # type: ignore[override]
+class DynamicPageSizePagination(DynamicPageSizeMixin, PageNumberPagination): ...

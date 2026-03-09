@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -61,14 +61,14 @@ class ClientIdRequired(permissions.BasePermission):
     Look at the client_id of an object and check that it equals client_id in the JWT
     """
 
-    def has_object_permission(self, request: Request, view, obj) -> bool:
+    def has_object_permission(self, request: Request, view, obj) -> bool:  # type: ignore[override]
         if bypass_permissions(request):
             return True
 
         if request.method in permissions.SAFE_METHODS:
             return True
         else:
-            client_id = request.jwt_auth.client_id  # type: ignore[attr-defined]
+            client_id = request.jwt_auth.client_id
             return client_id == obj.client_id
 
 
@@ -108,7 +108,7 @@ class BaseAuthRequired(permissions.BasePermission):
 
     permission_fields = ()
     get_obj = None
-    obj_path: Optional[str] = None
+    obj_path: str | None = None
 
     def _get_obj(self, view, request):
         if not isinstance(self.get_obj, str):
@@ -155,9 +155,9 @@ class BaseAuthRequired(permissions.BasePermission):
         fields = {
             k: self._extract_field_value(main_obj, k) for k in self.permission_fields
         }
-        return request.jwt_auth.has_auth(scopes_required, **fields)  # type: ignore[attr-defined]
+        return request.jwt_auth.has_auth(scopes_required, **fields)
 
-    def has_permission(self, request: Request, view) -> bool:
+    def has_permission(self, request: Request, view) -> bool:  # type: ignore[override]
         from rest_framework.viewsets import ViewSetMixin
 
         if bypass_permissions(request):
@@ -174,9 +174,9 @@ class BaseAuthRequired(permissions.BasePermission):
             return True
 
         # by default - check if the action is allowed at all
-        return request.jwt_auth.has_auth(scopes_required)  # type: ignore[attr-defined]
+        return request.jwt_auth.has_auth(scopes_required)
 
-    def has_object_permission(self, request: Request, view, obj) -> bool:
+    def has_object_permission(self, request: Request, view, obj) -> bool:  # type: ignore[override]
         if bypass_permissions(request):
             return True
 
@@ -184,7 +184,7 @@ class BaseAuthRequired(permissions.BasePermission):
         main_obj = self._get_obj_from_path(obj)
         fields = {k: getattr(main_obj, k) for k in self.permission_fields}
 
-        return request.jwt_auth.has_auth(scopes_required, **fields)  # type: ignore[attr-defined]
+        return request.jwt_auth.has_auth(scopes_required, **fields)
 
 
 class AuthScopesRequired(BaseAuthRequired):

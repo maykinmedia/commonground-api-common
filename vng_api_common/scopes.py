@@ -6,7 +6,7 @@ added to the scope registry, which can be introspected for automatic
 documentation.
 """
 
-from typing import List, Optional
+from typing import List
 
 OPERATOR_OR = "OR"
 OPERATOR_AND = "AND"
@@ -37,7 +37,7 @@ class Scope:
     """
 
     def __init__(
-        self, label: str, description: Optional[str] = None, private: bool = False
+        self, label: str, description: str | None = None, private: bool = False
     ):
         self.label = label
         self.description = description

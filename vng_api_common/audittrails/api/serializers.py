@@ -6,7 +6,7 @@ from ..models import AuditTrail
 
 
 class WijzigingenSerializer(GegevensGroepSerializer):
-    class Meta:  # type: ignore
+    class Meta:
         model = AuditTrail
         gegevensgroep = "wijzigingen"
 
@@ -14,7 +14,7 @@ class WijzigingenSerializer(GegevensGroepSerializer):
 class AuditTrailSerializer(serializers.ModelSerializer):
     wijzigingen = WijzigingenSerializer()
 
-    class Meta:  # type: ignore
+    class Meta:
         model = AuditTrail
         fields = (
             "uuid",
@@ -38,9 +38,8 @@ class AuditTrailSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        value_display_mapping = add_choice_values_help_text(
-            [(item.value, item.name) for item in ComponentTypes]
-        )
+        value_display_mapping = add_choice_values_help_text(ComponentTypes)
+        self.fields["bron"].help_text += f"\n\n{value_display_mapping}"
         current_help = self.fields["bron"].help_text or ""
         self.fields["bron"].help_text = current_help + f"\n\n{value_display_mapping}"
 
