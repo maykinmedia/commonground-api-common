@@ -1,10 +1,8 @@
-from typing import Mapping
-
 from django.db import models
 from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
-from .choices import TextChoicesWithDescriptions, TextChoicesWithLazyDescriptions
+from .choices import TextChoicesWithDescriptions
 
 BSN_LENGTH = 9
 RSIN_LENGTH = 9
@@ -66,7 +64,7 @@ class RolOmschrijving(TextChoicesWithDescriptions):
     medeinitiator = "mede_initiator", _("Mede-initiator")
 
     @classmethod
-    def descriptions(cls) -> dict[str, str]:
+    def descriptions(cls) -> dict[str, str | Promise]:
         return {
             cls.adviseur: "Kennis in dienst stellen van de behandeling van (een deel van) een zaak.",
             cls.behandelaar: "De vakinhoudelijke behandeling doen van (een deel van) een zaak.",
@@ -126,7 +124,7 @@ class Archiefstatus(models.TextChoices):
     )
 
 
-class BrondatumArchiefprocedureAfleidingswijze(TextChoicesWithLazyDescriptions):
+class BrondatumArchiefprocedureAfleidingswijze(TextChoicesWithDescriptions):
     afgehandeld = "afgehandeld", _("Afgehandeld")
     ander_datumkenmerk = "ander_datumkenmerk", _("Ander datumkenmerk")
     eigenschap = "eigenschap", _("Eigenschap")
@@ -141,7 +139,7 @@ class BrondatumArchiefprocedureAfleidingswijze(TextChoicesWithLazyDescriptions):
     zaakobject = "zaakobject", _("Zaakobject")
 
     @classmethod
-    def descriptions(cls) -> Mapping[str, str | Promise]:
+    def descriptions(cls) -> dict[str, str | Promise]:
         return {
             cls.afgehandeld: _(
                 "De termijn start op de datum waarop de zaak is "
