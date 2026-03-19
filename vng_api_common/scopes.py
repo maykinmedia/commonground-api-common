@@ -12,7 +12,7 @@ OPERATOR_OR = "OR"
 OPERATOR_AND = "AND"
 
 
-SCOPE_REGISTRY = set()
+SCOPE_REGISTRY: set["Scope"] = set()
 
 
 class Scope:

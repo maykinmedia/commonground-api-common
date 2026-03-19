@@ -18,9 +18,7 @@ from .scopes import SCOPE_REGISTRY
 from .utils import get_domain
 
 if TYPE_CHECKING:
-    from .scopes import Scope
-
-SCOPE_REGISTRY: set["Scope"] = set()  # noqa: F811
+    pass
 
 
 class ErrorDetailView(TemplateView):
