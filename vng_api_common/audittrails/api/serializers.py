@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ...constants import ComponentTypes
+from ...constants import CommonResourceAction, ComponentTypes
 from ...serializers import GegevensGroepSerializer, add_choice_values_help_text
 from ..models import AuditTrail
 
@@ -39,7 +39,6 @@ class AuditTrailSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
         value_display_mapping = add_choice_values_help_text(ComponentTypes)
-        self.fields["bron"].help_text += f"\n\n{value_display_mapping}"
         current_help = self.fields["bron"].help_text or ""
         self.fields["bron"].help_text = current_help + f"\n\n{value_display_mapping}"
 
@@ -48,6 +47,7 @@ class AuditTrailSerializer(serializers.ModelSerializer):
         custom_msg = """De bekende waardes voor dit veld zijn hieronder aangegeven, \
                         maar andere waardes zijn ook toegestaan"""
 
+        value_display_mapping = add_choice_values_help_text(CommonResourceAction)
         current_help = self.fields["actie"].help_text or ""
         self.fields["actie"].help_text = (
             current_help + f"\n\n{custom_msg}\n\n{value_display_mapping}"
