@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 import sentry_sdk
 from rest_framework import exceptions, exceptions as drf_exceptions, status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ErrorDetail
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
@@ -206,8 +206,9 @@ class HandledException:
         if self.is_drf_exception:
             return getattr(self.exc, "default_code", DEFAULT_CODE)
         detail = self._error_detail
-        if hasattr(detail, "code") and not isinstance(detail, str):
-            return detail.code
+
+        if hasattr(detail, "code") and isinstance(detail, ErrorDetail):
+            return str(detail.code)
 
         return getattr(self.exc, "default_code", "error")
 
