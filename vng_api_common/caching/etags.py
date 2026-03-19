@@ -76,7 +76,7 @@ def get_etag_serializer(instance: models.Model) -> serializers.Serializer:
     versioning_class = api_settings.DEFAULT_VERSIONING_CLASS
     if isinstance(versioning_class, str):
         versioning_class = import_string(versioning_class)
-
+    request.versioning_scheme = versioning_class()  # pyright: ignore
     serializer = serializer_class(instance=instance, context={"request": request})
     return serializer  # type: ignore
 
