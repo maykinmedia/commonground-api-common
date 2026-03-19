@@ -98,7 +98,12 @@ class MockClient:
 
         # result = copy.deepcopy(self.data.get(resource)[index])
         # result['url'] = result['url'].format(**kwargs)
-        return self.data.get(resource)[index]
+        resource_data = self.data.get(resource)
+
+        if resource_data is None:
+            return None
+
+        return resource_data[index]
 
     def create(self, resource: str, *args, **kwargs):
         return self.data.get(resource, {})

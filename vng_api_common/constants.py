@@ -1,6 +1,5 @@
-from typing import Optional
-
 from django.db import models
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
 from .choices import TextChoicesWithDescriptions
@@ -37,8 +36,8 @@ class VertrouwelijkheidsAanduiding(models.TextChoices):
     zeer_geheim = "zeer_geheim", _("Zeer geheim")
 
     @classmethod
-    def get_order_expression(cls, field_name):
-        whens = []
+    def get_order_expression(cls, field_name: str) -> models.Case:
+        whens: list[models.When] = []
         for order, value in enumerate(cls.values):
             whens.append(
                 models.When(**{field_name: value, "then": models.Value(order)})
@@ -46,8 +45,8 @@ class VertrouwelijkheidsAanduiding(models.TextChoices):
         return models.Case(*whens, output_field=models.IntegerField())
 
     @classmethod
-    def get_choice_order(cls, value) -> Optional[int]:
-        orders = {
+    def get_choice_order(cls, value: str) -> int | None:
+        orders: dict[str, int] = {
             value: order
             for order, value in enumerate(VertrouwelijkheidsAanduiding.values)
         }
@@ -65,7 +64,7 @@ class RolOmschrijving(TextChoicesWithDescriptions):
     medeinitiator = "mede_initiator", _("Mede-initiator")
 
     @classmethod
-    def descriptions(cls):
+    def descriptions(cls) -> dict[str, str | Promise]:
         return {
             cls.adviseur: "Kennis in dienst stellen van de behandeling van (een deel van) een zaak.",
             cls.behandelaar: "De vakinhoudelijke behandeling doen van (een deel van) een zaak.",
@@ -140,7 +139,7 @@ class BrondatumArchiefprocedureAfleidingswijze(TextChoicesWithDescriptions):
     zaakobject = "zaakobject", _("Zaakobject")
 
     @classmethod
-    def descriptions(cls):
+    def descriptions(cls) -> dict[str, str | Promise]:
         return {
             cls.afgehandeld: _(
                 "De termijn start op de datum waarop de zaak is "

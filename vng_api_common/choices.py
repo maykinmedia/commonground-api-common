@@ -1,6 +1,5 @@
-from typing import Dict
-
 from django.db.models import TextChoices
+from django.utils.functional import Promise
 
 
 def ensure_description_exists(text_choices):
@@ -16,5 +15,5 @@ def ensure_description_exists(text_choices):
 
 class TextChoicesWithDescriptions(TextChoices):
     @classmethod
-    def descriptions(cls) -> Dict[str, str]:
+    def descriptions(cls) -> dict[str, str | Promise]:
         return {}

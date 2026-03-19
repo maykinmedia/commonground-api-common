@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+from unittest import TestCase
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -53,8 +54,9 @@ class TypeCheckMixin:
         :raises AssertionError: if the type mismatches
         """
         for field, type_ in types:
-            with self.subTest(field=field, type=type_):
-                self.assertIsInstance(response_data[field], type_)
+            self_tc = cast(TestCase, self)
+            with self_tc.subTest(field=field, type=type_):
+                self_tc.assertIsInstance(response_data[field], type_)
 
 
 def mock_service_oas_get(

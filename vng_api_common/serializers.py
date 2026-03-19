@@ -1,7 +1,7 @@
 import inspect
 from collections import OrderedDict
 from functools import reduce
-from typing import List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Tuple, Union
 
 from django.db import models, transaction
 from django.db.models import Model
@@ -15,13 +15,32 @@ from rest_framework_nested.relations import NestedHyperlinkedRelatedField
 from .choices import TextChoicesWithDescriptions
 from .descriptors import GegevensGroepType
 
+if TYPE_CHECKING:
+    from rest_framework.serializers import HyperlinkedRelatedField as _Base
+else:
+    _Base = object
+
+if TYPE_CHECKING:
+    from rest_framework.serializers import ModelSerializer as _BaseNested
+else:
+    _BaseNested = object
+
+format_relativedelta: Optional[Callable[[relativedelta], str]]
+parse_relativedelta: Optional[Callable[[str], relativedelta]]
+
 try:
     # 1.1.x
-    from relativedeltafield.utils import format_relativedelta, parse_relativedelta
+    from relativedeltafield.utils import (
+        format_relativedelta,
+        parse_relativedelta,  # type: ignore[override]
+    )
 except ImportError:
     try:
         # 1.0.x
-        from relativedeltafield import format_relativedelta, parse_relativedelta
+        from relativedeltafield import (
+            format_relativedelta,  # type: ignore[attr-defined]
+            parse_relativedelta,  # type: ignore[attr-defined]
+        )
     except ImportError:
         format_relativedelta = None
         parse_relativedelta = None
@@ -32,17 +51,17 @@ def field_allows_empty_values(field: fields.Field) -> bool:
 
 
 class DurationField(fields.DurationField):
-    def to_internal_value(self, value):
+    def to_internal_value(self, value):  # type: ignore[override]
         if isinstance(value, relativedelta):
             return value
         try:
-            return parse_relativedelta(str(value))
+            return parse_relativedelta(str(value))  # type: ignore[call-arg]
         except ValueError:
             self.fail("invalid", format="P(n)Y(n)M(n)D")
 
-    def to_representation(self, value) -> Optional[str]:
+    def to_representation(self, value) -> Optional[str]:  # type: ignore[override]
         if isinstance(value, relativedelta):
-            return format_relativedelta(value)
+            return format_relativedelta(value)  # type: ignore[call-arg]
         return None
 
 
@@ -86,20 +105,20 @@ class ValidatieFoutSerializer(FoutSerializer):
 
 
 def add_choice_values_help_text(
-    choices: Union[models.Choices, List[Tuple[str, str]]],
+    choices: Union[type[models.Choices], Iterable[Tuple[str, str]]],
 ) -> str:
     is_dj_choices = inspect.isclass(choices) and issubclass(choices, models.Choices)
 
     if is_dj_choices:
-        _choices = choices.choices
-        if issubclass(choices, TextChoicesWithDescriptions):
+        _choices = choices.choices  # type: ignore[attr-defined]
+        if issubclass(choices, TextChoicesWithDescriptions):  # type: ignore[attr-defined]
             descriptions = choices.descriptions()
             _choices = [
                 (key, f"({value}) {descriptions[key]}") for key, value in _choices
             ]
     else:
         _choices = choices
-    items = [f"* `{key}` - {value}" for key, value in _choices]
+    items = [f"* `{key}` - {value}" for key, value in _choices]  # type: ignore[attr-defined]
 
     return "Uitleg bij mogelijke waarden:\n\n" + "\n".join(items)
 
@@ -174,7 +193,7 @@ class GegevensGroepSerializer(
     Where ``Zaak.verlenging`` is a :class:``GegevensGroepType``.
     """
 
-    def validate_empty_values(self, data):
+    def validate_empty_values(self, data):  # type: ignore[override]
         """
         Even if we're in partial-serializer mode, the full gegevensgroep
         _must_ be provided.
@@ -199,7 +218,7 @@ class GegevensGroepSerializer(
 
         return (is_empty_value, data)
 
-    def to_representation(self, instance) -> dict | None:
+    def to_representation(self, instance) -> Optional[dict[str, Any]]:  # type: ignore[override]
         """
         Output the result of accessing the descriptor.
         """
@@ -242,7 +261,7 @@ class GegevensGroepSerializer(
         return ret
 
 
-class NestedGegevensGroepMixin:
+class NestedGegevensGroepMixin(_BaseNested):
     """
     Set gegevensgroepdata from validated nested data.
 
@@ -250,7 +269,7 @@ class NestedGegevensGroepMixin:
     """
 
     def _is_gegevensgroep(self, name: str):
-        attr = getattr(self.Meta.model, name)
+        attr = getattr(self.Meta.model, name)  # type: ignore
         return isinstance(attr, GegevensGroepType)
 
     def create(self, validated_data):
@@ -306,7 +325,7 @@ def get_nested_fk_attribute(instance, relation_path):
     )
 
 
-class CacheMixin:
+class CacheMixin(_Base):
     """
     Mixin for Hyperlinked DRF fields to cache the base URI per view, to avoid
     having to recalculate this for each related object that has to be serialized

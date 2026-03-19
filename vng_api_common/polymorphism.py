@@ -60,22 +60,22 @@ class Discriminator:
         self.group_field = group_field
         self.same_model = same_model
 
-    def to_representation(self, instance) -> OrderedDict:
+    def to_representation(self, instance) -> OrderedDict | None:
         discriminator_value = getattr(instance, self.discriminator_field)
         serializer = self.mapping.get(discriminator_value)
         if serializer is None:
             return None
 
-        representation = serializer.to_representation(instance)
-        return representation
+        representation = serializer.to_representation(instance)  # type: ignore
+        return OrderedDict(representation)
 
-    def to_internal_value(self, data) -> OrderedDict:
+    def to_internal_value(self, data) -> OrderedDict | None:
         discriminator_value = data[self.discriminator_field]
         serializer = self.mapping.get(discriminator_value)
         if serializer is None:
             return None
 
-        internal_value = serializer.to_internal_value(data)
+        internal_value = serializer.to_internal_value(data)  # type: ignore
         # if nested serializer was generated in _sanitize_discriminator name if group_field
         # was changed in the internal_value. We need to return it
         if (
@@ -86,13 +86,13 @@ class Discriminator:
             key, value = internal_value.popitem()
             internal_value = OrderedDict({self.group_field: value})
 
-        return internal_value
+        return internal_value  # type: ignore
 
 
 class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
     @classmethod
-    def _sanitize_discriminator(cls, name, attrs) -> Union[Discriminator, None]:
-        discriminator = attrs["discriminator"]
+    def _sanitize_discriminator(cls, name, attrs) -> Discriminator | None:
+        discriminator = attrs.get("discriminator")
         if discriminator is None:
             return None
 
@@ -168,25 +168,35 @@ class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
         return discriminator
 
     def __new__(cls, name, bases, attrs):
-        attrs["discriminator"] = cls._sanitize_discriminator(name, attrs)
+        discriminator = cls._sanitize_discriminator(name, attrs)
+
+        if discriminator is not None:
+            attrs["discriminator"] = discriminator
+
         return super().__new__(cls, name, bases, attrs)
 
 
 class PolymorphicSerializer(
     serializers.HyperlinkedModelSerializer, metaclass=PolymorphicSerializerMetaclass
 ):
-    discriminator: Discriminator = None
+    discriminator: Discriminator
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        extra_fields = self.discriminator.to_representation(instance)
-        if extra_fields:
-            representation.update(extra_fields)
+
+        if self.discriminator is not None:
+            extra_fields = self.discriminator.to_representation(instance)
+            if extra_fields:
+                representation.update(extra_fields)
+
         return representation
 
     def to_internal_value(self, data):
         internal_value = super().to_internal_value(data)
-        extra_fields = self.discriminator.to_internal_value(data)
-        if extra_fields:
-            internal_value.update(extra_fields)
+
+        if self.discriminator is not None:
+            extra_fields = self.discriminator.to_internal_value(data)
+            if extra_fields:
+                internal_value.update(extra_fields)
+
         return internal_value

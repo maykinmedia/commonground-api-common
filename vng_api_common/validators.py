@@ -1,11 +1,12 @@
 import json
 import logging
 import re
-from datetime import timedelta
-from typing import Callable
+from datetime import date, datetime, timedelta
+from typing import Any, Callable, MutableMapping
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.deconstruct import deconstructible
 from django.utils.module_loading import import_string
@@ -132,17 +133,18 @@ class AlphanumericExcludingDiacritic:
 alphanumeric_excluding_diacritic = AlphanumericExcludingDiacritic()
 
 
-def validate_non_negative_string(value):
+def validate_non_negative_string(value: str) -> None:
     """
-    Validate a string containing a integer to be non-negative.
+    Validate a string containing an integer to be non-negative.
     """
-    error = False
+    error_message = "De waarde moet een niet-negatief getal zijn."
     try:
         n = int(value)
     except ValueError:
-        error = True
-    if error or n < 0:
-        raise ValidationError("De waarde moet een niet-negatief getal zijn.")
+        raise ValidationError(error_message)
+
+    if n < 0:
+        raise ValidationError(error_message)
 
 
 class URLValidator:
@@ -160,7 +162,9 @@ class URLValidator:
     )
     code = "bad-url"
 
-    def __init__(self, get_auth: Callable = None, **extra):
+    def __init__(
+        self, get_auth: Callable[[str], dict[str, str]] | None = None, **extra
+    ):
         self.get_auth = get_auth
         self.extra = extra
 
@@ -225,7 +229,7 @@ class ResourceValidator(URLValidator):
             obj = response.json()
         except json.JSONDecodeError:
             logger.info(
-                "URL %s doesn't seem to point to a JSON endpoint", url, exc_info=1
+                "URL %s doesn't seem to point to a JSON endpoint", url, exc_info=True
             )
             raise serializers.ValidationError(
                 self.__message.format(url=url, resource=self.resource), code=self.__code
@@ -235,7 +239,7 @@ class ResourceValidator(URLValidator):
         schema = fetcher.fetch(self.oas_schema)
         if not obj_has_shape(obj, schema, self.resource):
             logger.info(
-                "URL %s doesn't seem to point to a valid shape", url, exc_info=1
+                "URL %s doesn't seem to point to a valid shape", url, exc_info=True
             )
             raise serializers.ValidationError(
                 self.__message.format(url=url, resource=self.resource), code=self.__code
@@ -247,17 +251,21 @@ class ResourceValidator(URLValidator):
 class InformatieObjectUniqueValidator(validators.UniqueTogetherValidator):
     requires_context = True
 
-    def __init__(self, parent_field, field: str):
+    def __init__(self, parent_field: str, field: str, queryset: QuerySet):
         self.parent_field = parent_field
         self.field = field
-        super().__init__(None, (parent_field, field))
+        super().__init__(queryset=queryset, fields=(parent_field, field))
 
-    def __call__(self, informatieobject: str, serializer):
+    def __call__(
+        self,
+        informatieobject: MutableMapping[str, Any],
+        serializer: serializers.BaseSerializer,
+    ):
         attrs = {
             self.parent_field: serializer.context["parent_object"],
             self.field: informatieobject,
         }
-        super().__call__(attrs)
+        super().__call__(attrs, serializer)
 
 
 @deconstructible
@@ -274,7 +282,7 @@ class UntilNowValidator:
     code = "future_not_allowed"
 
     @property
-    def limit_value(self):
+    def limit_value(self) -> datetime | date:
         return timezone.now() + timedelta(seconds=settings.TIME_LEEWAY)
 
     def __call__(self, value):
@@ -291,8 +299,9 @@ class UntilNowValidator:
 
 class UntilTodayValidator(UntilNowValidator):
     @property
-    def limit_value(self):
+    def limit_value(self) -> date:
         limit_value = super().limit_value
+        assert isinstance(limit_value, datetime)
         return limit_value.date()
 
 

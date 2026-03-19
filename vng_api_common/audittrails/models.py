@@ -90,7 +90,7 @@ class AuditTrail(models.Model):
         help_text=_("Toelichting waarom de handeling is uitgevoerd."),
     )
     wijzigingen = GegevensGroepType(
-        {"oud": oud, "nieuw": nieuw}, optional=["oud", "nieuw"], none_for_empty=True
+        {"oud": oud, "nieuw": nieuw}, optional=("oud", "nieuw"), none_for_empty=True
     )
 
     class Meta:

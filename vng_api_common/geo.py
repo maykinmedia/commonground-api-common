@@ -22,12 +22,12 @@ class GeoMixin:
 
     @property
     def default_response_headers(self):
-        headers = super().default_response_headers
+        headers = super().default_response_headers  # type: ignore[attr-defined]
         headers["Content-Crs"] = DEFAULT_CRS
         return headers
 
     def initial(self, request, *args, **kwargs):
-        super().initial(request, *args, **kwargs)
+        super().initial(request, *args, **kwargs)  # type: ignore[attr-defined]
         self.perform_crs_negotation(request)
 
     def perform_crs_negotation(self, request):

@@ -1,7 +1,7 @@
 import logging
 import re
 import uuid
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
 
 from django.apps import apps
 from django.conf import settings
@@ -19,11 +19,11 @@ try:
     )
 except ImportError:
     from djangorestframework_camel_case.util import (
-        underscoreToCamel as _underscore_to_camel,
+        underscoreToCamel as _underscore_to_camel,  # type: ignore[import]
     )
 
 if TYPE_CHECKING:
-    from rest_framework.viewsets import ViewSet
+    from rest_framework.viewsets import ModelViewSet, ViewSet
 
 
 logger = logging.getLogger(__name__)
@@ -37,12 +37,14 @@ def get_subclasses(cls):
         yield subclass
 
 
-def lookup_kwargs_to_filters(lookup_kwargs: dict, kwargs: dict) -> dict:
+def lookup_kwargs_to_filters(
+    lookup_kwargs: dict[str, str], kwargs: dict[str, Any]
+) -> dict[str, Any]:
     """
     Using the lookup_kwargs map and the view kwargs, construct the queryset
     filter dict.
     """
-    filters = {}
+    filters: dict[str, Any] = {}
     for kwarg, field_name in lookup_kwargs.items():
         if kwarg not in kwargs:
             continue
@@ -94,6 +96,7 @@ def get_resource_for_path(path: str) -> models.Model:
         path = path[prefix_length:]
 
     viewset = get_viewset_for_path(path)
+    viewset = cast("ModelViewSet", viewset)
 
     # See rest_framework.mixins.RetieveModelMixin.get_object()
     lookup_url_kwarg = viewset.lookup_url_kwarg or viewset.lookup_field
@@ -142,16 +145,16 @@ def get_resources_for_paths(paths: List[str]) -> Optional[models.QuerySet]:
         lookup_url_kwarg = viewset_cls.lookup_url_kwarg or viewset_cls.lookup_field
         lookup_kwarg_values.append(callback_kwargs[lookup_url_kwarg])
 
-    queryset = viewset_cls().get_queryset()
+    queryset = viewset_cls().get_queryset()  # type: ignore
     # drop any joins or prefetch_related to speed things up even more
     queryset = queryset.select_related(None).prefetch_related(None)
 
     filtered_queryset = queryset.filter(
-        **{f"{viewset_cls.lookup_field}__in": lookup_kwarg_values}
+        **{f"{viewset_cls.lookup_field}__in": lookup_kwarg_values}  # type: ignore
     )
     if not len(filtered_queryset) == len(paths):
         raise RuntimeError(
-            f"Some paths could not be resolved with viewset {viewset_cls} - are you sure "
+            f"Some paths could not be resolved with viewset {viewset_cls} - are you sure "  # type: ignore
             "that all paths point to the same resource?"
         )
     return filtered_queryset
@@ -162,7 +165,7 @@ def underscore_to_camel(input_: Union[str, int]) -> str:
     Convert a string from under_score to camelCase.
     """
     if not isinstance(input_, str):
-        return input_
+        return input_  # type: ignore[override]
 
     return re.sub(RE_UNDERSCORE, _underscore_to_camel, input_)
 
@@ -184,7 +187,7 @@ def get_uuid_from_path(path: str) -> str:
 
 def generate_unique_identification(instance: models.Model, date_field_name: str):
     model = type(instance)
-    model_name = getattr(model, "IDENTIFICATIE_PREFIX", model._meta.model_name.upper())
+    model_name = getattr(model, "IDENTIFICATIE_PREFIX", model._meta.model_name.upper())  # type: ignore
 
     year = getattr(instance, date_field_name).year
     prefix = f"{model_name}-{year}"

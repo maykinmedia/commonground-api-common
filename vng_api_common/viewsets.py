@@ -1,9 +1,13 @@
+from typing import TYPE_CHECKING
+
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.request import Request
 from rest_framework.settings import api_settings
+from rest_framework.viewsets import GenericViewSet
 from rest_framework_nested.viewsets import NestedViewSetMixin  # noqa
 
 from .filters_backend import Backend
@@ -11,9 +15,14 @@ from .utils import underscore_to_camel
 
 UNKNOWN_PARAMETERS_CODE = "unknown-parameters"
 
+if TYPE_CHECKING:
+    BaseViewSet = GenericViewSet
+else:
+    BaseViewSet = object
 
-class CheckQueryParamsMixin:
-    def _check_query_params(self, request) -> None:
+
+class CheckQueryParamsMixin(BaseViewSet):
+    def _check_query_params(self, request: Request) -> None:
         """
         Validate that the query params in the request are known.
         """
@@ -56,10 +65,10 @@ class CheckQueryParamsMixin:
                 code=UNKNOWN_PARAMETERS_CODE,
             )
 
-    def list(self, request, *args, **kwargs):
+    def list(self, request: Request, *args, **kwargs):
         self._check_query_params(request)
-        return super().list(request, *args, **kwargs)
+        return super().list(request, *args, **kwargs)  # pyright: ignore
 
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request: Request, *args, **kwargs):
         self._check_query_params(request)
-        return super().retrieve(request, *args, **kwargs)
+        return super().retrieve(request, *args, **kwargs)  # pyright: ignore

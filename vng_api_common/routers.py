@@ -1,6 +1,9 @@
 import warnings
 
-from rest_framework.routers import APIRootView as _APIRootView
+from rest_framework.routers import (
+    APIRootView as _APIRootView,
+    DefaultRouter as DRFDefaultRouter,
+)
 from rest_framework_nested import routers
 
 
@@ -8,7 +11,7 @@ class APIRootView(_APIRootView):
     permission_classes = ()
 
 
-class NestedRegisteringMixin:
+class NestedRegisteringMixin(DRFDefaultRouter):
     _nested_router = None
 
     def __init__(self, *args, **kwargs):
@@ -51,8 +54,8 @@ class NestedSimpleRouter(NestedRegisteringMixin, routers.NestedSimpleRouter):
     pass
 
 
-class DefaultRouter(NestedRegisteringMixin, routers.DefaultRouter):
-    APIRootView = APIRootView
+class DefaultRouter(NestedRegisteringMixin, DRFDefaultRouter):
+    APIRootView: type[_APIRootView] = APIRootView
 
 
 class Nested:

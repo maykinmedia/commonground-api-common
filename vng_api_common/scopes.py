@@ -12,7 +12,7 @@ OPERATOR_OR = "OR"
 OPERATOR_AND = "AND"
 
 
-SCOPE_REGISTRY = set()
+SCOPE_REGISTRY: set["Scope"] = set()
 
 
 class Scope:
@@ -36,7 +36,9 @@ class Scope:
     :arg private: Private scopes are not added to the registry.
     """
 
-    def __init__(self, label: str, description: str = None, private: bool = False):
+    def __init__(
+        self, label: str, description: str | None = None, private: bool = False
+    ):
         self.label = label
         self.description = description
 

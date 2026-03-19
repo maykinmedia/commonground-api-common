@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Dict, Iterable, Set, Type, Union
+from typing import Dict, Iterable, Set, Type, Union, cast
 
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import models
@@ -50,7 +50,7 @@ class Dependency:
 
     @property
     def source_model(self) -> ModelBase:
-        return self.field.related_model
+        return cast(ModelBase, self.field.related_model)
 
     @property
     def affected_model(self) -> ModelBase:
@@ -72,12 +72,11 @@ class Dependency:
 
         try:
             if isinstance(reverse_relation_field, ForeignObjectRel):
-                on_delete = self.field.remote_field.on_delete
-                query_like = getattr(
-                    instance, reverse_relation_field.get_accessor_name()
-                )
+                on_delete = cast(models.ForeignKey, self.field).remote_field.on_delete
+                accessor_name = cast(str, reverse_relation_field.get_accessor_name())
+                query_like = getattr(instance, accessor_name)
             else:
-                on_delete = self.field.on_delete
+                on_delete = self.field.on_delete  # type: ignore[attr-defined]
                 query_like = getattr(instance, reverse_relation_field.name)
         except ObjectDoesNotExist:  # nullable OneToOneField, for example
             return []
@@ -150,7 +149,7 @@ def extract_dependencies(viewset: type, explicit_field_names: Set[str]) -> None:
         try:
             model_field = model._meta.get_field(field.source)
         except FieldDoesNotExist:
-            relation_info = relationships[field.source]
+            relation_info = relationships[str(field.source)]
             assert relation_info.to_many
             # find the field by accessor name
             candidates = [

@@ -7,6 +7,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
+from django.forms import ChoiceField, Field
 from django.utils.translation import gettext, gettext_lazy as _
 
 from iso639 import iter_langs
@@ -185,10 +186,19 @@ class DaysDurationField(models.DurationField):
             )
         return errors
 
-    def formfield(self, **kwargs):
+    def formfield(
+        self,
+        form_class: type[Field] | None = None,
+        choices_form_class: type[ChoiceField] | None = None,
+        **kwargs,
+    ):
         # add sensible help-text
         _help_text = gettext("Specifieer de duur als 'DD 00:00'")
         help_text = f"{self.help_text} {_help_text}" if self.help_text else _help_text
         defaults = {"help_text": help_text}
         defaults.update(**kwargs)
-        return super().formfield(**defaults)
+
+        # Ensure form_class and choices_form_class are types, not strings
+        return super().formfield(
+            form_class=form_class, choices_form_class=choices_form_class, **defaults
+        )

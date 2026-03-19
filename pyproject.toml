@@ -84,6 +84,11 @@ tests = [
     "djangorestframework-gis",
     "drf-extra-fields",
 ]
+type-checking = [
+    "pyright",
+    "django-stubs",
+    "django-stubs-ext",
+]
 
 oas = [
     "requests-mock",
@@ -258,3 +263,6 @@ section-order = [
 
 [tool.ruff.format]
 line-ending = "lf"
+
+[tool.setuptools.package-data]
+open_api_framework = ["py.typed"]

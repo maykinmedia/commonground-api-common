@@ -39,7 +39,8 @@ class AuditTrailSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
         value_display_mapping = add_choice_values_help_text(ComponentTypes)
-        self.fields["bron"].help_text += f"\n\n{value_display_mapping}"
+        current_help = self.fields["bron"].help_text or ""
+        self.fields["bron"].help_text = current_help + f"\n\n{value_display_mapping}"
 
         # Indicate that the values for AuditTrail.actie are not limited to
         # the CommonResourceActions
@@ -47,4 +48,7 @@ class AuditTrailSerializer(serializers.ModelSerializer):
                         maar andere waardes zijn ook toegestaan"""
 
         value_display_mapping = add_choice_values_help_text(CommonResourceAction)
-        self.fields["actie"].help_text += f"\n\n{custom_msg}\n\n{value_display_mapping}"
+        current_help = self.fields["actie"].help_text or ""
+        self.fields["actie"].help_text = (
+            current_help + f"\n\n{custom_msg}\n\n{value_display_mapping}"
+        )

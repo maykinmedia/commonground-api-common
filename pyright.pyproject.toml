@@ -1,0 +1,14 @@
+[tool.pyright]
+pythonVersion = "3.12"
+pythonPlatform = "Linux"
+reportUnnecessaryTypeIgnoreComment = "error"
+
+include = ["vng_api_common"]
+exclude = [
+    "vng_api_common/tests",
+    "vng_api_common/tests/*",
+    "vng_api_common/**/tests",
+    "vng_api_common/**/tests/*",
+    "vng_api_common/test_*.py",
+    "**/__tests__/*"
+]

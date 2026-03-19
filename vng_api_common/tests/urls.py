@@ -36,7 +36,7 @@ def reverse(*args, **kwargs):
     kwargs.setdefault("kwargs", {})
     kwargs["kwargs"]["version"] = settings.REST_FRAMEWORK["DEFAULT_VERSION"]
     args, kwargs = _magic_args(args, kwargs)
-    return _reverse(*args, **kwargs)
+    return _reverse(*args, **kwargs)  # type: ignore
 
 
 def reverse_lazy(*args, **kwargs):
@@ -55,4 +55,4 @@ def reverse_lazy(*args, **kwargs):
     kwargs.setdefault("kwargs", {})
     kwargs["kwargs"]["version"] = settings.REST_FRAMEWORK["DEFAULT_VERSION"]
     args, kwargs = _magic_args(args, kwargs)
-    return _reverse_lazy(*args, **kwargs)
+    return _reverse_lazy(*args, **kwargs)  # type: ignore

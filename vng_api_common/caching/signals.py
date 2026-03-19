@@ -7,11 +7,10 @@ The signal does nothing except clearing the calculated value, which will be
 re-calculated on the next fetch.
 """
 
-from typing import Optional, Set
+from typing import Optional, Set, cast
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
-from django.db.models.base import ModelBase
 from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.dispatch import receiver
 
@@ -28,7 +27,7 @@ def mark_affected_objects(
         return
 
     for dependency in dependencies:
-        if not is_etag_model(dependency.affected_model):
+        if not is_etag_model(cast(type[models.Model], dependency.affected_model)):
             continue
 
         for obj in dependency.get_related_objects(instance, is_delete=is_delete):
@@ -37,7 +36,7 @@ def mark_affected_objects(
 
 @receiver([post_save, post_delete])
 def mark_related_instances_for_etag_update(
-    sender: ModelBase, instance: models.Model, signal, **kwargs
+    sender: type[models.Model], instance: models.Model, signal, **kwargs
 ) -> None:
     """
     Determine which instances are affected by changes in ``instance``.
@@ -69,10 +68,10 @@ def mark_related_instances_for_etag_update(
 
 @receiver(m2m_changed)
 def mark_m2m_related_instances_for_etag_update(
-    sender: ModelBase,
+    sender: type[models.Model],
     instance: models.Model,
     action: str,
-    model: ModelBase,
+    model: type[models.Model],
     **kwargs,
 ) -> None:
     """
@@ -106,7 +105,7 @@ def mark_m2m_related_instances_for_etag_update(
         mark_affected_objects(dependency_for, related_instance)
 
 
-def is_etag_model(model: ModelBase) -> bool:
+def is_etag_model(model: type[models.Model]) -> bool:
     try:
         model._meta.get_field("_etag")
     # model doesn't support ETags, nothing to do
@@ -117,7 +116,9 @@ def is_etag_model(model: ModelBase) -> bool:
 
 
 def handle_m2m_cleared(
-    sender: ModelBase, instance: models.Model, model: ModelBase
+    sender: type[models.Model],
+    instance: models.Model,
+    model: type[models.Model],
 ) -> None:
     """
     Clear the etag on the remote side of a m2m_field.clear()

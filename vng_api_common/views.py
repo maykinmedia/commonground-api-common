@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from django.apps import apps
 from django.conf import settings
@@ -16,6 +16,9 @@ from . import exceptions
 from .constants import ComponentTypes
 from .scopes import SCOPE_REGISTRY
 from .utils import get_domain
+
+if TYPE_CHECKING:
+    pass
 
 
 class ErrorDetailView(TemplateView):
@@ -63,7 +66,7 @@ class ViewConfigView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        config = []
+        config: list[Any] = []
         config += _test_sites_config(self.request)
         config += _test_ac_config()
         config += _test_nrc_config()
@@ -73,7 +76,7 @@ class ViewConfigView(TemplateView):
         return context
 
 
-def _test_sites_config(request: HttpRequest) -> list:
+def _test_sites_config(request: HttpRequest) -> list[tuple[Any, str, bool]]:
     try:
         domain = get_domain()
     except ImproperlyConfigured:
@@ -84,7 +87,7 @@ def _test_sites_config(request: HttpRequest) -> list:
     ]
 
 
-def _test_ac_config() -> list:
+def _test_ac_config() -> list[Any]:
     if not apps.is_installed("vng_api_common.authorizations"):
         return []
 
@@ -96,8 +99,8 @@ def _test_ac_config() -> list:
     ac_client: Optional[Client] = AuthorizationsConfig.get_client()
     has_ac_auth = ac_client.auth is not None if ac_client else False
 
-    checks = [
-        (_("Type of component"), auth_config.get_component_display(), None),
+    checks: list[Any] = [
+        (_("Type of component"), auth_config.get_component_display(), None),  # type: ignore[attr-defined]
         (
             _("AC"),
             (
@@ -118,11 +121,12 @@ def _test_ac_config() -> list:
     if has_ac_auth:
         error = False
 
-        client_id = ac_client.auth.service.client_id
+        client_id = ac_client.auth.service.client_id  # type: ignore
 
         try:
-            response: requests.Response = ac_client.get(
-                "applicaties", params={"clientIds": client_id}
+            response: requests.Response = ac_client.get(  # type: ignore
+                "applicaties",
+                params={"clientIds": client_id},
             )
 
             response.raise_for_status()
@@ -137,14 +141,16 @@ def _test_ac_config() -> list:
     return checks
 
 
-def _test_nrc_config(check_autorisaties_subscription=True) -> list:
+def _test_nrc_config(
+    check_autorisaties_subscription: bool = True,
+) -> List[Any]:
     if not apps.is_installed("notifications_api_common"):
         return []
 
     from notifications_api_common.models import NotificationsConfig, Subscription
 
     nrc_config = NotificationsConfig.get_solo()
-    nrc_client: Optional[Client] = NotificationsConfig.get_client()
+    nrc_client = NotificationsConfig.get_client()
 
     if not nrc_client:
         return [(_("NRC"), _("Missing"), False)]
@@ -155,7 +161,7 @@ def _test_nrc_config(check_autorisaties_subscription=True) -> list:
         checks = [(_("NRC"), _("Missing"), False)]
         return checks
 
-    checks = [
+    checks: list[Any] = [
         (
             _("NRC"),
             nrc_config.notifications_api_service.api_root,
@@ -203,7 +209,7 @@ def _test_nrc_config(check_autorisaties_subscription=True) -> list:
         from .authorizations.models import AuthorizationsConfig
 
         auth_config = AuthorizationsConfig.get_solo()
-        if auth_config.component == ComponentTypes.ac and not has_sub:
+        if auth_config.component == ComponentTypes.ac.value and not has_sub:
             check_ok = True
 
     checks.append(
