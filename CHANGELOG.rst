@@ -2,6 +2,20 @@
 Change history
 ==============
 
+2.12.0 (2026-03-23)
+-------------------
+
+**New features**
+
+* [#142] Added ``API_EXCEPTION_CAMELIZE`` setting to make the underscore-to-camel (see :ref:`ref_settings`)
+
+**Project maintenance**
+
+* [#147] Drop support for Django < 5.2
+* [#147] Drop support for Python < 3.11
+* [#147] Migrate from `setup.cfg` to `pyproject.toml`
+* [#148] Introduced static type checking with Pyright.
+
 2.11.0 (2026-02-10)
 -------------------
 
