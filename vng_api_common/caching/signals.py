@@ -7,7 +7,7 @@ The signal does nothing except clearing the calculated value, which will be
 re-calculated on the next fetch.
 """
 
-from typing import Optional, Set, cast
+from typing import cast
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
@@ -19,7 +19,7 @@ from .registry import DEPENDENCY_REGISTRY, Dependency
 
 
 def mark_affected_objects(
-    dependencies: Optional[Set[Dependency]],
+    dependencies: set[Dependency] | None,
     instance: models.Model,
     is_delete: bool = False,
 ):

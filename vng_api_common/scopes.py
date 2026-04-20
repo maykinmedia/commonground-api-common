@@ -6,8 +6,6 @@ added to the scope registry, which can be introspected for automatic
 documentation.
 """
 
-from typing import List
-
 OPERATOR_OR = "OR"
 OPERATOR_AND = "AND"
 
@@ -77,7 +75,7 @@ class Scope:
         new.operator = OPERATOR_AND
         return new
 
-    def is_contained_in(self, scope_set: List[str]) -> bool:
+    def is_contained_in(self, scope_set: list[str]) -> bool:
         """
         Test if the flat ``scope_set`` encapsulate this scope.
         """

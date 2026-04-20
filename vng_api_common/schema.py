@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List, Optional, Type
 
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -104,7 +103,7 @@ class AutoSchema(openapi.AutoSchema):
         head="headers",
     )
 
-    def get_auth(self) -> List[Dict[str, List[str]]]:
+    def get_auth(self) -> list[dict[str, list[str]]]:
         """
         Return a list of security requirements for this operation.
 
@@ -141,7 +140,7 @@ class AutoSchema(openapi.AutoSchema):
             return f"{basename}_{action}"
         return super().get_operation_id()
 
-    def get_error_responses(self) -> Dict[int, Type[serializers.Serializer]]:
+    def get_error_responses(self) -> dict[int, type[serializers.Serializer]]:
         """
         return dictionary of error codes and correspondent error serializers
         - define status codes based on exceptions for each endpoint
@@ -187,7 +186,7 @@ class AutoSchema(openapi.AutoSchema):
 
     def get_response_serializers(  # type: ignore[override]
         self,
-    ) -> Dict[int, Optional[Type[serializers.Serializer]]]:
+    ) -> dict[int, type[serializers.Serializer] | None]:
         """append error serializers"""
         response_serializers = super().get_response_serializers()
 
@@ -249,7 +248,7 @@ class AutoSchema(openapi.AutoSchema):
             + geo_headers
         )
 
-    def get_version_headers(self) -> List[OpenApiParameter]:
+    def get_version_headers(self) -> list[OpenApiParameter]:
         return [
             OpenApiParameter(
                 name=VERSION_HEADER,
@@ -263,7 +262,7 @@ class AutoSchema(openapi.AutoSchema):
             )
         ]
 
-    def get_content_type_headers(self) -> List[OpenApiParameter]:
+    def get_content_type_headers(self) -> list[OpenApiParameter]:
         if self.method not in ["POST", "PUT", "PATCH"]:
             return []
 
@@ -284,7 +283,7 @@ class AutoSchema(openapi.AutoSchema):
             )
         ]
 
-    def get_cache_headers(self) -> List[OpenApiParameter]:
+    def get_cache_headers(self) -> list[OpenApiParameter]:
         """
         support ETag headers
         """
@@ -332,7 +331,7 @@ class AutoSchema(openapi.AutoSchema):
             ),
         ]
 
-    def get_location_headers(self) -> List[OpenApiParameter]:
+    def get_location_headers(self) -> list[OpenApiParameter]:
         return [
             OpenApiParameter(
                 name="Location",
@@ -343,7 +342,7 @@ class AutoSchema(openapi.AutoSchema):
             ),
         ]
 
-    def get_geo_headers(self) -> List[OpenApiParameter]:
+    def get_geo_headers(self) -> list[OpenApiParameter]:
         if not isinstance(self.view, GeoMixin):
             return []
 
@@ -398,7 +397,7 @@ class AutoSchema(openapi.AutoSchema):
 
         return request_headers + response_headers
 
-    def get_log_headers(self) -> List[OpenApiParameter]:
+    def get_log_headers(self) -> list[OpenApiParameter]:
         if not _view_supports_audittrail(self.view):
             return []
 

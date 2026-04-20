@@ -1,8 +1,9 @@
 import json
 import logging
 import re
+from collections.abc import Callable, MutableMapping
 from datetime import date, datetime, timedelta
-from typing import Any, Callable, MutableMapping
+from typing import Any, cast
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -104,10 +105,10 @@ class AlphanumericExcludingDiacritic:
     voor bestandsnamen, en dus speciale karakters uitgesloten worden.
     """
 
-    def __init__(self, start=0):
+    def __init__(self, start: int = 0):
         self.start = start
 
-    def __call__(self, value):
+    def __call__(self, value: str) -> None:
         stripped_value = value[self.start :]
         match = WORD_REGEX.match(stripped_value)
         if not match:
@@ -122,7 +123,7 @@ class AlphanumericExcludingDiacritic:
                 )
             )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (
             isinstance(other, AlphanumericExcludingDiacritic)
             and self.start == other.start
@@ -163,22 +164,25 @@ class URLValidator:
     code = "bad-url"
 
     def __init__(
-        self, get_auth: Callable[[str], dict[str, str]] | None = None, **extra
+        self,
+        get_auth: Callable[[str], dict[str, str]] | None = None,
+        **extra: dict[str, str] | str | int | bool,
     ):
         self.get_auth = get_auth
         self.extra = extra
 
-    def __call__(self, value: str):
+    def __call__(self, value: str) -> Any:
         link_fetcher = import_string(settings.LINK_FETCHER)
 
         extra = self.extra.copy()
-
         # Handle auth for the remote URL
         if self.get_auth:
             auth_headers = self.get_auth(value)
-            if "headers" not in self.extra:
-                extra["headers"] = {}
-            extra["headers"].update(auth_headers)
+
+            headers = extra.setdefault("headers", {})
+            assert isinstance(headers, dict)
+
+            headers.update(auth_headers)
 
         try:
             response = link_fetcher(value, **extra)
@@ -216,12 +220,18 @@ class ResourceValidator(URLValidator):
     )
     __code = "invalid-resource"
 
-    def __init__(self, resource: str, oas_schema: str, *args, **kwargs):
+    def __init__(
+        self,
+        resource: str,
+        oas_schema: str,
+        *args: Any,
+        **kwargs: Any,
+    ):
         self.resource = resource
         self.oas_schema = oas_schema
         super().__init__(*args, **kwargs)
 
-    def __call__(self, url: str):
+    def __call__(self, url: str) -> Any:
         response = super().__call__(url)
 
         # at this point, we know the URL actually exists
@@ -258,7 +268,7 @@ class InformatieObjectUniqueValidator(validators.UniqueTogetherValidator):
 
     def __call__(
         self,
-        informatieobject: MutableMapping[str, Any],
+        informatieobject: MutableMapping[str, object],
         serializer: serializers.BaseSerializer,
     ):
         attrs = {
@@ -285,7 +295,7 @@ class UntilNowValidator:
     def limit_value(self) -> datetime | date:
         return timezone.now() + timedelta(seconds=settings.TIME_LEEWAY)
 
-    def __call__(self, value):
+    def __call__(self, value: datetime | date) -> None:
         if value > self.limit_value:
             raise ValidationError(self.message, code=self.code)
 
@@ -324,7 +334,11 @@ class UniekeIdentificatieValidator:
         self.organisatie_field = organisatie_field
         self.identificatie_field = identificatie_field
 
-    def __call__(self, attrs: dict, serializer):
+    def __call__(
+        self,
+        attrs: dict[str, object],
+        serializer: serializers.BaseSerializer,
+    ) -> None:
         instance = getattr(serializer, "instance", None)
         identificatie = attrs.get(self.identificatie_field)
         if not identificatie:
@@ -343,8 +357,9 @@ class UniekeIdentificatieValidator:
         # trigger an error because the instance-to-be-updated is excluded from
         # the queryset. If either bronorganisatie or identificatie changes,
         # and it already exists, it will raise a validation error
+        model = cast(Any, serializer).Meta.model
         combination_exists = (
-            serializer.Meta.model.objects
+            model.objects
             # in case of an update, exclude the current object. for a create, this
             # will be None
             .exclude(pk=pk)
@@ -377,13 +392,19 @@ class IsImmutableValidator:
     code = "wijzigen-niet-toegelaten"
     requires_context = True
 
-    def __call__(self, new_value, serializer_field):
+    def __call__(
+        self,
+        new_value: object,
+        serializer_field: serializers.Field,
+    ) -> None:
         instance = getattr(serializer_field.parent, "instance", None)
         # no instance -> it's not an update
         if not instance:
             return
 
-        current_value = getattr(instance, serializer_field.field_name)
+        field_name = serializer_field.field_name
+        assert field_name is not None
+        current_value = getattr(instance, field_name)
 
         if new_value != current_value:
             raise serializers.ValidationError(self.message, code=self.code)
@@ -397,7 +418,7 @@ class PublishValidator(ResourceValidator):
     publish_message = _("The resource {url} is not published.")
     publish_code = "not-published"
 
-    def __call__(self, url: str):
+    def __call__(self, url: str) -> Any:
         response = super().__call__(url)
 
         if response.get("concept"):

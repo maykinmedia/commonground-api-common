@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Optional, Set
 
 from rest_framework_condition.decorators import condition as drf_condition
 
@@ -10,7 +9,7 @@ from .registry import extract_dependencies
 def conditional_retrieve(
     action="retrieve",
     etag_field="_etag",
-    extra_depends_on: Optional[Set[str]] = None,
+    extra_depends_on: set[str] | None = None,
 ):
     """
     Decorate a viewset to apply conditional GET requests.

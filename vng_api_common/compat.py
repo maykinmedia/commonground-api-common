@@ -1,9 +1,7 @@
-from typing import Union
-
 from django.http import HttpRequest
 
 
-def get_header(request: HttpRequest, header: str) -> Union[None, str]:
+def get_header(request: HttpRequest, header: str) -> str | None:
     """
     Extract the value of the header from the request.
 

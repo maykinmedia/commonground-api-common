@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, Any, List, Optional
-
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404, HttpRequest
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
@@ -17,8 +16,7 @@ from .constants import ComponentTypes
 from .scopes import SCOPE_REGISTRY
 from .utils import get_domain
 
-if TYPE_CHECKING:
-    pass
+CheckResult = tuple[str | Promise, object, bool | None]
 
 
 class ErrorDetailView(TemplateView):
@@ -66,7 +64,7 @@ class ViewConfigView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        config: list[Any] = []
+        config: list[CheckResult] = []
         config += _test_sites_config(self.request)
         config += _test_ac_config()
         config += _test_nrc_config()
@@ -76,7 +74,7 @@ class ViewConfigView(TemplateView):
         return context
 
 
-def _test_sites_config(request: HttpRequest) -> list[tuple[Any, str, bool]]:
+def _test_sites_config(request: HttpRequest) -> list[CheckResult]:
     try:
         domain = get_domain()
     except ImproperlyConfigured:
@@ -87,7 +85,7 @@ def _test_sites_config(request: HttpRequest) -> list[tuple[Any, str, bool]]:
     ]
 
 
-def _test_ac_config() -> list[Any]:
+def _test_ac_config() -> list[CheckResult]:
     if not apps.is_installed("vng_api_common.authorizations"):
         return []
 
@@ -96,10 +94,10 @@ def _test_ac_config() -> list[Any]:
     auth_config = AuthorizationsConfig.get_solo()
 
     # check if AC auth is configured
-    ac_client: Optional[Client] = AuthorizationsConfig.get_client()
+    ac_client: Client | None = AuthorizationsConfig.get_client()
     has_ac_auth = ac_client.auth is not None if ac_client else False
 
-    checks: list[Any] = [
+    checks: list[CheckResult] = [
         (_("Type of component"), auth_config.get_component_display(), None),  # type: ignore[attr-defined]
         (
             _("AC"),
@@ -143,7 +141,7 @@ def _test_ac_config() -> list[Any]:
 
 def _test_nrc_config(
     check_autorisaties_subscription: bool = True,
-) -> List[Any]:
+) -> list[CheckResult]:
     if not apps.is_installed("notifications_api_common"):
         return []
 
@@ -161,7 +159,7 @@ def _test_nrc_config(
         checks = [(_("NRC"), _("Missing"), False)]
         return checks
 
-    checks: list[Any] = [
+    checks: list[CheckResult] = [
         (
             _("NRC"),
             nrc_config.notifications_api_service.api_root,

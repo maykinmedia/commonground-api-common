@@ -1,5 +1,3 @@
-from typing import List
-
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import ErrorDetail
@@ -17,7 +15,7 @@ class UniqueClientIDValidator:
     )
     requires_context = True
 
-    def __call__(self, value: List[str], serializer_field):
+    def __call__(self, value: list[str], serializer_field):
         instance = getattr(serializer_field.parent, "instance", None)
         qs = Applicatie.objects.all()
 

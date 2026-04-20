@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, cast
 
 from django.db import transaction
 from django.http import Http404
@@ -112,7 +112,7 @@ class AuditTrailMixin:
 
 
 class AuditTrailCreateMixin(AuditTrailMixin):
-    _audittrail_serializer: Optional[serializers.Serializer] = None
+    _audittrail_serializer: serializers.Serializer | None = None
 
     def get_audittrail_instance(self, response):
         if self._audittrail_serializer is not None:

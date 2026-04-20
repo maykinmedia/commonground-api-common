@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Dict, Iterable, Set, Type, Union, cast
+from typing import Iterable, cast
 
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import models
@@ -19,10 +19,10 @@ from rest_framework.utils.model_meta import get_field_info
 
 logger = logging.getLogger(__name__)
 
-RelatedModelField = Union[_RelatedField, ForeignObjectRel]
+RelatedModelField = _RelatedField | ForeignObjectRel
 
 
-DEPENDENCY_REGISTRY: Dict[ModelBase, Set["Dependency"]] = {}
+DEPENDENCY_REGISTRY: dict[ModelBase, set["Dependency"]] = {}
 """
 Module global to track which models affect which resources through which relation.
 
@@ -35,7 +35,7 @@ This way, you can express that a model "ZAAK" with a OneToOneField "RESULTAAT" i
 (potentially) affected by changes in the related resultaat model.
 """
 
-MODEL_SERIALIZERS: Dict[ModelBase, Type[Serializer]] = {}
+MODEL_SERIALIZERS: dict[ModelBase, type[Serializer]] = {}
 """
 Module global to track which serializer is used for a given model for ETag calculation.
 
@@ -46,7 +46,7 @@ serializer class, in the event that multiple (sub)serializers are used for a giv
 
 @dataclass
 class Dependency:
-    field: Union[ForeignObjectRel, RelatedModelField]
+    field: ForeignObjectRel | RelatedModelField
 
     @property
     def source_model(self) -> ModelBase:
@@ -95,7 +95,7 @@ class Dependency:
         return related_objects
 
 
-def extract_dependencies(viewset: type, explicit_field_names: Set[str]) -> None:
+def extract_dependencies(viewset: type, explicit_field_names: set[str]) -> None:
     """
     Introspect the viewset class and add the dependencies to the registry if needed.
     """

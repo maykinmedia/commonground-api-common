@@ -2,8 +2,6 @@
 Utility module for Open API Specification 3.0.x.
 """
 
-from typing import Union
-
 import requests
 import yaml
 
@@ -42,7 +40,7 @@ class SchemaFetcher:
         return spec
 
 
-def obj_has_shape(obj: Union[list, dict], schema: dict, resource: str) -> bool:
+def obj_has_shape(obj: list | dict, schema: dict, resource: str) -> bool:
     """
     Compare an instance of an object with the expected shape from an OAS 3 schema.
 
