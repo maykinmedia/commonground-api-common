@@ -1,3 +1,4 @@
+import warnings
 from datetime import date
 
 from django.urls import reverse
@@ -6,6 +7,7 @@ import pytest
 
 from testapp.models import Group, Record
 from testapp.viewsets import GroupViewSet
+from vng_api_common.api.views import CreateJWTSecretView
 from vng_api_common.utils import (
     generate_unique_identification,
     get_resources_for_paths,
@@ -90,3 +92,12 @@ def test_generate_unique_identification():
     id2 = generate_unique_identification(record2, "create_date")
 
     assert id2 == "RECORD-2023-0000000002"
+
+
+def test_createjwtsecretview_as_view_emits_deprecation_warning():
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+
+        CreateJWTSecretView.as_view()
+
+    assert any("CreateJWTSecretView" in str(w.message) for w in caught)
