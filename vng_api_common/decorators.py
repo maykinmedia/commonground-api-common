@@ -1,11 +1,13 @@
-from typing import Any
+from typing import TypeVar, cast
 
-from django.db.models.base import ModelBase
+from django.db import models
+
+T = TypeVar("T", bound=type[models.Model])
 
 
-def field_default(field: str, default: Any):
-    def decorator(cls: ModelBase):
-        model_field = cls._meta.get_field(field)  # type: ignore
+def field_default(field: str, default: object):
+    def decorator(cls: T) -> T:
+        model_field = cast(models.Field, cls._meta.get_field(field))
         model_field.default = default
         return cls
 

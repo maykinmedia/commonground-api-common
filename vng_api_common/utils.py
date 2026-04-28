@@ -1,7 +1,7 @@
 import logging
 import re
 import uuid
-from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from django.apps import apps
 from django.conf import settings
@@ -19,7 +19,7 @@ try:
     )
 except ImportError:
     from djangorestframework_camel_case.util import (
-        underscoreToCamel as _underscore_to_camel,  # type: ignore[import]
+        underscoreToCamel as _underscore_to_camel,  # type: ignore[attr-defined]
     )
 
 if TYPE_CHECKING:
@@ -105,7 +105,7 @@ def get_resource_for_path(path: str) -> models.Model:
     return viewset.get_queryset().get(**filter_kwargs)
 
 
-def get_resources_for_paths(paths: List[str]) -> Optional[models.QuerySet]:
+def get_resources_for_paths(paths: list[str]) -> models.QuerySet | None:
     """
     Retrieve API instances belonging to a list of (detail) paths.
 
@@ -130,6 +130,7 @@ def get_resources_for_paths(paths: List[str]) -> Optional[models.QuerySet]:
     resolver = get_resolver()
     prefix = get_script_prefix()
     lookup_kwarg_values = []
+    viewset_cls = None
 
     for path in paths:
         callback, callback_args, callback_kwargs = resolve_path(
@@ -145,27 +146,29 @@ def get_resources_for_paths(paths: List[str]) -> Optional[models.QuerySet]:
         lookup_url_kwarg = viewset_cls.lookup_url_kwarg or viewset_cls.lookup_field
         lookup_kwarg_values.append(callback_kwargs[lookup_url_kwarg])
 
-    queryset = viewset_cls().get_queryset()  # type: ignore
+    assert viewset_cls is not None
+
+    viewset = viewset_cls()
+    queryset = viewset.get_queryset()
     # drop any joins or prefetch_related to speed things up even more
     queryset = queryset.select_related(None).prefetch_related(None)
 
-    filtered_queryset = queryset.filter(
-        **{f"{viewset_cls.lookup_field}__in": lookup_kwarg_values}  # type: ignore
-    )
+    lookup_field = viewset_cls.lookup_field
+    filtered_queryset = queryset.filter(**{f"{lookup_field}__in": lookup_kwarg_values})
     if not len(filtered_queryset) == len(paths):
         raise RuntimeError(
-            f"Some paths could not be resolved with viewset {viewset_cls} - are you sure "  # type: ignore
+            f"Some paths could not be resolved with viewset {viewset_cls} - are you sure "
             "that all paths point to the same resource?"
         )
     return filtered_queryset
 
 
-def underscore_to_camel(input_: Union[str, int]) -> str:
+def underscore_to_camel(input_: str | int) -> str | int:
     """
     Convert a string from under_score to camelCase.
     """
     if not isinstance(input_, str):
-        return input_  # type: ignore[override]
+        return input_
 
     return re.sub(RE_UNDERSCORE, _underscore_to_camel, input_)
 
@@ -246,7 +249,7 @@ def get_view_summary(view_cls):
 
 def get_field_attribute(
     model_string: str, field_name: str, attr_name: str
-) -> Optional[str]:
+) -> str | None:
     ModelClass = apps.get_model(model_string, require_ready=False)
     field = ModelClass._meta.get_field(field_name)
     return getattr(field, attr_name, None)

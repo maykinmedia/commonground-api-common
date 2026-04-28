@@ -1,5 +1,4 @@
 import re
-from typing import Any
 
 from django.core.checks import Warning, register
 from django.db.models import Choices
@@ -9,7 +8,7 @@ from .utils import get_subclasses
 ENUM_VALUE_PATTERN = re.compile(r"^[a-z_0-9]+$", re.ASCII)
 
 
-def enum_value_ok(value: Any) -> bool:
+def enum_value_ok(value: object) -> bool:
     if not isinstance(value, str):
         return True
 

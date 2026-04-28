@@ -1,7 +1,8 @@
 import inspect
 from collections import OrderedDict
+from collections.abc import Callable, Iterable
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, cast
 
 from django.db import models, transaction
 from django.db.models import Model
@@ -25,8 +26,8 @@ if TYPE_CHECKING:
 else:
     _BaseNested = object
 
-format_relativedelta: Optional[Callable[[relativedelta], str]]
-parse_relativedelta: Optional[Callable[[str], relativedelta]]
+format_relativedelta: Callable[[relativedelta], str] | None
+parse_relativedelta: Callable[[str], relativedelta] | None
 
 try:
     # 1.1.x
@@ -51,7 +52,7 @@ def field_allows_empty_values(field: fields.Field) -> bool:
 
 
 class DurationField(fields.DurationField):
-    def to_internal_value(self, value):  # type: ignore[override]
+    def to_internal_value(self, value: object) -> Any:
         if isinstance(value, relativedelta):
             return value
         try:
@@ -59,7 +60,7 @@ class DurationField(fields.DurationField):
         except ValueError:
             self.fail("invalid", format="P(n)Y(n)M(n)D")
 
-    def to_representation(self, value) -> Optional[str]:  # type: ignore[override]
+    def to_representation(self, value) -> str | None:  # type: ignore[override]
         if isinstance(value, relativedelta):
             return format_relativedelta(value)  # type: ignore[call-arg]
         return None
@@ -105,7 +106,7 @@ class ValidatieFoutSerializer(FoutSerializer):
 
 
 def add_choice_values_help_text(
-    choices: Union[type[models.Choices], Iterable[Tuple[str, str]]],
+    choices: type[models.Choices] | Iterable[tuple[str, str]],
 ) -> str:
     is_dj_choices = inspect.isclass(choices) and issubclass(choices, models.Choices)
 
@@ -193,7 +194,10 @@ class GegevensGroepSerializer(
     Where ``Zaak.verlenging`` is a :class:``GegevensGroepType``.
     """
 
-    def validate_empty_values(self, data):  # type: ignore[override]
+    def validate_empty_values(
+        self,
+        data: object,
+    ) -> Any:
         """
         Even if we're in partial-serializer mode, the full gegevensgroep
         _must_ be provided.
@@ -218,7 +222,7 @@ class GegevensGroepSerializer(
 
         return (is_empty_value, data)
 
-    def to_representation(self, instance) -> Optional[dict[str, Any]]:  # type: ignore[override]
+    def to_representation(self, instance) -> dict[str, Any] | None:  # type: ignore[override]
         """
         Output the result of accessing the descriptor.
         """
@@ -246,7 +250,7 @@ class GegevensGroepSerializer(
 
         return ret
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, object]) -> dict[str, object]:
         """
         Pass through the original keys instead of reverse-mapping the source attrs.
         """
@@ -269,7 +273,9 @@ class NestedGegevensGroepMixin(_BaseNested):
     """
 
     def _is_gegevensgroep(self, name: str):
-        attr = getattr(self.Meta.model, name)  # type: ignore
+        meta = cast(Any, self).Meta
+        model = meta.model
+        attr = getattr(model, name)
         return isinstance(attr, GegevensGroepType)
 
     def create(self, validated_data):
@@ -307,7 +313,10 @@ class NestedGegevensGroepMixin(_BaseNested):
         return super().update(instance, validated_data)
 
 
-def get_nested_fk_attribute(instance, relation_path):
+def get_nested_fk_attribute(
+    instance: object,
+    relation_path: str,
+) -> object:
     """
     Retrieves an attribute from a nested foreign key relation.
 
@@ -342,7 +351,7 @@ class CacheMixin(_Base):
         """
         return {}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
 
         self._reverse_cache = {}
@@ -383,9 +392,9 @@ class LengthHyperlinkedRelatedField(CacheMixin, serializers.HyperlinkedRelatedFi
         "min_length": _("Ensure this field has at least {min_length} characters."),
     }
 
-    def __init__(self, *args, **kwargs):
-        self.min_length = kwargs.pop("min_length", 1)
-        self.max_length = kwargs.pop("max_length", 1000)
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.min_length = cast(int, kwargs.pop("min_length", 1))
+        self.max_length = cast(int, kwargs.pop("max_length", 1000))
         kwargs.setdefault("allow_null", not kwargs.get("required", True))
 
         super().__init__(*args, **kwargs)

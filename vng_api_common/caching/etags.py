@@ -5,7 +5,6 @@ Calculate ETag values for API resources.
 import hashlib
 import logging
 from dataclasses import dataclass
-from typing import Optional
 from weakref import WeakKeyDictionary
 
 from django.conf import settings
@@ -142,7 +141,7 @@ class MethodCallback:
 @dataclass
 class EtagUpdate:
     instance: models.Model
-    using: Optional[str] = None
+    using: str | None = None
 
     @classmethod
     def mark_affected(cls, obj: models.Model, using=None) -> None:

@@ -1,6 +1,7 @@
 # https://pyjwt.readthedocs.io/en/latest/usage.html#reading-headers-without-validation
 # -> we can put the organization/service in the headers itself
 import logging
+from collections.abc import Callable
 
 from django.conf import settings
 
@@ -16,7 +17,7 @@ class APIVersionHeaderMiddleware:
     Include a header specifying the API-version
     """
 
-    def __init__(self, get_response=None):
+    def __init__(self, get_response: Callable | None = None):
         self.get_response = get_response
 
     def __call__(self, request):

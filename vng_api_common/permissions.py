@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 
 
 def get_required_scopes(
-    request: Request, view: Union["APIView", "ViewSetMixin"]
-) -> Union[Scope, None]:
+    request: Request, view: "APIView | ViewSetMixin"
+) -> Scope | None:
     if not hasattr(view, "required_scopes"):
         raise ImproperlyConfigured(
             "The View(Set) must have a `required_scopes` attribute"

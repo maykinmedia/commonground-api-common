@@ -1,6 +1,7 @@
 import uuid
 from collections import OrderedDict
-from typing import Any, Callable, Dict, Generator, List, Type, Union, cast
+from collections.abc import Callable, Generator
+from typing import Any, cast
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -24,7 +25,7 @@ def format_field_name(value: str) -> str:
         return value
 
     if get_setting("API_EXCEPTION_CAMELIZE"):
-        return underscore_to_camel(value)
+        return cast(str, underscore_to_camel(value))
 
     return value
 
@@ -32,7 +33,7 @@ def format_field_name(value: str) -> str:
 ERROR_CONTENT_TYPE = "application/problem+json"
 ExceptionHandler = Callable[[Exception, dict[str, object]], Response]
 
-EXCEPTION_HANDLER_REGISTRY: Dict[Type[Exception], ExceptionHandler] = {}
+EXCEPTION_HANDLER_REGISTRY: dict[type[Exception], ExceptionHandler] = {}
 
 ErrorSerializer = FoutSerializer | ValidatieFoutSerializer
 
@@ -54,17 +55,18 @@ else:
     logger = logging.getLogger(__name__)
 
 
-def _translate_exceptions(exc):
+def _translate_exceptions(exc: Exception) -> APIException:
     # Taken from DRF default exc handler
     if isinstance(exc, Http404):
-        exc = exceptions.NotFound()
-    elif isinstance(exc, PermissionDenied):
-        exc = exceptions.PermissionDenied()
+        return exceptions.NotFound()
+    if isinstance(exc, PermissionDenied):
+        return exceptions.PermissionDenied()
+    assert isinstance(exc, APIException)
     return exc
 
 
 def perform_list(
-    errors: List[Any], field_name: str = ""
+    errors: list[Any], field_name: str = ""
 ) -> Generator[OrderedDict, None, None]:
     """
     Handle the case when `errors` is a list.
@@ -82,7 +84,7 @@ def perform_list(
 
 
 def perform_dict(
-    errors: Dict[str, Any], field_name: str = ""
+    errors: dict[str, Any], field_name: str = ""
 ) -> Generator[OrderedDict, None, None]:
     """
     Handle the case when `errors` is a dictionary.
@@ -113,7 +115,7 @@ def perform_detail(
 
 
 def get_validation_errors(
-    errors: Union[List[Any], Dict[str, Any], exceptions.ErrorDetail, str],
+    errors: list[Any] | dict[str, Any] | exceptions.ErrorDetail | str,
     field_name: str = "",
 ) -> Generator[OrderedDict, None, None]:
     """
@@ -129,7 +131,12 @@ def get_validation_errors(
 
 
 class HandledException:
-    def __init__(self, exc: exceptions.APIException, response, request=None):
+    def __init__(
+        self,
+        exc: exceptions.APIException,
+        response: Response,
+        request: Any = None,
+    ):
         self.exc = exc
         assert 400 <= response.status_code < 600, "Unsupported status code"
         self.response = response
@@ -146,7 +153,7 @@ class HandledException:
             self.logger = structlog.stdlib.get_logger(__name__)
 
     @property
-    def is_drf_exception(self):
+    def is_drf_exception(self) -> bool:
         return isinstance(self.exc, exceptions.ValidationError)
 
     @property
@@ -175,7 +182,8 @@ class HandledException:
         else:
             serializer_class = FoutSerializer
 
-        return serializer_class(instance=self)  # type: ignore
+        serializer = serializer_class(instance=self)
+        return cast(ErrorSerializer, serializer)
 
     def log(self):
         if self.logger and self.response.status_code < 500:
@@ -244,7 +252,7 @@ class HandledException:
 
 
 def register_exception_handler(
-    exc_type: Type[Exception],
+    exc_type: type[Exception],
     handler: ExceptionHandler,
 ) -> None:
     """

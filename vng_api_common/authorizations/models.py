@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -47,7 +46,7 @@ class AuthorizationsConfig(SingletonModel):
         verbose_name = _("Autorisatiecomponentconfiguratie")
 
     @classmethod
-    def get_client(cls) -> Optional[Client]:
+    def get_client(cls) -> Client | None:
         """
         Construct a client, prepared with the required auth.
         """

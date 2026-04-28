@@ -1,10 +1,12 @@
 import logging
 import time
+from collections.abc import Callable
 from typing import Any, Iterable, cast
 
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext as _
 
 import jwt
@@ -51,7 +53,7 @@ class JWTAuth:
             applicatie_id__in=app_ids, component=config.component
         )
 
-    def _request_auth(self) -> list[Any]:
+    def _request_auth(self) -> list[dict[str, object]]:
         client = AuthorizationsConfig.get_client()
 
         if not client:
@@ -80,11 +82,14 @@ class JWTAuth:
         data_dict = cast(dict[str, Any], data)
         return cast(list[dict[str, Any]], underscoreize(data_dict["results"]))
 
-    def _get_auth(self):
+    def _get_auth(self) -> QuerySet[Applicatie]:
         return Applicatie.objects.filter(client_ids__contains=[self.client_id])
 
     @transaction.atomic
-    def _save_auth(self, auth_data):
+    def _save_auth(
+        self,
+        auth_data: list[dict[str, Any]],
+    ) -> list[Applicatie]:
         applicaties = []
 
         for applicatie_data in auth_data:
@@ -234,7 +239,12 @@ class JWTAuth:
 
         return base.annotate(max_vertr=order_case).filter(max_vertr__gte=order_provided)
 
-    def filter_default(self, base: QuerySet, name, value) -> QuerySet:
+    def filter_default(
+        self,
+        base: QuerySet,
+        name: str,
+        value: Any,
+    ) -> QuerySet:
         if value is None:
             return base
 
@@ -279,10 +289,13 @@ class AuthMiddleware:
     header = "HTTP_AUTHORIZATION"
     auth_type = "Bearer"
 
-    def __init__(self, get_response=None):
+    def __init__(
+        self,
+        get_response: Callable[[HttpRequest], HttpResponse] | None = None,
+    ):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: HttpRequest) -> HttpResponse | None:
         self.extract_jwt_payload(request)
         return self.get_response(request) if self.get_response else None
 

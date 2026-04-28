@@ -36,7 +36,7 @@ The serializer output will then either contain ``field_for_value2`` or
 
 import logging
 from collections import OrderedDict
-from typing import Any, Dict, Union
+from typing import Any, cast
 
 from django.core.exceptions import FieldDoesNotExist
 
@@ -51,8 +51,8 @@ class Discriminator:
     def __init__(
         self,
         discriminator_field: str,
-        mapping: Dict[Any, Union[tuple, serializers.ModelSerializer]],
-        group_field: Union[None, str] = None,
+        mapping: dict[object, tuple[str, ...] | serializers.ModelSerializer],
+        group_field: str | None = None,
         same_model: bool = True,
     ):
         self.discriminator_field = discriminator_field
@@ -60,22 +60,24 @@ class Discriminator:
         self.group_field = group_field
         self.same_model = same_model
 
-    def to_representation(self, instance) -> OrderedDict | None:
+    def to_representation(self, instance: object) -> OrderedDict[str, object] | None:
         discriminator_value = getattr(instance, self.discriminator_field)
         serializer = self.mapping.get(discriminator_value)
-        if serializer is None:
+        if serializer is None or isinstance(serializer, tuple):
             return None
 
-        representation = serializer.to_representation(instance)  # type: ignore
+        representation = serializer.to_representation(instance)
         return OrderedDict(representation)
 
-    def to_internal_value(self, data) -> OrderedDict | None:
+    def to_internal_value(
+        self, data: dict[str, object]
+    ) -> OrderedDict[str, object] | None:
         discriminator_value = data[self.discriminator_field]
         serializer = self.mapping.get(discriminator_value)
-        if serializer is None:
+        if serializer is None or isinstance(serializer, tuple):
             return None
 
-        internal_value = serializer.to_internal_value(data)  # type: ignore
+        internal_value = serializer.to_internal_value(data)
         # if nested serializer was generated in _sanitize_discriminator name if group_field
         # was changed in the internal_value. We need to return it
         if (
@@ -86,12 +88,14 @@ class Discriminator:
             key, value = internal_value.popitem()
             internal_value = OrderedDict({self.group_field: value})
 
-        return internal_value  # type: ignore
+        return cast(OrderedDict[str, object], internal_value)
 
 
 class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
     @classmethod
-    def _sanitize_discriminator(cls, name, attrs) -> Discriminator | None:
+    def _sanitize_discriminator(
+        cls, name: str, attrs: dict[str, Any]
+    ) -> Discriminator | None:
         discriminator = attrs.get("discriminator")
         if discriminator is None:
             return None
@@ -106,7 +110,7 @@ class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
                 f"does not exist on the model '{model._meta.label}'"
             ) from exc
 
-        values_seen = set()
+        values_seen: set[object] = set()
 
         for value, fields in discriminator.mapping.items():
             # construct a serializer instance if a tuple/list of fields is passed
@@ -167,7 +171,12 @@ class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
 
         return discriminator
 
-    def __new__(cls, name, bases, attrs):
+    def __new__(
+        cls,
+        name: str,
+        bases: tuple[type, ...],
+        attrs: dict[str, object],
+    ):
         discriminator = cls._sanitize_discriminator(name, attrs)
 
         if discriminator is not None:
@@ -181,7 +190,7 @@ class PolymorphicSerializer(
 ):
     discriminator: Discriminator
 
-    def to_representation(self, instance):
+    def to_representation(self, instance: object) -> dict[str, object]:
         representation = super().to_representation(instance)
 
         if self.discriminator is not None:
@@ -191,7 +200,7 @@ class PolymorphicSerializer(
 
         return representation
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: dict[str, object]) -> dict[str, object]:
         internal_value = super().to_internal_value(data)
 
         if self.discriminator is not None:
