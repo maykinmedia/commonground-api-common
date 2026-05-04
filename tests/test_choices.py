@@ -8,6 +8,7 @@ from vng_api_common.choices import (
     TextChoicesWithDescriptions,
     ensure_description_exists,
 )
+from vng_api_common.constants import VertrouwelijkheidsAanduiding
 from vng_api_common.serializers import add_choice_values_help_text
 
 
@@ -105,3 +106,22 @@ def test_text_choice_with_descriptions_validator_recursion():
         ),
     ):
         ensure_description_exists(BadChoicesSubclassWithDescriptions)
+
+
+def test_get_choice_order_valid_value():
+    value = VertrouwelijkheidsAanduiding.values[0]
+
+    order = VertrouwelijkheidsAanduiding.get_choice_order(value)
+
+    assert order == 0
+
+
+def test_get_choice_order_invalid_value():
+    order = VertrouwelijkheidsAanduiding.get_choice_order("invalid")
+
+    assert order is None
+
+
+def test_choice_order_matches_values_index():
+    for index, value in enumerate(VertrouwelijkheidsAanduiding.values):
+        assert VertrouwelijkheidsAanduiding.get_choice_order(value) == index
