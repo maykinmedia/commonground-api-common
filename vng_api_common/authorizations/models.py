@@ -177,7 +177,14 @@ class Autorisatie(APIMixin, models.Model):
         )
 
     def satisfy_vertrouwelijkheid(self, vertrouwelijkheidaanduiding: str) -> bool:
-        get_choice = VertrouwelijkheidsAanduiding.get_choice  # type: ignore[attr-defined]
-        max_confid_level = get_choice(self.max_vertrouwelijkheidaanduiding).order
-        provided_confid_level = get_choice(vertrouwelijkheidaanduiding).order
+        max_confid_level = VertrouwelijkheidsAanduiding.get_choice_order(
+            self.max_vertrouwelijkheidaanduiding
+        )
+        provided_confid_level = VertrouwelijkheidsAanduiding.get_choice_order(
+            vertrouwelijkheidaanduiding
+        )
+
+        if max_confid_level is None or provided_confid_level is None:
+            raise ValueError("Invalid vertrouwelijkheidaanduiding value")
+
         return max_confid_level >= provided_confid_level
