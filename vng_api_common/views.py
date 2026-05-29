@@ -184,6 +184,7 @@ def _test_nrc_config(
             message = _("Could not connect with NRC")
         except requests.HTTPError as exc:
             error = True
+            assert exc.response is not None
             message = _("Cannot retrieve kanalen: HTTP {status_code}").format(
                 status_code=exc.response.status_code
             )
