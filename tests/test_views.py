@@ -6,6 +6,7 @@ import pytest
 import requests_mock
 from notifications_api_common.models import NotificationsConfig
 from rest_framework import status
+from zgw_consumers.constants import AuthTypes
 from zgw_consumers.test.factories import ServiceFactory
 
 from vng_api_common.authorizations.models import AuthorizationsConfig
@@ -14,14 +15,20 @@ from vng_api_common.authorizations.models import AuthorizationsConfig
 @pytest.mark.django_db
 def test_config_view(api_client):
     notifications_service = ServiceFactory(
-        api_root="https://notificaties-api.vng.cloud/api/v1/"
+        api_root="https://notificaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
     )
     notifications_config = NotificationsConfig.get_solo()
     notifications_config.notifications_api_service = notifications_service
     notifications_config.save()
 
     authorizations_service = ServiceFactory(
-        api_root="https://autorisaties-api.vng.cloud/api/v1/", client_id="foobar"
+        api_root="https://autorisaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
     )
     authorizations_config = AuthorizationsConfig.get_solo()
     authorizations_config.authorizations_api_service = authorizations_service
@@ -62,7 +69,10 @@ def test_config_view_missing_notifications_service(api_client):
     notifications_config.save()
 
     authorizations_service = ServiceFactory(
-        api_root="https://autorisaties-api.vng.cloud/api/v1/", client_id="foobar"
+        api_root="https://autorisaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
     )
     authorizations_config = AuthorizationsConfig.get_solo()
     authorizations_config.authorizations_api_service = authorizations_service
@@ -90,14 +100,20 @@ def test_config_view_missing_notifications_service(api_client):
 @pytest.mark.django_db
 def test_config_view_notifications_error_response(api_client):
     notifications_service = ServiceFactory(
-        api_root="https://notificaties-api.vng.cloud/api/v1/"
+        api_root="https://notificaties-api.vng.cloud/api/v1/",
+        client_id="incorrect",
+        secret="incorrect",
+        auth_type=AuthTypes.zgw,
     )
     notifications_config = NotificationsConfig.get_solo()
     notifications_config.notifications_api_service = notifications_service
     notifications_config.save()
 
     authorizations_service = ServiceFactory(
-        api_root="https://autorisaties-api.vng.cloud/api/v1/", client_id="foobar"
+        api_root="https://autorisaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
     )
     authorizations_config = AuthorizationsConfig.get_solo()
     authorizations_config.authorizations_api_service = authorizations_service
@@ -137,7 +153,10 @@ def test_config_view_notifications_error_response(api_client):
 @pytest.mark.django_db
 def test_config_view_missing_authorizations_service(api_client):
     notifications_service = ServiceFactory(
-        api_root="https://notificaties-api.vng.cloud/api/v1/"
+        api_root="https://notificaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
     )
     notifications_config = NotificationsConfig.get_solo()
     notifications_config.notifications_api_service = notifications_service
@@ -167,14 +186,20 @@ def test_config_view_missing_authorizations_service(api_client):
 @pytest.mark.django_db
 def test_config_view_authorizations_error_response(api_client):
     notifications_service = ServiceFactory(
-        api_root="https://notificaties-api.vng.cloud/api/v1/"
+        api_root="https://notificaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
     )
     notifications_config = NotificationsConfig.get_solo()
     notifications_config.notifications_api_service = notifications_service
     notifications_config.save()
 
     authorizations_service = ServiceFactory(
-        api_root="https://autorisaties-api.vng.cloud/api/v1/", client_id="foobar"
+        api_root="https://autorisaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
     )
     authorizations_config = AuthorizationsConfig.get_solo()
     authorizations_config.authorizations_api_service = authorizations_service

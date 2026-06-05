@@ -60,7 +60,7 @@ class DurationField(fields.DurationField):
         except ValueError:
             self.fail("invalid", format="P(n)Y(n)M(n)D")
 
-    def to_representation(self, value) -> str | None:  # type: ignore[override]
+    def to_representation(self, value) -> str | None:
         if isinstance(value, relativedelta):
             return format_relativedelta(value)  # type: ignore[call-arg]
         return None
