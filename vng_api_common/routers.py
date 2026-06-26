@@ -11,17 +11,17 @@ class APIRootView(_APIRootView):
     permission_classes = ()
 
 
-class NestedRegisteringMixin(DRFDefaultRouter):
-    _nested_router = None
+class NestedRegisteringMixin:
+    _nested_routers: list
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("trailing_slash", False)
         super().__init__(*args, **kwargs)
+        self._nested_routers = []
 
     def get_urls(self):
         urls = super().get_urls()
-        nested_router = self._nested_router
-        if nested_router is not None:
+        for nested_router in self._nested_routers:
             urls += nested_router.urls
         return urls
 
@@ -41,14 +41,15 @@ class NestedRegisteringMixin(DRFDefaultRouter):
 
         base_name = kwargs.get("basename") or self.get_default_basename(viewset)
 
-        self._nested_router = NestedSimpleRouter(
+        nested_router = NestedSimpleRouter(
             self, prefix, lookup=base_name, trailing_slash=False
         )
         for _nested in nested:
-            self._nested_router.register(
+            nested_router.register(
                 _nested.prefix, _nested.viewset, _nested.nested, **_nested.kwargs
             )
 
+        self._nested_routers.append(nested_router)
 
 class NestedSimpleRouter(NestedRegisteringMixin, routers.NestedSimpleRouter):
     pass
