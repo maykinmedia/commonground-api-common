@@ -11,7 +11,7 @@ class APIRootView(_APIRootView):
     permission_classes = ()
 
 
-class NestedRegisteringMixin:
+class NestedRegisteringMixin(DRFDefaultRouter):
     _nested_routers: list
 
     def __init__(self, *args, **kwargs):
@@ -50,6 +50,7 @@ class NestedRegisteringMixin:
             )
 
         self._nested_routers.append(nested_router)
+
 
 class NestedSimpleRouter(NestedRegisteringMixin, routers.NestedSimpleRouter):
     pass
