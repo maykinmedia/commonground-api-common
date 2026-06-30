@@ -9,6 +9,8 @@ from django.db.models import Model
 from django.utils.translation import gettext_lazy as _
 
 from dateutil.relativedelta import relativedelta
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import fields, serializers
 from rest_framework.request import Request
 from rest_framework_nested.relations import NestedHyperlinkedRelatedField
@@ -51,6 +53,7 @@ def field_allows_empty_values(field: fields.Field) -> bool:
     return field.allow_null or getattr(field, "allow_blank", False)
 
 
+@extend_schema_field(OpenApiTypes.DURATION)
 class DurationField(fields.DurationField):
     def to_internal_value(self, value: object) -> Any:
         if isinstance(value, relativedelta):
