@@ -43,7 +43,7 @@ DEFAULT_STATUS = 400
 
 
 try:
-    import structlog  # type: ignore[import]
+    import structlog
 except ImportError:
     structlog = None
 
@@ -145,7 +145,7 @@ class HandledException:
         self._exc_id = str(uuid.uuid4())
 
         try:
-            import structlog  # type: ignore[import]
+            import structlog
         except ImportError:
             self.logger = None
         else:
