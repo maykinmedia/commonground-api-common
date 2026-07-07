@@ -1,7 +1,7 @@
 import uuid
 from collections import OrderedDict
 from collections.abc import Callable, Generator
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 import sentry_sdk
 from rest_framework import exceptions, exceptions as drf_exceptions, status
-from rest_framework.exceptions import APIException, ErrorDetail
+from rest_framework.exceptions import ErrorDetail, ReturnDict, ReturnList
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
@@ -42,6 +42,11 @@ DEFAULT_DETAIL = _("Invalid input.")
 DEFAULT_STATUS = 400
 
 
+class HasDetail(Protocol):
+    @property
+    def detail(self) -> ReturnList | list | ReturnDict | dict | ErrorDetail: ...
+
+
 try:
     import structlog
 except ImportError:
@@ -55,13 +60,12 @@ else:
     logger = logging.getLogger(__name__)
 
 
-def _translate_exceptions(exc: Exception) -> APIException:
+def _translate_exceptions(exc: HasDetail) -> HasDetail:
     # Taken from DRF default exc handler
     if isinstance(exc, Http404):
         return exceptions.NotFound()
     if isinstance(exc, PermissionDenied):
         return exceptions.PermissionDenied()
-    assert isinstance(exc, APIException)
     return exc
 
 
@@ -133,7 +137,7 @@ def get_validation_errors(
 class HandledException:
     def __init__(
         self,
-        exc: exceptions.APIException,
+        exc: HasDetail,
         response: Response,
         request: Any = None,
     ):
@@ -167,9 +171,7 @@ class HandledException:
         return getattr(self.exc, "detail", str(self.exc))
 
     @classmethod
-    def as_serializer(
-        cls, exc: exceptions.APIException, response, request=None
-    ) -> ErrorSerializer:
+    def as_serializer(cls, exc: HasDetail, response, request=None) -> ErrorSerializer:
         """
         Return the appropriate serializer class instance.
         """
@@ -323,9 +325,7 @@ def finalize_response(
 ) -> Response:
     request = context.get("request")
 
-    serializer = HandledException.as_serializer(
-        cast(APIException, exc), response, request
-    )
+    serializer = HandledException.as_serializer(cast(HasDetail, exc), response, request)
     response.data = OrderedDict(serializer.data.items())
     response["Content-Type"] = ERROR_CONTENT_TYPE
     return response
