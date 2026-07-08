@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: 2.12.0\n"
+"Project-Id-Version: 2.13.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-23 10:01+0100\n"
+"POT-Creation-Date: 2026-07-08 14:09+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -107,7 +107,7 @@ msgstr ""
 msgid "Toelichting waarom de handeling is uitgevoerd."
 msgstr ""
 
-#: authorizations/middleware.py:73
+#: authorizations/middleware.py:75
 msgid ""
 "Component could not authenticate against the AC - authorizations could not "
 "be retrieved"
@@ -115,57 +115,57 @@ msgstr ""
 "De component kon zich niet autoriseren met het AC - de autorisaties konden "
 "daardoor niet opgehaald worden."
 
-#: authorizations/middleware.py:119
+#: authorizations/middleware.py:124
 msgid "JWT could not be decoded. Possibly you made a copy-paste mistake."
 msgstr ""
 "Het JWT kon niet gedecodeerd worden. Mogelijks heb je een copy-paste fout "
 "gemaakt"
 
-#: authorizations/middleware.py:172
+#: authorizations/middleware.py:177
 msgid "JWT did not validate"
 msgstr "JWT is niet valide"
 
-#: authorizations/middleware.py:198
+#: authorizations/middleware.py:203
 msgid "The iat claim is missing."
 msgstr "De iat claim ontbreekt."
 
-#: authorizations/middleware.py:203
+#: authorizations/middleware.py:208
 msgid "The iat claim must be an integer."
 msgstr "De iat claim moet een geheel getal zijn."
 
-#: authorizations/middleware.py:218
+#: authorizations/middleware.py:223
 msgid "The JWT used for this request is expired"
 msgstr "De JWT die gebruikt is voor dit verzoek is verlopen"
 
-#: authorizations/models.py:26 authorizations/models.py:121
+#: authorizations/models.py:25 authorizations/models.py:120
 msgid "component"
 msgstr ""
 
-#: authorizations/models.py:38
+#: authorizations/models.py:37
 msgid "autorisations api service"
 msgstr ""
 
-#: authorizations/models.py:47
+#: authorizations/models.py:46
 msgid "Autorisatiecomponentconfiguratie"
 msgstr ""
 
-#: authorizations/models.py:75
+#: authorizations/models.py:74
 msgid "client IDs"
 msgstr ""
 
-#: authorizations/models.py:76
+#: authorizations/models.py:75
 msgid "Comma separated list of consumer identifiers (client_ids)"
 msgstr "Komma-gescheiden lijst van consumer identifiers (hun client_id)."
 
-#: authorizations/models.py:81
+#: authorizations/models.py:80
 msgid "A human readable representation of the application, for end users."
 msgstr "Een leesbare representatie van de applicatie, voor eindgebruikers."
 
-#: authorizations/models.py:85
+#: authorizations/models.py:84
 msgid "has all authorizations"
 msgstr "heeft alle autorisaties"
 
-#: authorizations/models.py:88
+#: authorizations/models.py:87
 msgid ""
 "If all authorizations are given to this applicatie, no individual "
 "permissions have to be configured. Only enable this if you fully trust the "
@@ -175,60 +175,60 @@ msgstr ""
 "opgegeven te worden. Gebruik dit alleen als je de consumer helemaal "
 "vertrouwt."
 
-#: authorizations/models.py:98 authorizations/models.py:118
+#: authorizations/models.py:97 authorizations/models.py:117
 msgid "applicatie"
 msgstr ""
 
-#: authorizations/models.py:99
+#: authorizations/models.py:98
 msgid "applicaties"
 msgstr ""
 
-#: authorizations/models.py:124
+#: authorizations/models.py:123
 msgid "Component waarop autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:128
+#: authorizations/models.py:127
 msgid "scopes"
 msgstr ""
 
-#: authorizations/models.py:129
+#: authorizations/models.py:128
 msgid "Komma-gescheiden lijst van scope labels."
 msgstr ""
 
-#: authorizations/models.py:134
+#: authorizations/models.py:133
 msgid "zaaktype"
 msgstr ""
 
-#: authorizations/models.py:135
+#: authorizations/models.py:134
 msgid "URL naar het zaaktype waarop de autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:142
+#: authorizations/models.py:141
 msgid "informatieobjecttype"
 msgstr ""
 
-#: authorizations/models.py:144
+#: authorizations/models.py:143
 msgid ""
 "URL naar het informatieobjecttype waarop de autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:152
+#: authorizations/models.py:151
 msgid "besluittype"
 msgstr ""
 
-#: authorizations/models.py:154
+#: authorizations/models.py:153
 msgid "URL naar het besluittype waarop de autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:162
+#: authorizations/models.py:161
 msgid "Maximaal toegelaten vertrouwelijkheidaanduiding (inclusief)."
 msgstr ""
 
-#: authorizations/models.py:170
+#: authorizations/models.py:169
 msgid "autorisatie"
 msgstr ""
 
-#: authorizations/models.py:171
+#: authorizations/models.py:170
 msgid "autorisaties"
 msgstr ""
 
@@ -256,13 +256,13 @@ msgstr "Specifieer of autorisaties, of heeft_alle_autorisaties"
 msgid "Either autorisaties or heeft_alle_autorisaties should be specified"
 msgstr "Je moet of autorisaties, of heeft_alle_autorisaties specifiëren"
 
-#: authorizations/validators.py:16
+#: authorizations/validators.py:14
 #, python-brace-format
 msgid "The clientID(s) {client_id} are already used in application(s) {app_id}"
 msgstr ""
 "De client ID(s) {client_id} wordt al gebruikt in applicatie(s) {app_id}"
 
-#: authorizations/validators.py:45
+#: authorizations/validators.py:43
 #, python-brace-format
 msgid "This field is required if `component` is {component}"
 msgstr "Dit veld is verplicht als de `component` {component} is"
@@ -666,7 +666,7 @@ msgstr ""
 msgid "Legt vast, omgekeerd: kan vastgelegd zijn als"
 msgstr ""
 
-#: exception_handling.py:40
+#: exception_handling.py:41
 msgid "Invalid input."
 msgstr "Ongeldige invoerwaarde."
 
@@ -819,17 +819,17 @@ msgstr ""
 msgid "The object does not exist in the database"
 msgstr ""
 
-#: schema.py:259
+#: schema.py:258
 msgid ""
 "Geeft een specifieke API-versie aan in de context van een specifieke "
 "aanroep. Voorbeeld: 1.2.1."
 msgstr ""
 
-#: schema.py:281
+#: schema.py:280
 msgid "Content type of the request body."
 msgstr "Content type van de verzoekinhoud."
 
-#: schema.py:301
+#: schema.py:300
 msgid ""
 "Perform conditional requests. This header should contain one or multiple "
 "ETag values of resources the client has cached. If the current resource ETag "
@@ -844,94 +844,94 @@ msgstr ""
 "developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-None-Match) voor meer "
 "informatie."
 
-#: schema.py:311
+#: schema.py:310
 msgid "One ETag value"
 msgstr "Eén ETag-waarde"
 
-#: schema.py:316
+#: schema.py:315
 msgid "Multiple ETag values"
 msgstr "Meerdere ETag-waardes"
 
-#: schema.py:327
+#: schema.py:326
 msgid ""
 "De ETag berekend op de response body JSON. Indien twee resources exact "
 "dezelfde ETag hebben, dan zijn deze resources identiek aan elkaar. Je kan de "
 "ETag gebruiken om caching te implementeren."
 msgstr ""
 
-#: schema.py:341
+#: schema.py:340
 msgid "URL waar de resource leeft."
 msgstr ""
 
-#: schema.py:359
+#: schema.py:358
 msgid ""
 "The desired 'Coordinate Reference System' (CRS) of the response data. "
 "According to the GeoJSON spec, WGS84 is the default (EPSG: 4326 is the same "
 "as WGS84)."
 msgstr ""
 
-#: schema.py:375 schema.py:390
+#: schema.py:374 schema.py:389
 msgid ""
 "The 'Coordinate Reference System' (CRS) of the request data. According to "
 "the GeoJSON spec, WGS84 is the default (EPSG: 4326 is the same as WGS84)."
 msgstr ""
 
-#: schema.py:412
+#: schema.py:411
 msgid "Identifier of the request, traceable throughout the network"
 msgstr ""
 
-#: schema.py:420
+#: schema.py:419
 msgid "Explanation why the request is done"
 msgstr "Toelichting waarom een bepaald verzoek wordt gedaan"
 
-#: schema.py:426
+#: schema.py:425
 #, python-format
 msgid "De headers voor een specifiek(e) %(model)s opvragen "
 msgstr ""
 
-#: schema.py:433
+#: schema.py:432
 msgid "Vraag de headers op die je bij een GET request zou krijgen."
 msgstr ""
 
-#: serializers.py:382
+#: serializers.py:394
 #, python-brace-format
 msgid "Ensure this field has no more than {max_length} characters."
 msgstr ""
 
-#: serializers.py:383
+#: serializers.py:395
 #, python-brace-format
 msgid "Ensure this field has at least {min_length} characters."
 msgstr ""
 
-#: validators.py:32
+#: validators.py:33
 msgid "Voer een numerieke waarde in"
 msgstr ""
 
-#: validators.py:33
+#: validators.py:34
 msgid "Ongeldige code"
 msgstr ""
 
-#: validators.py:78
+#: validators.py:79
 msgid "Onjuist RSIN nummer"
 msgstr ""
 
-#: validators.py:93
+#: validators.py:94
 msgid "Onjuist BSN nummer"
 msgstr ""
 
-#: validators.py:161
+#: validators.py:162
 #, python-brace-format
 msgid ""
 "The URL {url} responded with HTTP {status_code}. Please provide a valid URL."
 msgstr ""
 "De URL {url} gaf als antwoord HTTP {status_code}. Geef een geldige URL op."
 
-#: validators.py:187
+#: validators.py:191
 #, python-brace-format
 msgid "The URL {url} could not be fetched. Exception: {exc}"
 msgstr "De URL {url} kon niet opgehaald worden. Foutmelding: {exc}"
 
-#: validators.py:215
+#: validators.py:219
 #, python-brace-format
 msgid ""
 "The URL {url} resource did not look like a(n) `{resource}`. Please provide a "
@@ -940,98 +940,98 @@ msgstr ""
 "De URL {url} resource lijkt niet op een `{resource}`. Geef een validate URL "
 "op."
 
-#: validators.py:281
+#: validators.py:291
 msgid "Ensure this value is not in the future."
 msgstr "Deze waarde mag niet in de toekomst liggen."
 
-#: validators.py:319
+#: validators.py:329
 #, python-brace-format
 msgid "Deze identificatie ({identificatie}) bestaat al binnen de organisatie"
 msgstr ""
 
-#: validators.py:376
+#: validators.py:391
 msgid "Dit veld mag niet gewijzigd worden."
 msgstr ""
 
-#: validators.py:397
+#: validators.py:418
 #, python-brace-format
 msgid "The resource {url} is not published."
 msgstr "De resource {url} is (nog) niet gepubliceerd."
 
-#: views.py:85
+#: views.py:83
 msgid "Site domain"
 msgstr ""
 
-#: views.py:86
+#: views.py:84
 msgid "HTTPS"
 msgstr ""
 
-#: views.py:103
+#: views.py:101
 msgid "Type of component"
 msgstr ""
 
-#: views.py:105
+#: views.py:103
 msgid "AC"
 msgstr ""
 
-#: views.py:109 views.py:115 views.py:156 views.py:161 views.py:172
+#: views.py:107 views.py:113 views.py:154 views.py:159 views.py:170
 msgid "Missing"
 msgstr ""
 
-#: views.py:114
+#: views.py:112
 msgid "Credentials for AC"
 msgstr ""
 
-#: views.py:115 views.py:172
+#: views.py:113 views.py:170
 msgid "Configured"
 msgstr ""
 
-#: views.py:135
+#: views.py:133
 msgid "Could not connect with AC"
 msgstr ""
 
-#: views.py:137
+#: views.py:135
 msgid "Can retrieve authorizations"
 msgstr ""
 
-#: views.py:139
+#: views.py:137
 msgid "AC connection and authorizations"
 msgstr ""
 
-#: views.py:156 views.py:161 views.py:166
+#: views.py:154 views.py:159 views.py:164
 msgid "NRC"
 msgstr ""
 
-#: views.py:171
+#: views.py:169
 msgid "Credentials for NRC"
 msgstr ""
 
-#: views.py:186
+#: views.py:184
 msgid "Could not connect with NRC"
 msgstr ""
 
-#: views.py:189
+#: views.py:188
 #, python-brace-format
 msgid "Cannot retrieve kanalen: HTTP {status_code}"
 msgstr ""
 
-#: views.py:193
+#: views.py:192
 msgid "Can retrieve kanalen"
 msgstr ""
 
-#: views.py:195
+#: views.py:194
 msgid "NRC connection and authorizations"
 msgstr ""
 
-#: views.py:216
+#: views.py:215
 msgid "Listens to AC notifications?"
 msgstr ""
 
-#: views.py:216
+#: views.py:215
 msgid "Yes"
 msgstr ""
 
-#: views.py:216
+#: views.py:215
 msgid "No"
 msgstr ""
 
