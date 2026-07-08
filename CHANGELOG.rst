@@ -2,6 +2,24 @@
 Change history
 ==============
 
+2.13.0 (2026-07-08)
+-------------------
+
+**New features**
+
+* [open-zaak/open-zaak#2416] allowed multiple nested routers
+* [open-zaak/open-zaak#2165] added api spec duration format to DurationField
+
+**Project maintenance**
+
+* [#159] added typing improvements
+* [#158] marked createJWTSecretView as deprecated
+* [#157] removed field default
+* [#156] fixed inconsistent usage of VertrouwelijkheidsAanduiding.get_choice
+* added trusted publishing for PyPI
+* hardened CI
+
+
 2.12.0 (2026-03-23)
 -------------------
 
