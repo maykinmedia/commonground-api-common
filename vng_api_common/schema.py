@@ -155,7 +155,10 @@ class AutoSchema(openapi.AutoSchema):
         # general errors
         general_klasses = DEFAULT_ACTION_ERRORS.get(action)
         if general_klasses is None:
-            logger.debug("Unknown action %s, no default error responses added")
+            logger.debug(
+                "unknown_action",
+                action=action,
+            )
             return {}
 
         exception_klasses = general_klasses[:]

@@ -1,7 +1,6 @@
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-import structlog
 from rest_framework import serializers
 
 from ..constants import ComponentTypes
@@ -9,8 +8,6 @@ from ..polymorphism import Discriminator, PolymorphicSerializer
 from ..serializers import add_choice_values_help_text
 from .models import Applicatie, Autorisatie
 from .validators import AutorisatieValidator, UniqueClientIDValidator
-
-logger = structlog.stdlib.get_logger(__name__)
 
 
 class AutorisatieBaseSerializer(PolymorphicSerializer):

@@ -164,9 +164,9 @@ class PolymorphicSerializerMetaclass(serializers.SerializerMetaclass):
             difference = values - values_seen
             if difference:
                 logger.warning(
-                    "'%s': not all possible values map to a serializer. Missing %s",
-                    name,
-                    difference,
+                    "incomplete_serializer_mapping",
+                    name=name,
+                    missing_values=difference,
                 )
 
         return discriminator

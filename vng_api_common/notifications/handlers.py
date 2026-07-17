@@ -13,7 +13,10 @@ KANAAL_AUTORISATIES = "autorisaties"
 class LoggingHandler:
     def handle(self, message: dict) -> None:
         logger = structlog.stdlib.get_logger("notifications")
-        logger.info("Received notification %r", message)
+        logger.info(
+            "notification_received",
+            message=message,
+        )
 
 
 class AuthHandler:

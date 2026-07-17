@@ -3,7 +3,6 @@ from urllib.parse import urlencode
 from django.db import models
 from django.http import HttpRequest, QueryDict
 
-import structlog
 from django_filters.rest_framework import DjangoFilterBackend
 from djangorestframework_camel_case.parser import CamelCaseJSONParser
 from djangorestframework_camel_case.render import CamelCaseJSONRenderer
@@ -13,8 +12,6 @@ from rest_framework.views import APIView
 
 from .filtersets import FilterSet
 from .search import is_search_view
-
-logger = structlog.stdlib.get_logger(__name__)
 
 
 class Backend(DjangoFilterBackend):

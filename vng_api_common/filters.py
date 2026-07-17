@@ -62,10 +62,18 @@ class URLModelChoiceField(fields.ModelChoiceField):
             try:
                 value = self.url_to_pk(value)
             except NotAViewSet:
-                logger.info("No %s found for URL %s", self.label, value)
+                logger.info(
+                    "resource_not_found",
+                    resource=self.label,
+                    url=value,
+                )
                 return FILTER_URL_DID_NOT_RESOLVE
             except models.ObjectDoesNotExist:
-                logger.info("No %s found for URL %s", self.label, value)
+                logger.info(
+                    "resource_not_found",
+                    resource=self.label,
+                    url=value,
+                )
                 return FILTER_URL_DID_NOT_RESOLVE
         return super().to_python(value)
 

@@ -91,8 +91,9 @@ def register_geojson_field_extension() -> None:
         from rest_framework_gis.fields import GeometryField  # noqa
     except (ImportError, ImproperlyConfigured):
         logger.debug(
-            "Could not import djangorestframework-gis, skipping "
-            "GeometryFieldExtension registration."
+            "extension_registration_skipped",
+            extension="GeometryFieldExtension",
+            missing_dependency="djangorestframework-gis",
         )
         return
 
@@ -108,8 +109,9 @@ def register_base64_field_extension() -> None:
         from drf_extra_fields.fields import Base64FileField  # noqa
     except ImportError:
         logger.debug(
-            "Could not import drf-extra-fields, skipping "
-            "Base64FileFileFieldExtension registration."
+            "extension_registration_skipped",
+            extension="Base64FileFieldExtension",
+            missing_dependency="drf-extra-fields",
         )
         return
 

@@ -30,9 +30,15 @@ def migrate_authorization_config_to_service(apps, _) -> None:
     config.save()
 
     if created:
-        logger.info(f"Created new Service for {config.api_root}")
+        logger.info(
+            "service_created",
+            api_root=config.api_root,
+        )
     else:
-        logger.info(f"Existing service found for {config.api_root}")
+        logger.info(
+            "existing_service_found",
+            api_root=config.api_root,
+        )
 
 
 def migrate_authorization_config_to_config(apps, _) -> None:

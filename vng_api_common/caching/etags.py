@@ -163,14 +163,16 @@ class EtagUpdate:
             _func = run_on_commit[1]
             if func == _func:
                 logger.debug(
-                    "Update for model instance %r with pk %s was already scheduled",
-                    type(obj),
-                    obj.pk,
+                    "update_already_scheduled",
+                    model=type(obj).__name__,
+                    pk=obj.pk,
                 )
                 return
 
         logger.debug(
-            "Scheduling model instance %r with pk %s for ETag update", type(obj), obj.pk
+            "etag_update_scheduled",
+            model=type(obj).__name__,
+            pk=obj.pk,
         )
         # TODO: move this to celery to improve performance
         connection.on_commit(func)
