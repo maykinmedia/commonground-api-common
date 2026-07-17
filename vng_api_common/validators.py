@@ -239,7 +239,9 @@ class ResourceValidator(URLValidator):
             obj = response.json()
         except json.JSONDecodeError:
             logger.info(
-                "URL %s doesn't seem to point to a JSON endpoint", url, exc_info=True
+                "invalid_json_endpoint",
+                url=url,
+                exc_info=True,
             )
             raise serializers.ValidationError(
                 self.__message.format(url=url, resource=self.resource), code=self.__code
@@ -249,7 +251,10 @@ class ResourceValidator(URLValidator):
         schema = fetcher.fetch(self.oas_schema)
         if not obj_has_shape(obj, schema, self.resource):
             logger.info(
-                "URL %s doesn't seem to point to a valid shape", url, exc_info=True
+                "invalid_resource_shape",
+                url=url,
+                resource=self.resource,
+                exc_info=True,
             )
             raise serializers.ValidationError(
                 self.__message.format(url=url, resource=self.resource), code=self.__code

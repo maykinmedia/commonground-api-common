@@ -118,7 +118,10 @@ def extract_dependencies(viewset: type, explicit_field_names: set[str]) -> None:
     serializer = view.get_serializer()
 
     if model in MODEL_SERIALIZERS:
-        logger.warning("Model %r is already registered in MODEL_SERIALIZERS.", model)
+        logger.warning(
+            "model_already_registered",
+            model=model.__name__,
+        )
     else:
         MODEL_SERIALIZERS[model] = type(serializer)
 
@@ -142,7 +145,8 @@ def extract_dependencies(viewset: type, explicit_field_names: set[str]) -> None:
 
         if field.source not in relationships:
             logger.debug(
-                "Field source %s not found in relationships, skipping", field.source
+                "relationship_field_not_found",
+                field_source=field.source,
             )
             continue
 
