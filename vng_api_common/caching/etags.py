@@ -3,7 +3,6 @@ Calculate ETag values for API resources.
 """
 
 import hashlib
-import logging
 from dataclasses import dataclass
 from weakref import WeakKeyDictionary
 
@@ -13,6 +12,7 @@ from django.db import DatabaseError, models, transaction
 from django.http import Http404, HttpRequest
 from django.utils.module_loading import import_string
 
+import structlog
 from djangorestframework_camel_case.render import CamelCaseJSONRenderer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -21,7 +21,7 @@ from rest_framework.settings import api_settings
 from ..utils import get_domain, get_resource_for_path
 from .registry import MODEL_SERIALIZERS
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # entries are discarded when there are no hard references anymore to the model instance
 weak_object_serializers_dict = WeakKeyDictionary()

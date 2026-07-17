@@ -1,11 +1,10 @@
-import logging
-
 from django.apps import AppConfig
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.forms.fields import CharField
 from django.utils.translation import gettext_lazy as _
 
+import structlog
 from rest_framework import serializers
 
 from . import fields
@@ -22,7 +21,7 @@ except ImportError:
 # is collected somewhere so there's precedent
 FORMAT_DURATION = "duration"
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class CommonGroundAPICommonConfig(AppConfig):

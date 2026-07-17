@@ -1,4 +1,3 @@
-import logging
 from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError
@@ -7,6 +6,7 @@ from django.db import models
 from django.forms.widgets import URLInput
 from django.utils.translation import gettext_lazy as _
 
+import structlog
 from django_filters import fields, filters
 from django_filters.constants import EMPTY_VALUES
 
@@ -14,7 +14,7 @@ from .constants import FILTER_URL_DID_NOT_RESOLVE
 from .utils import NotAViewSet, get_resource_for_path
 from .validators import validate_rsin
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class URLModelChoiceField(fields.ModelChoiceField):

@@ -34,17 +34,17 @@ The serializer output will then either contain ``field_for_value2`` or
 ``field_for_value2``, depending on the value of the field ``type``.
 """
 
-import logging
 from collections import OrderedDict
 from typing import Any, cast
 
 from django.core.exceptions import FieldDoesNotExist
 
+import structlog
 from rest_framework import serializers
 
 __all__ = ["Discriminator", "PolymorphicSerializer"]
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class Discriminator:

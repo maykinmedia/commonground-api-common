@@ -1,5 +1,4 @@
-import logging
-
+import structlog
 from djangorestframework_camel_case.util import underscoreize
 
 from ..authorizations.models import Applicatie
@@ -13,7 +12,7 @@ KANAAL_AUTORISATIES = "autorisaties"
 
 class LoggingHandler:
     def handle(self, message: dict) -> None:
-        logger = logging.getLogger("notifications")
+        logger = structlog.stdlib.get_logger("notifications")
         logger.info("Received notification %r", message)
 
 

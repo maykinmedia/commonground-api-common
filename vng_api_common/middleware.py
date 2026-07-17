@@ -1,15 +1,15 @@
 # https://pyjwt.readthedocs.io/en/latest/usage.html#reading-headers-without-validation
 # -> we can put the organization/service in the headers itself
-import logging
 from collections.abc import Callable
 
 from django.conf import settings
 
+import structlog
 from rest_framework.response import Response
 
 from .constants import VERSION_HEADER
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class APIVersionHeaderMiddleware:

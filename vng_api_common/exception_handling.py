@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 import sentry_sdk
+import structlog
 from rest_framework import exceptions, exceptions as drf_exceptions, status
 from rest_framework.exceptions import ErrorDetail, ReturnDict, ReturnList
 from rest_framework.response import Response
@@ -47,17 +48,7 @@ class HasDetail(Protocol):
     def detail(self) -> ReturnList | list | ReturnDict | dict | ErrorDetail: ...
 
 
-try:
-    import structlog
-except ImportError:
-    structlog = None
-
-if structlog:
-    logger = structlog.stdlib.get_logger(__name__)
-else:
-    import logging
-
-    logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 def _translate_exceptions(exc: HasDetail) -> HasDetail:
@@ -357,13 +348,10 @@ def exception_handler(exc: Exception, context: dict[str, object]) -> Response | 
         if settings.DEBUG:
             return None
 
-        if structlog:
-            logger.exception(
-                "api.uncaught_exception",
-                exc_info=True,
-            )
-        else:
-            logger.exception(str(exc), exc_info=True)
+        logger.exception(
+            "api.uncaught_exception",
+            exc_info=True,
+        )
 
         sentry_sdk.capture_exception(exc)
 
@@ -374,13 +362,10 @@ def exception_handler(exc: Exception, context: dict[str, object]) -> Response | 
         if settings.DEBUG:
             return None
 
-        if structlog:
-            logger.exception(
-                "api.handled_server_exception",
-                exc_info=True,
-            )
-        else:
-            logger.exception(str(exc), exc_info=True)
+        logger.exception(
+            "api.handled_server_exception",
+            exc_info=True,
+        )
 
         sentry_sdk.capture_exception(exc)
 
