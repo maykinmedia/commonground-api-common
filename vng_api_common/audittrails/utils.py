@@ -1,11 +1,11 @@
 import inspect
-import logging
 
 from django.apps import apps
 
+import structlog
 from rest_framework import viewsets
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 AUDIT_TRAIL_ENABLED = apps.is_installed("vng_api_common.audittrails")

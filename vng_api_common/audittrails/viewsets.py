@@ -1,9 +1,9 @@
-import logging
 from typing import TYPE_CHECKING, cast
 
 from django.db import transaction
 from django.http import Http404
 
+import structlog
 from rest_framework import serializers, viewsets
 
 from ..compat import get_header
@@ -15,7 +15,7 @@ from .api.scopes import SCOPE_AUDITTRAILS_LEZEN
 from .api.serializers import AuditTrailSerializer
 from .models import AuditTrail
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 if TYPE_CHECKING:

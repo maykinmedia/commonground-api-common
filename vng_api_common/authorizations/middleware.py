@@ -1,4 +1,3 @@
-import logging
 import time
 from collections.abc import Callable
 from typing import Any, Iterable, cast
@@ -10,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext as _
 
 import jwt
+import structlog
 from djangorestframework_camel_case.util import underscoreize
 from requests import RequestException
 from rest_framework.exceptions import PermissionDenied
@@ -22,7 +22,7 @@ from ..utils import get_uuid_from_path
 from .models import Applicatie, AuthorizationsConfig, Autorisatie
 from .serializers import ApplicatieUuidSerializer
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class JWTAuth:

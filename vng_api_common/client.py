@@ -2,12 +2,11 @@
 Interface to get a client object for a given URL.
 """
 
-import logging
-
+import structlog
 from ape_pie import APIClient
 from requests import JSONDecodeError, RequestException, Response
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class ClientError(RuntimeError):

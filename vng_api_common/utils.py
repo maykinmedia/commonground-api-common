@@ -1,4 +1,3 @@
-import logging
 import re
 import uuid
 from typing import TYPE_CHECKING, Any, cast
@@ -11,6 +10,7 @@ from django.urls import Resolver404, ResolverMatch, get_resolver, get_script_pre
 from django.utils.encoding import smart_str
 from django.utils.module_loading import import_string
 
+import structlog
 from rest_framework.utils import formatting
 
 try:
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from rest_framework.viewsets import ModelViewSet, ViewSet
 
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 RE_UNDERSCORE = re.compile(r"[a-z]_[a-z]")
 

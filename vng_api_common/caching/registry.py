@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass
 from typing import Iterable, cast
 
@@ -8,6 +7,7 @@ from django.db.models.base import ModelBase
 from django.db.models.fields.related import RelatedField as _RelatedField
 from django.db.models.fields.reverse_related import ForeignObjectRel
 
+import structlog
 from rest_framework.relations import (
     HyperlinkedIdentityField,
     ManyRelatedField,
@@ -17,7 +17,7 @@ from rest_framework.schemas.generators import BaseSchemaGenerator
 from rest_framework.serializers import Serializer
 from rest_framework.utils.model_meta import get_field_info
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 RelatedModelField = _RelatedField | ForeignObjectRel
 
