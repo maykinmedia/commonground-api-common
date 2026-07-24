@@ -246,9 +246,6 @@ ignore = [
     "SIM117",
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"tests/test_exception_handler.py" = ["TID251"]
-
 # Import sorting configuration (equivalent to isort)
 [tool.ruff.lint.isort]
 combine-as-imports = true
