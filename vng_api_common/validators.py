@@ -1,5 +1,4 @@
 import json
-import logging
 import re
 from collections.abc import Callable, MutableMapping
 from datetime import date, datetime, timedelta
@@ -13,11 +12,12 @@ from django.utils.deconstruct import deconstructible
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 
+import structlog
 from rest_framework import serializers, validators
 
 from .oas import fetcher, obj_has_shape
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 WORD_REGEX = re.compile(r"[\w\-]+$", re.ASCII)
@@ -239,7 +239,9 @@ class ResourceValidator(URLValidator):
             obj = response.json()
         except json.JSONDecodeError:
             logger.info(
-                "URL %s doesn't seem to point to a JSON endpoint", url, exc_info=True
+                "invalid_json_endpoint",
+                url=url,
+                exc_info=True,
             )
             raise serializers.ValidationError(
                 self.__message.format(url=url, resource=self.resource), code=self.__code
@@ -249,7 +251,10 @@ class ResourceValidator(URLValidator):
         schema = fetcher.fetch(self.oas_schema)
         if not obj_has_shape(obj, schema, self.resource):
             logger.info(
-                "URL %s doesn't seem to point to a valid shape", url, exc_info=True
+                "invalid_resource_shape",
+                url=url,
+                resource=self.resource,
+                exc_info=True,
             )
             raise serializers.ValidationError(
                 self.__message.format(url=url, resource=self.resource), code=self.__code

@@ -2,12 +2,11 @@
 Interface to get a client object for a given URL.
 """
 
-import logging
-
+import structlog
 from ape_pie import APIClient
 from requests import JSONDecodeError, RequestException, Response
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class ClientError(RuntimeError):
@@ -23,7 +22,7 @@ def to_internal_data(response: Response) -> dict | list | None:
     try:
         response_json = response.json()
     except JSONDecodeError:
-        logger.exception("Unable to parse json from response")
+        logger.exception("response_json_parse_failed")
         response_json = None
 
     try:
@@ -67,7 +66,7 @@ def get_client(
     service: Service | None = Service.get_service(url)
 
     if not service:
-        logger.warning(f"No service configured for {url}")
+        logger.warning("no_service_configured", url=url)
         if raise_exceptions:
             raise NoServiceConfigured(f"{url} API should be added to Service model")
         return

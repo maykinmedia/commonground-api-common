@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 
 from django.core import checks
 from django.core.validators import (
@@ -162,27 +163,23 @@ class DaysDurationField(models.DurationField):
         errors.extend(self._check_min_duration(**kwargs))
         return errors
 
-    def _check_min_duration(self, **kwargs) -> list:
+    def _check_min_duration(self, **kwargs) -> list[checks.Error]:
         errors = []
         if self.min_duration < 1:
             errors.append(
-                [
-                    checks.Error(
-                        "De minimale duur in kalenderdagen moet groter dan of gelijk aan 1 zijn",
-                        obj=self,
-                        id="vng_api_common.fields.E006",
-                    )
-                ]
+                checks.Error(
+                    "De minimale duur in kalenderdagen moet groter dan of gelijk aan 1 zijn",
+                    obj=self,
+                    id="vng_api_common.fields.E006",
+                )
             )
         if self.min_duration > self.max_duration:
             errors.append(
-                [
-                    checks.Error(
-                        "De minimale duur mag niet langer zijn dan de maximale duur",
-                        obj=self,
-                        id="vng_api_common.fields.E007",
-                    )
-                ]
+                checks.Error(
+                    "De minimale duur mag niet langer zijn dan de maximale duur",
+                    obj=self,
+                    id="vng_api_common.fields.E007",
+                )
             )
         return errors
 
@@ -191,14 +188,17 @@ class DaysDurationField(models.DurationField):
         form_class: type[Field] | None = None,
         choices_form_class: type[ChoiceField] | None = None,
         **kwargs,
-    ):
+    ) -> Any:
         # add sensible help-text
         _help_text = gettext("Specifieer de duur als 'DD 00:00'")
         help_text = f"{self.help_text} {_help_text}" if self.help_text else _help_text
-        defaults = {"help_text": help_text}
-        defaults.update(**kwargs)
 
+        defaults: dict[str, Any] = {"help_text": help_text}
+        defaults.update(kwargs)
         # Ensure form_class and choices_form_class are types, not strings
+
         return super().formfield(
-            form_class=form_class, choices_form_class=choices_form_class, **defaults
+            form_class=form_class,
+            choices_form_class=choices_form_class,
+            **defaults,
         )

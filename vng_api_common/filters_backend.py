@@ -1,4 +1,3 @@
-import logging
 from urllib.parse import urlencode
 
 from django.db import models
@@ -13,8 +12,6 @@ from rest_framework.views import APIView
 
 from .filtersets import FilterSet
 from .search import is_search_view
-
-logger = logging.getLogger(__name__)
 
 
 class Backend(DjangoFilterBackend):
