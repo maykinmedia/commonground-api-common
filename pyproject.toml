@@ -70,6 +70,8 @@ drf_extra_fields = [
     "drf-extra-fields>=3.7.0",
 ]
 
+db = ["psycopg2"]
+
 tests = [
     "psycopg2",
     "pytest",
