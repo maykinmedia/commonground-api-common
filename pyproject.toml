@@ -48,6 +48,7 @@ dependencies = [
     "requests",
     "ape-pie",
     "sentry-sdk",
+    "structlog",
 ]
 
 [project.urls]
@@ -90,7 +91,6 @@ type-checking = [
     "pyright",
     "django-stubs",
     "django-stubs-ext",
-    "structlog",
 ]
 
 oas = [
@@ -246,7 +246,6 @@ ignore = [
     "SIM117",
 ]
 
-
 # Import sorting configuration (equivalent to isort)
 [tool.ruff.lint.isort]
 combine-as-imports = true
@@ -263,6 +262,9 @@ section-order = [
     "first-party",
     "local-folder",
 ]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api.logging]
+msg = "Use `structlog.stdlib.get_logger(__name__)` instead."
 
 [tool.ruff.format]
 line-ending = "lf"

@@ -1,4 +1,3 @@
-import logging
 import re
 import uuid
 from typing import TYPE_CHECKING, Any, cast
@@ -25,8 +24,6 @@ except ImportError:
 if TYPE_CHECKING:
     from rest_framework.viewsets import ModelViewSet, ViewSet
 
-
-logger = logging.getLogger(__name__)
 
 RE_UNDERSCORE = re.compile(r"[a-z]_[a-z]")
 

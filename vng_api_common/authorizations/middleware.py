@@ -1,4 +1,3 @@
-import logging
 import time
 from collections.abc import Callable
 from typing import Any, Iterable, cast
@@ -10,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext as _
 
 import jwt
+import structlog
 from djangorestframework_camel_case.util import underscoreize
 from requests import RequestException
 from rest_framework.exceptions import PermissionDenied
@@ -22,7 +22,7 @@ from ..utils import get_uuid_from_path
 from .models import Applicatie, AuthorizationsConfig, Autorisatie
 from .serializers import ApplicatieUuidSerializer
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class JWTAuth:
@@ -57,7 +57,7 @@ class JWTAuth:
         client = AuthorizationsConfig.get_client()
 
         if not client:
-            logger.warning("Authorization component can't be accessed")
+            logger.warning("authorization_component_unavailable")
             return []
 
         try:
@@ -65,7 +65,7 @@ class JWTAuth:
 
             data = to_internal_data(response)
         except RequestException:
-            logger.warning("Authorization component can't be accessed")
+            logger.warning("authorization_component_unavailable")
             return []
         except ClientError as exc:
             response = exc.args[0]
@@ -76,7 +76,7 @@ class JWTAuth:
                     "authorizations could not be retrieved"
                 )
                 raise PermissionDenied(detail=detail, code="not_authenticated_for_ac")
-            logger.warning("Authorization component can't be accessed")
+            logger.warning("authorization_component_unavailable")
             return []
 
         data_dict = cast(dict[str, Any], data)
@@ -118,7 +118,7 @@ class JWTAuth:
                     leeway=settings.TIME_LEEWAY,
                 )
             except jwt.DecodeError:
-                logger.info("Invalid JWT encountered")
+                logger.info("invalid_jwt")
                 raise PermissionDenied(
                     _(
                         "JWT could not be decoded. Possibly you made a copy-paste mistake."
@@ -160,19 +160,24 @@ class JWTAuth:
                     },  # iat is validated in _check_jwt_expiry
                 )
             except jwt.InvalidSignatureError:
-                logger.exception("Invalid signature - possible payload tampering?")
+                logger.exception("invalid_jwt_signature")
                 raise PermissionDenied(
                     "Client credentials zijn niet geldig", code="invalid-jwt-signature"
                 )
             except jwt.MissingRequiredClaimError as exc:
                 msg = "Missing required {} claim".format(exc.claim)
-                logger.exception(msg)
+                logger.exception(
+                    "missing_required_jwt_claim",
+                    claim=exc.claim,
+                )
                 raise PermissionDenied(
                     _(msg),
                     code="jwt-missing-{}-claim".format(exc.claim),
                 )
             except jwt.PyJWTError as exc:
-                logger.exception("Invalid JWT encountered")
+                logger.exception(
+                    "jwt_validation_failed", exception_type=type(exc).__name__
+                )
                 raise PermissionDenied(
                     _("JWT did not validate"),
                     code="jwt-{}".format(type(exc).__name__.lower()),
@@ -212,10 +217,9 @@ class JWTAuth:
 
         if difference < -settings.TIME_LEEWAY:
             logger.warning(
-                "The JWT used for this request is not valid yet, the `iat` claim is "
-                "newer than the current time stamp. You may want to check the clock drift "
-                "on the Open Zaak server and/or tweak the `TIME_LEEWAY` setting.",
-                extra={"payload": payload},
+                "jwt_not_yet_valid",
+                payload=payload,
+                time_leeway=settings.TIME_LEEWAY,
             )
 
         if difference >= (settings.JWT_EXPIRY + settings.TIME_LEEWAY):

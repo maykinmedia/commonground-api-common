@@ -1,11 +1,11 @@
 import inspect
-import logging
 
 from django.apps import apps
 
+import structlog
 from rest_framework import viewsets
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 AUDIT_TRAIL_ENABLED = apps.is_installed("vng_api_common.audittrails")
@@ -17,7 +17,7 @@ def _view_supports_audittrail(view: viewsets.ViewSet) -> bool:
         return False
 
     if not hasattr(view, "action"):
-        logger.debug("Could not determine view action for view %r", view)
+        logger.debug("view_action_not_determined", view=view.__class__.__name__)
         return False
 
     # local imports, since you get errors if you try to import non-installed app

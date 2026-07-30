@@ -1,4 +1,4 @@
-import logging
+import logging  # noqa: TID251
 from unittest.mock import patch
 
 from django.test import TestCase, tag

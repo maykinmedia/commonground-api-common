@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass
 from typing import Iterable, cast
 
@@ -8,6 +7,7 @@ from django.db.models.base import ModelBase
 from django.db.models.fields.related import RelatedField as _RelatedField
 from django.db.models.fields.reverse_related import ForeignObjectRel
 
+import structlog
 from rest_framework.relations import (
     HyperlinkedIdentityField,
     ManyRelatedField,
@@ -17,7 +17,7 @@ from rest_framework.schemas.generators import BaseSchemaGenerator
 from rest_framework.serializers import Serializer
 from rest_framework.utils.model_meta import get_field_info
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 RelatedModelField = _RelatedField | ForeignObjectRel
 
@@ -118,7 +118,10 @@ def extract_dependencies(viewset: type, explicit_field_names: set[str]) -> None:
     serializer = view.get_serializer()
 
     if model in MODEL_SERIALIZERS:
-        logger.warning("Model %r is already registered in MODEL_SERIALIZERS.", model)
+        logger.warning(
+            "model_already_registered",
+            model=model.__name__,
+        )
     else:
         MODEL_SERIALIZERS[model] = type(serializer)
 
@@ -142,7 +145,8 @@ def extract_dependencies(viewset: type, explicit_field_names: set[str]) -> None:
 
         if field.source not in relationships:
             logger.debug(
-                "Field source %s not found in relationships, skipping", field.source
+                "relationship_field_not_found",
+                field_source=field.source,
             )
             continue
 

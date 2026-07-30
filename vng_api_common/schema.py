@@ -1,8 +1,7 @@
-import logging
-
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+import structlog
 from drf_spectacular import openapi
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter
@@ -17,7 +16,7 @@ from .geo import DEFAULT_CRS, HEADER_ACCEPT, HEADER_CONTENT, GeoMixin
 from .permissions import BaseAuthRequired, get_required_scopes
 from .serializers import FoutSerializer, ValidatieFoutSerializer
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 COMMON_ERRORS = [
     exceptions.AuthenticationFailed,
@@ -156,7 +155,10 @@ class AutoSchema(openapi.AutoSchema):
         # general errors
         general_klasses = DEFAULT_ACTION_ERRORS.get(action)
         if general_klasses is None:
-            logger.debug("Unknown action %s, no default error responses added")
+            logger.debug(
+                "unknown_action",
+                action=action,
+            )
             return {}
 
         exception_klasses = general_klasses[:]

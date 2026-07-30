@@ -3,7 +3,6 @@ Calculate ETag values for API resources.
 """
 
 import hashlib
-import logging
 from dataclasses import dataclass
 from weakref import WeakKeyDictionary
 
@@ -13,6 +12,7 @@ from django.db import DatabaseError, models, transaction
 from django.http import Http404, HttpRequest
 from django.utils.module_loading import import_string
 
+import structlog
 from djangorestframework_camel_case.render import CamelCaseJSONRenderer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -21,7 +21,7 @@ from rest_framework.settings import api_settings
 from ..utils import get_domain, get_resource_for_path
 from .registry import MODEL_SERIALIZERS
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 # entries are discarded when there are no hard references anymore to the model instance
 weak_object_serializers_dict = WeakKeyDictionary()
@@ -163,14 +163,16 @@ class EtagUpdate:
             _func = run_on_commit[1]
             if func == _func:
                 logger.debug(
-                    "Update for model instance %r with pk %s was already scheduled",
-                    type(obj),
-                    obj.pk,
+                    "update_already_scheduled",
+                    model=type(obj).__name__,
+                    pk=obj.pk,
                 )
                 return
 
         logger.debug(
-            "Scheduling model instance %r with pk %s for ETag update", type(obj), obj.pk
+            "etag_update_scheduled",
+            model=type(obj).__name__,
+            pk=obj.pk,
         )
         # TODO: move this to celery to improve performance
         connection.on_commit(func)

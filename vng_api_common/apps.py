@@ -1,11 +1,10 @@
-import logging
-
 from django.apps import AppConfig
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.forms.fields import CharField
 from django.utils.translation import gettext_lazy as _
 
+import structlog
 from rest_framework import serializers
 
 from . import fields
@@ -22,7 +21,7 @@ except ImportError:
 # is collected somewhere so there's precedent
 FORMAT_DURATION = "duration"
 
-logger = logging.getLogger(__name__)
+logger = structlog.stdlib.get_logger(__name__)
 
 
 class CommonGroundAPICommonConfig(AppConfig):
@@ -92,8 +91,9 @@ def register_geojson_field_extension() -> None:
         from rest_framework_gis.fields import GeometryField  # noqa
     except (ImportError, ImproperlyConfigured):
         logger.debug(
-            "Could not import djangorestframework-gis, skipping "
-            "GeometryFieldExtension registration."
+            "extension_registration_skipped",
+            extension="GeometryFieldExtension",
+            missing_dependency="djangorestframework-gis",
         )
         return
 
@@ -109,8 +109,9 @@ def register_base64_field_extension() -> None:
         from drf_extra_fields.fields import Base64FileField  # noqa
     except ImportError:
         logger.debug(
-            "Could not import drf-extra-fields, skipping "
-            "Base64FileFileFieldExtension registration."
+            "extension_registration_skipped",
+            extension="Base64FileFieldExtension",
+            missing_dependency="drf-extra-fields",
         )
         return
 
