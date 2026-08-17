@@ -24,6 +24,11 @@ def migrate_authorization_config_to_service(apps, _) -> None:
             slug=slugify(service_label),
             api_type=APITypes.ac,
             auth_type=AuthTypes.zgw,
+            # Dummy credentials so the Service can be instantiated safely.
+            # These are not valid credentials and must be replaced with real
+            # credentials when ZGW authentication is configured.
+            client_id="not-configured",
+            secret="not-configured",
         ),
     )
     config.authorizations_api_service = service
