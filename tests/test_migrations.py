@@ -231,3 +231,32 @@ class TestMigrateAuthorizationsConfigAPIRootToService(BaseMigrationTest):
             config.authorizations_api_service.api_root
             == "https://example.com/autorisaties/api/v1/"
         )
+
+    def test_migrate_api_root_to_service_creates_service_with_dummy_credentials(
+        self, setup_migration: Callable
+    ):
+        """
+        On a fresh install there is no pre-existing Service for the (default)
+        AC api_root, so the migration has to create one. Regression test to
+        make sure that Service isn't created with blank client_id/secret,
+        which would crash consumers relying on those credentials being set
+        (e.g. the /view-config/ page).
+        """
+
+        def migration_callback(apps: Apps) -> None:
+            AuthorizationsConfig = apps.get_model(
+                "authorizations", "AuthorizationsConfig"
+            )
+            AuthorizationsConfig.objects.get_or_create()
+
+        setup_migration(migration_callback)
+
+        AuthorizationsConfig = global_apps.get_model(
+            "authorizations", "AuthorizationsConfig"
+        )
+
+        config, _ = AuthorizationsConfig.objects.get_or_create()
+
+        assert config.authorizations_api_service is not None
+        assert config.authorizations_api_service.client_id
+        assert config.authorizations_api_service.secret
