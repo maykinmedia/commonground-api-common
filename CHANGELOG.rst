@@ -2,6 +2,14 @@
 Change history
 ==============
 
+2.13.1 (2026-08-17)
+-------------------
+
+**Bugfixes**
+
+* [open-zaak/open-notificaties#419] Ensure compatiblity with pyjwt >= 2.13.0 by setting
+  dummy credentials as defaults for services in migration for authorization config
+
 2.13.0 (2026-07-08)
 -------------------
 

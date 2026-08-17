@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: 2.13.0\n"
+"Project-Id-Version: 2.13.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-08 14:09+0200\n"
+"POT-Creation-Date: 2026-08-17 15:36+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,11 +18,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps.py:73
+#: apps.py:72
 msgid "The value has too many characters"
 msgstr "De waarde is te lang."
 
-#: apps.py:74
+#: apps.py:73
 msgid "The value has too few characters"
 msgstr "De waarde is niet lang genoeg."
 
@@ -121,19 +121,19 @@ msgstr ""
 "Het JWT kon niet gedecodeerd worden. Mogelijks heb je een copy-paste fout "
 "gemaakt"
 
-#: authorizations/middleware.py:177
+#: authorizations/middleware.py:182
 msgid "JWT did not validate"
 msgstr "JWT is niet valide"
 
-#: authorizations/middleware.py:203
+#: authorizations/middleware.py:208
 msgid "The iat claim is missing."
 msgstr "De iat claim ontbreekt."
 
-#: authorizations/middleware.py:208
+#: authorizations/middleware.py:213
 msgid "The iat claim must be an integer."
 msgstr "De iat claim moet een geheel getal zijn."
 
-#: authorizations/middleware.py:223
+#: authorizations/middleware.py:227
 msgid "The JWT used for this request is expired"
 msgstr "De JWT die gebruikt is voor dit verzoek is verlopen"
 
@@ -232,27 +232,27 @@ msgstr ""
 msgid "autorisaties"
 msgstr ""
 
-#: authorizations/serializers.py:37
+#: authorizations/serializers.py:33
 msgid "Omschrijving van `component`."
 msgstr ""
 
-#: authorizations/serializers.py:47
+#: authorizations/serializers.py:43
 msgid ""
 "Lijst van scope labels. Elke scope geeft toegang tot een set van acties/"
 "operaties, zoals gedocumenteerd bij de betreffende component."
 msgstr ""
 
-#: authorizations/serializers.py:83
+#: authorizations/serializers.py:79
 msgid ""
 "Lijst van consumer identifiers (hun 'client_id'). Een `client_id` mag "
 "slechts bij één applicatie-object voorkomen."
 msgstr ""
 
-#: authorizations/serializers.py:107
+#: authorizations/serializers.py:103
 msgid "Either autorisaties or heeft_alle_autorisaties can be specified"
 msgstr "Specifieer of autorisaties, of heeft_alle_autorisaties"
 
-#: authorizations/serializers.py:113
+#: authorizations/serializers.py:109
 msgid "Either autorisaties or heeft_alle_autorisaties should be specified"
 msgstr "Je moet of autorisaties, of heeft_alle_autorisaties specifiëren"
 
@@ -666,7 +666,7 @@ msgstr ""
 msgid "Legt vast, omgekeerd: kan vastgelegd zijn als"
 msgstr ""
 
-#: exception_handling.py:41
+#: exception_handling.py:42
 msgid "Invalid input."
 msgstr "Ongeldige invoerwaarde."
 
@@ -698,15 +698,15 @@ msgstr ""
 "URL-referentie naar dit object. Dit is de unieke identificatie en locatie "
 "van dit object."
 
-#: fields.py:23
+#: fields.py:24
 msgid "RSIN"
 msgstr ""
 
-#: fields.py:48
+#: fields.py:49
 msgid "BSN"
 msgstr ""
 
-#: fields.py:196
+#: fields.py:193
 msgid "Specifieer de duur als 'DD 00:00'"
 msgstr ""
 
@@ -819,17 +819,17 @@ msgstr ""
 msgid "The object does not exist in the database"
 msgstr ""
 
-#: schema.py:258
+#: schema.py:260
 msgid ""
 "Geeft een specifieke API-versie aan in de context van een specifieke "
 "aanroep. Voorbeeld: 1.2.1."
 msgstr ""
 
-#: schema.py:280
+#: schema.py:282
 msgid "Content type of the request body."
 msgstr "Content type van de verzoekinhoud."
 
-#: schema.py:300
+#: schema.py:302
 msgid ""
 "Perform conditional requests. This header should contain one or multiple "
 "ETag values of resources the client has cached. If the current resource ETag "
@@ -844,52 +844,52 @@ msgstr ""
 "developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-None-Match) voor meer "
 "informatie."
 
-#: schema.py:310
+#: schema.py:312
 msgid "One ETag value"
 msgstr "Eén ETag-waarde"
 
-#: schema.py:315
+#: schema.py:317
 msgid "Multiple ETag values"
 msgstr "Meerdere ETag-waardes"
 
-#: schema.py:326
+#: schema.py:328
 msgid ""
 "De ETag berekend op de response body JSON. Indien twee resources exact "
 "dezelfde ETag hebben, dan zijn deze resources identiek aan elkaar. Je kan de "
 "ETag gebruiken om caching te implementeren."
 msgstr ""
 
-#: schema.py:340
+#: schema.py:342
 msgid "URL waar de resource leeft."
 msgstr ""
 
-#: schema.py:358
+#: schema.py:360
 msgid ""
 "The desired 'Coordinate Reference System' (CRS) of the response data. "
 "According to the GeoJSON spec, WGS84 is the default (EPSG: 4326 is the same "
 "as WGS84)."
 msgstr ""
 
-#: schema.py:374 schema.py:389
+#: schema.py:376 schema.py:391
 msgid ""
 "The 'Coordinate Reference System' (CRS) of the request data. According to "
 "the GeoJSON spec, WGS84 is the default (EPSG: 4326 is the same as WGS84)."
 msgstr ""
 
-#: schema.py:411
+#: schema.py:413
 msgid "Identifier of the request, traceable throughout the network"
 msgstr ""
 
-#: schema.py:419
+#: schema.py:421
 msgid "Explanation why the request is done"
 msgstr "Toelichting waarom een bepaald verzoek wordt gedaan"
 
-#: schema.py:425
+#: schema.py:427
 #, python-format
 msgid "De headers voor een specifiek(e) %(model)s opvragen "
 msgstr ""
 
-#: schema.py:432
+#: schema.py:434
 msgid "Vraag de headers op die je bij een GET request zou krijgen."
 msgstr ""
 
@@ -940,20 +940,20 @@ msgstr ""
 "De URL {url} resource lijkt niet op een `{resource}`. Geef een validate URL "
 "op."
 
-#: validators.py:291
+#: validators.py:296
 msgid "Ensure this value is not in the future."
 msgstr "Deze waarde mag niet in de toekomst liggen."
 
-#: validators.py:329
+#: validators.py:334
 #, python-brace-format
 msgid "Deze identificatie ({identificatie}) bestaat al binnen de organisatie"
 msgstr ""
 
-#: validators.py:391
+#: validators.py:396
 msgid "Dit veld mag niet gewijzigd worden."
 msgstr ""
 
-#: validators.py:418
+#: validators.py:423
 #, python-brace-format
 msgid "The resource {url} is not published."
 msgstr "De resource {url} is (nog) niet gepubliceerd."
