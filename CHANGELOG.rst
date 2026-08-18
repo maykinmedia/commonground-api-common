@@ -2,6 +2,22 @@
 Change history
 ==============
 
+2.14.0 (2026-08-17)
+-------------------
+
+**New features**
+
+* [#125] Replace stdlib logging with ``structlog``
+
+**Bugfixes**
+
+* [open-zaak/open-notificaties#419] Ensure compatiblity with pyjwt >= 2.13.0 by setting
+  dummy credentials as defaults for services in migration for authorization config
+
+**Project maintenance**
+
+* Ensure psycopg2 is installed for ReadTheDocs build
+
 2.13.0 (2026-07-08)
 -------------------
 
