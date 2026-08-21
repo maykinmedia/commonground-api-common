@@ -3,10 +3,11 @@ from django.urls import include, path
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import serializers, viewsets
 
-from testapp.models import FkModel
+from testapp.models import FkModel, Poly
 from testapp.serializers import PolySerializer
 from tests import generate_schema
 from vng_api_common import routers
+from vng_api_common.filters import URLModelChoiceFilter
 from vng_api_common.filtersets import FilterSet
 
 
@@ -40,10 +41,31 @@ class FkModelFilterSet(FilterSet):
         fields = ["name"]
 
 
+class FkModelURLFilterSet(FilterSet):
+    poly = URLModelChoiceFilter(
+        queryset=Poly.objects.all(),
+        help_text="URL-referentie naar de POLY.",
+    )
+
+    class Meta:
+        model = FkModel
+        fields = ["poly"]
+
+
+class FkModelURLFilterViewSet(viewsets.ModelViewSet):
+    queryset = FkModel.objects.all()
+    serializer_class = FkModelSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = FkModelURLFilterSet
+
+
 app_name = "filter_extensions"
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register("camilize", FkModelViewSet, basename="filter_extensions_camilize")
+router.register(
+    "url-filter", FkModelURLFilterViewSet, basename="filter_extensions_url_filter"
+)
 
 
 urlpatterns = [
@@ -64,3 +86,12 @@ def test_help_text_from_model():
     filter_set = FkModelFilterSet()
     field = filter_set.filters["name"]
     assert field.extra["help_text"] == "FkModel simple name help_text"
+
+
+def test_url_model_choice_filter_schema():
+    schema = generate_schema(urlpatterns)
+    parameters = schema["paths"]["/api/url-filter"]["get"]["parameters"]
+    poly_param = next(p for p in parameters if p["name"] == "poly")
+
+    assert poly_param["schema"] == {"type": "string", "format": "uri"}
+    assert poly_param["description"] == "URL-referentie naar de POLY."

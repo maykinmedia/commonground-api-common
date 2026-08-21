@@ -9,6 +9,8 @@ from django.utils.translation import gettext_lazy as _
 import structlog
 from django_filters import fields, filters
 from django_filters.constants import EMPTY_VALUES
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 
 from .constants import FILTER_URL_DID_NOT_RESOLVE
 from .utils import NotAViewSet, get_resource_for_path
@@ -78,6 +80,7 @@ class URLModelChoiceField(fields.ModelChoiceField):
         return super().to_python(value)
 
 
+@extend_schema_field(OpenApiTypes.URI)
 class URLModelChoiceFilter(filters.ModelChoiceFilter):
     field_class = URLModelChoiceField
 
