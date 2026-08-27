@@ -2,6 +2,14 @@
 Change history
 ==============
 
+2.15.0 (2026-08-27)
+-------------------
+
+**New features**
+
+* [maykinmedia/open-archiefbeheer#1069] Add 'product' value to the ``ZaakObjectTypes`` enum
+* [open-zaak/open-zaak#2460] pass ``PolymorphicSerializer`` serializer context to discriminator serializers
+
 2.14.0 (2026-08-17)
 -------------------
 

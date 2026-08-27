@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "commonground-api-common"
-version = "2.14.0"
+version = "2.15.0"
 description = "Commonground API tooling"
 readme = "README.rst"
 license = "MIT"
@@ -155,7 +155,7 @@ exclude_also = [
 ]
 
 [tool.bumpversion]
-current_version = "2.14.0"
+current_version = "2.15.0"
 files = [
     {filename = "pyproject.toml"},
     {filename = "README.rst"},
