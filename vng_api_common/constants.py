@@ -222,6 +222,7 @@ class ZaakobjectTypes(models.TextChoices):
     medewerker = "medewerker", _("Medewerker")
     natuurlijk_persoon = "natuurlijk_persoon", _("Natuurlijk persoon")
     niet_natuurlijk_persoon = "niet_natuurlijk_persoon", _("Niet-natuurlijk persoon")
+    product = "product", _("**EXPERIMENTEEL**: Product")
     openbare_ruimte = "openbare_ruimte", _("Openbare ruimte")
     organisatorische_eenheid = "organisatorische_eenheid", _("Organisatorische eenheid")
     pand = "pand", _("Pand")
