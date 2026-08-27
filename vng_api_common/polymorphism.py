@@ -60,12 +60,15 @@ class Discriminator:
         self.group_field = group_field
         self.same_model = same_model
 
-    def to_representation(self, instance: object) -> OrderedDict[str, object] | None:
+    def to_representation(
+        self, instance: object, context: dict | None = None
+    ) -> OrderedDict[str, object] | None:
         discriminator_value = getattr(instance, self.discriminator_field)
         serializer = self.mapping.get(discriminator_value)
         if serializer is None or isinstance(serializer, tuple):
             return None
 
+        serializer.context.update(context or {})
         representation = serializer.to_representation(instance)
         return OrderedDict(representation)
 
@@ -194,7 +197,9 @@ class PolymorphicSerializer(
         representation = super().to_representation(instance)
 
         if self.discriminator is not None:
-            extra_fields = self.discriminator.to_representation(instance)
+            extra_fields = self.discriminator.to_representation(
+                instance, context=self.context
+            )
             if extra_fields:
                 representation.update(extra_fields)
 
