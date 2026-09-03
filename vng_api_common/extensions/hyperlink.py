@@ -12,11 +12,10 @@ class HyperlinkedRelatedFieldExtension(OpenApiSerializerFieldExtension):
         default_schema = auto_schema._map_serializer_field(
             self.target, direction, bypass_extensions=True
         )
-        return {
-            **default_schema,
-            "minLength": self.target.min_length,
-            "maxLength": self.target.max_length,
-        }
+        schema = {**default_schema, "maxLength": self.target.max_length}
+        if self.target.min_length:
+            schema["minLength"] = self.target.min_length
+        return schema
 
 
 class HyperlinkedIdentityFieldExtension(OpenApiSerializerFieldExtension):
