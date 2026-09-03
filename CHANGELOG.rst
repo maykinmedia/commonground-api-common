@@ -2,6 +2,14 @@
 Change history
 ==============
 
+2.15.1 (2026-09-03)
+-------------------
+
+**Bugfixes**
+
+* [open-zaak/open-zaak#2460] Correct ``URLModelChoiceFilter`` OpenAPI schema
+* [open-zaak/open-zaak#2460] Omit ``minLength`` from schema when unset on ``LengthHyperlinkedRelatedField``
+
 2.15.0 (2026-08-27)
 -------------------
 
