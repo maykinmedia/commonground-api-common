@@ -13,6 +13,7 @@ from testapp.serializers import HobbySerializer
 from testapp.viewsets import PersonViewSet
 from tests import generate_schema
 from vng_api_common.caching.decorators import conditional_retrieve
+from vng_api_common.caching.etags import EtagUpdate
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -291,3 +292,16 @@ def test_etag_object_cascading_delete():
     PersonFactory.create(group=group)
 
     group.delete()
+
+
+def test_calculate_new_value_skips_instance_without_pk():
+    person = PersonFactory.create()
+    etag_update = EtagUpdate(instance=person)
+
+    person.delete()
+    assert person.pk is None
+
+    with patch.object(person, "calculate_etag_value") as calculate_etag_value:
+        etag_update.calculate_new_value()
+
+    calculate_etag_value.assert_not_called()
