@@ -2,6 +2,13 @@
 Change history
 ==============
 
+2.15.2 (2026-09-10)
+-------------------
+
+**Bugfixes**
+
+* [open-zaak/open-zaak#2484] Fix ETag recalculation for deleted instances
+
 2.15.1 (2026-09-03)
 -------------------
 
