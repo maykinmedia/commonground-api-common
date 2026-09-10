@@ -178,6 +178,9 @@ class EtagUpdate:
         connection.on_commit(func)
 
     def calculate_new_value(self):
+        if self.instance.pk is None:
+            return
+
         with transaction.atomic(using=self.using):  # wrap in its own transaction
             # track the actions _inside_ the on_commit handler, to prevent infinite
             # loops/stack overflows
