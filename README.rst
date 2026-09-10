@@ -3,7 +3,7 @@ Commonground-API-common - Tooling voor RESTful APIs
 ===================================================
 
 
-:Version: 2.15.1
+:Version: 2.15.2
 :Source: https://github.com/maykinmedia/commonground-api-common
 :PythonVersion: 3.12
 
