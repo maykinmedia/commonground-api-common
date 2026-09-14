@@ -1,3 +1,4 @@
+import warnings
 from datetime import timedelta
 from typing import Any
 
@@ -127,9 +128,15 @@ class VertrouwelijkheidsAanduidingField(models.CharField):
         return []
 
 
+# XXX: scheduled for removal in 3.0
 class DaysDurationField(models.DurationField):
     """
     Express duration in number of calendar days.
+
+    .. deprecated:: 2.16.0
+
+        ``DaysDurationField`` is deprecated and will be removed in a future
+        release 3.0.
 
     :param min_duration: minimal duration, in number of calendar days.
       Defaults to 1.
@@ -138,6 +145,13 @@ class DaysDurationField(models.DurationField):
     """
 
     def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "`DaysDurationField` is deprecated and will be removed in a future "
+            "release. Use `DaysDurationField` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         kwargs.setdefault("min_duration", 1)
         kwargs.setdefault("max_duration", 999)  # 999 calendar days
 
