@@ -2,10 +2,10 @@
 Change history
 ==============
 
-2.16.0 (XXXX-XX-XX)
+2.16.0 (2026-09-14)
 -------------------
 
-**Bugfixes**
+**Deprecations**
 
 * [openzaak/open-zaak#2506] Mark ``DaysDurationField`` field as deprecated
 
