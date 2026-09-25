@@ -32,6 +32,9 @@ class ETagMixin(models.Model):
             warnings.warn(
                 "You should not calculate ETags on unsaved objects", RuntimeWarning
             )
+        old_etag = self._etag
         self._etag = calculate_etag(self)
+        if old_etag == self._etag:
+            return old_etag
         self.save(update_fields=["_etag"])
         return self._etag
