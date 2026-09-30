@@ -231,3 +231,97 @@ def test_config_view_authorizations_error_response(api_client):
 
     notifications_request = request_mocker.request_history[1]
     assert notifications_request.url == expected_request_notifications_url
+
+
+@pytest.mark.django_db
+def test_config_view_notifications_empty_secret(api_client):
+    """
+    regression test for https://github.com/maykinmedia/commonground-api-common/issues/187
+    """
+    notifications_service = ServiceFactory(
+        api_root="https://notificaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="",
+        auth_type=AuthTypes.zgw,
+    )
+    notifications_config = NotificationsConfig.get_solo()
+    notifications_config.notifications_api_service = notifications_service
+    notifications_config.save()
+
+    authorizations_service = ServiceFactory(
+        api_root="https://autorisaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
+    )
+    authorizations_config = AuthorizationsConfig.get_solo()
+    authorizations_config.authorizations_api_service = authorizations_service
+    authorizations_config.save()
+
+    path = reverse("view-config")
+
+    expected_request_authorizations_url = (
+        f"{authorizations_service.api_root}applicaties?clientIds=foobar"
+    )
+
+    with requests_mock.Mocker() as request_mocker:
+        request_mocker.get(expected_request_authorizations_url, status_code=200)
+
+        response: TemplateResponse = api_client.get(path)
+
+    response_content = response.content.decode("utf-8")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert notifications_service.api_root in response_content
+    assert "HMAC" not in response_content
+    assert _("Misconfigured") in response_content
+
+    # no request to the NRC is attempted
+    assert request_mocker.call_count == 1
+    assert request_mocker.request_history[0].url == expected_request_authorizations_url
+
+
+@pytest.mark.django_db
+def test_config_view_authorizations_empty_secret(api_client):
+    """
+    regression test for https://github.com/maykinmedia/commonground-api-common/issues/187
+    """
+    notifications_service = ServiceFactory(
+        api_root="https://notificaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="super-secret",
+        auth_type=AuthTypes.zgw,
+    )
+    notifications_config = NotificationsConfig.get_solo()
+    notifications_config.notifications_api_service = notifications_service
+    notifications_config.save()
+
+    authorizations_service = ServiceFactory(
+        api_root="https://autorisaties-api.vng.cloud/api/v1/",
+        client_id="foobar",
+        secret="",
+        auth_type=AuthTypes.zgw,
+    )
+    authorizations_config = AuthorizationsConfig.get_solo()
+    authorizations_config.authorizations_api_service = authorizations_service
+    authorizations_config.save()
+
+    path = reverse("view-config")
+
+    expected_request_notifications_url = f"{notifications_service.api_root}kanaal"
+
+    with requests_mock.Mocker() as request_mocker:
+        request_mocker.get(expected_request_notifications_url, status_code=200)
+
+        response: TemplateResponse = api_client.get(path)
+
+    response_content = response.content.decode("utf-8")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert authorizations_service.api_root in response_content
+    assert "HMAC" not in response_content
+    assert _("Misconfigured") in response_content
+
+    # no request to the AC is attempted
+    assert request_mocker.call_count == 1
+    assert request_mocker.request_history[0].url == expected_request_notifications_url
