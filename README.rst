@@ -58,7 +58,7 @@ Features
     * ``BSNField``
     * ``LanguageField``
     * ``VertrouwelijkheidsAanduidingField``
-    * ``DaysDurationField``
+    * ``DurationField``
 * Mocks voor de validators die netwerk IO hebben, eenvoudig via
   ``@override_settings`` toe te passen
 * Test utilities
