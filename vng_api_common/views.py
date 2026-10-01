@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
 import requests
+from jwt import InvalidKeyError
 from rest_framework import exceptions as drf_exceptions
 
 from vng_api_common.client import Client
@@ -94,7 +95,12 @@ def _test_ac_config() -> list[CheckResult]:
     auth_config = AuthorizationsConfig.get_solo()
 
     # check if AC auth is configured
-    ac_client: Client | None = AuthorizationsConfig.get_client()
+    try:
+        ac_client: Client | None = AuthorizationsConfig.get_client()
+        ac_misconfigured = False
+    except InvalidKeyError:  # ZGW auth with an empty secret
+        ac_client = None
+        ac_misconfigured = True
     has_ac_auth = ac_client.auth is not None if ac_client else False
 
     checks: list[CheckResult] = [
@@ -103,14 +109,20 @@ def _test_ac_config() -> list[CheckResult]:
             _("AC"),
             (
                 auth_config.authorizations_api_service.api_root
-                if ac_client
+                if auth_config.authorizations_api_service
                 else _("Missing")
             ),
-            bool(ac_client),
+            bool(auth_config.authorizations_api_service),
         ),
         (
             _("Credentials for AC"),
-            _("Configured") if has_ac_auth else _("Missing"),
+            (
+                _("Misconfigured")
+                if ac_misconfigured
+                else _("Configured")
+                if has_ac_auth
+                else _("Missing")
+            ),
             has_ac_auth,
         ),
     ]
@@ -148,10 +160,12 @@ def _test_nrc_config(
     from notifications_api_common.models import NotificationsConfig, Subscription
 
     nrc_config = NotificationsConfig.get_solo()
-    nrc_client = NotificationsConfig.get_client()
-
-    if not nrc_client:
-        return [(_("NRC"), _("Missing"), False)]
+    try:
+        nrc_client = NotificationsConfig.get_client()
+        nrc_misconfigured = False
+    except InvalidKeyError:  # ZGW auth with an empty secret
+        nrc_client = None
+        nrc_misconfigured = True
 
     has_nrc_auth = nrc_client.auth is not None if nrc_client else False
 
@@ -167,7 +181,13 @@ def _test_nrc_config(
         ),
         (
             _("Credentials for NRC"),
-            _("Configured") if has_nrc_auth else _("Missing"),
+            (
+                _("Misconfigured")
+                if nrc_misconfigured
+                else _("Configured")
+                if has_nrc_auth
+                else _("Missing")
+            ),
             has_nrc_auth,
         ),
     ]
@@ -177,7 +197,7 @@ def _test_nrc_config(
         error = False
 
         try:
-            response: requests.Response = nrc_client.get("kanaal")
+            response: requests.Response = nrc_client.get("kanaal")  # type: ignore
             response.raise_for_status()
         except requests.ConnectionError:
             error = True
