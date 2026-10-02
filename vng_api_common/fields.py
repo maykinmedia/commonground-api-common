@@ -1,16 +1,9 @@
-import warnings
-from datetime import timedelta
-from typing import Any
-
 from django.core import checks
 from django.core.validators import (
-    MaxValueValidator,
     MinLengthValidator,
-    MinValueValidator,
 )
 from django.db import models
-from django.forms import ChoiceField, Field
-from django.utils.translation import gettext, gettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from iso639 import iter_langs
 
@@ -126,93 +119,3 @@ class VertrouwelijkheidsAanduidingField(models.CharField):
                 )
             ]
         return []
-
-
-# XXX: scheduled for removal in 3.0
-class DaysDurationField(models.DurationField):
-    """
-    Express duration in number of calendar days.
-
-    .. deprecated:: 2.16.0
-
-        ``DaysDurationField`` is deprecated and will be removed in a future
-        release 3.0.
-
-    :param min_duration: minimal duration, in number of calendar days.
-      Defaults to 1.
-    :param max_duration: maximal duration, in number of calendar days.
-      Defaults to 999.
-    """
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "`DaysDurationField` is deprecated and will be removed in a future "
-            "release. Use `DaysDurationField` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        kwargs.setdefault("min_duration", 1)
-        kwargs.setdefault("max_duration", 999)  # 999 calendar days
-
-        self.min_duration = kwargs.pop("min_duration")
-        self.max_duration = kwargs.pop("max_duration")
-
-        self.default_validators = [
-            MinValueValidator(timedelta(days=self.min_duration)),
-            MaxValueValidator(timedelta(days=self.max_duration)),
-        ]
-
-        super().__init__(*args, **kwargs)
-
-    def deconstruct(self) -> tuple:
-        name, path, args, kwargs = super().deconstruct()
-        kwargs.update(
-            {"min_duration": self.min_duration, "max_duration": self.max_duration}
-        )
-        return name, path, args, kwargs
-
-    def check(self, **kwargs) -> list:
-        errors = super().check(**kwargs)
-        errors.extend(self._check_min_duration(**kwargs))
-        return errors
-
-    def _check_min_duration(self, **kwargs) -> list[checks.Error]:
-        errors = []
-        if self.min_duration < 1:
-            errors.append(
-                checks.Error(
-                    "De minimale duur in kalenderdagen moet groter dan of gelijk aan 1 zijn",
-                    obj=self,
-                    id="vng_api_common.fields.E006",
-                )
-            )
-        if self.min_duration > self.max_duration:
-            errors.append(
-                checks.Error(
-                    "De minimale duur mag niet langer zijn dan de maximale duur",
-                    obj=self,
-                    id="vng_api_common.fields.E007",
-                )
-            )
-        return errors
-
-    def formfield(
-        self,
-        form_class: type[Field] | None = None,
-        choices_form_class: type[ChoiceField] | None = None,
-        **kwargs,
-    ) -> Any:
-        # add sensible help-text
-        _help_text = gettext("Specifieer de duur als 'DD 00:00'")
-        help_text = f"{self.help_text} {_help_text}" if self.help_text else _help_text
-
-        defaults: dict[str, Any] = {"help_text": help_text}
-        defaults.update(kwargs)
-        # Ensure form_class and choices_form_class are types, not strings
-
-        return super().formfield(
-            form_class=form_class,
-            choices_form_class=choices_form_class,
-            **defaults,
-        )

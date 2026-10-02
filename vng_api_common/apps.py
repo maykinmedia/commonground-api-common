@@ -7,7 +7,6 @@ from django.utils.translation import gettext_lazy as _
 import structlog
 from rest_framework import serializers
 
-from . import fields
 from .choices import TextChoicesWithDescriptions, ensure_description_exists
 from .serializers import DurationField, LengthHyperlinkedRelatedField
 
@@ -45,7 +44,6 @@ class CommonGroundAPICommonConfig(AppConfig):
 def register_serializer_field():
     mapping = serializers.ModelSerializer.serializer_field_mapping
     mapping[models.DurationField] = DurationField
-    mapping[fields.DaysDurationField] = DurationField
 
     if RelativeDeltaField is not None:
         mapping[RelativeDeltaField] = DurationField

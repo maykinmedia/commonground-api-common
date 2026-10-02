@@ -1,5 +1,3 @@
-import warnings
-
 from rest_framework.routers import (
     APIRootView as _APIRootView,
     DefaultRouter as DRFDefaultRouter,
@@ -30,14 +28,6 @@ class NestedRegisteringMixin(DRFDefaultRouter):
 
         if not nested:
             return
-
-        if "base_name" in kwargs:
-            warnings.warn(
-                "base_name kwarg is deprecated, use basename instead",
-                DeprecationWarning,
-            )
-            kwargs["basename"] = kwargs["base_name"]
-            del kwargs["base_name"]
 
         base_name = kwargs.get("basename") or self.get_default_basename(viewset)
 

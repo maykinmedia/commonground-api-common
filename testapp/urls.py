@@ -57,7 +57,6 @@ urlpatterns = [
         ),
     ),
     path("api/", include(router.urls)),
-    path("api/", include("vng_api_common.api.urls")),
     path("ref/", include("vng_api_common.urls")),
     path("view-config/", ViewConfigView.as_view(), name="view-config"),
     path("", RedirectView.as_view(url="/api/")),

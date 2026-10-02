@@ -3,7 +3,7 @@ Commonground-API-common - Tooling voor RESTful APIs
 ===================================================
 
 
-:Version: 2.16.0
+:Version: 3.0.0
 :Source: https://github.com/maykinmedia/commonground-api-common
 :PythonVersion: 3.12
 
@@ -58,7 +58,7 @@ Features
     * ``BSNField``
     * ``LanguageField``
     * ``VertrouwelijkheidsAanduidingField``
-    * ``DaysDurationField``
+    * ``DurationField``
 * Mocks voor de validators die netwerk IO hebben, eenvoudig via
   ``@override_settings`` toe te passen
 * Test utilities

@@ -2,6 +2,28 @@
 Change history
 ==============
 
+3.0.0 (2026-10-01)
+-------------------
+
+**💥 Breaking changes**
+
+* Drop support for python 3.11
+* Remove code that was marked deprecated
+
+  * ``DaysDurationField``
+  * option to specify base_name instead of basename for ``NestedRegisteringMixin``
+  * ``CreateJWTSecretView``
+
+**Bugfixes**
+
+* [#187] Don't crash ViewConfigView on empty ZGW secret
+
+**Maintenance**
+
+* Confirm support for python 3.14
+* Pin ``django-setup-configuration`` to 0.13.0 or greater
+
+
 2.16.0 (2026-09-14)
 -------------------
 
