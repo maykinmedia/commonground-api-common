@@ -2,6 +2,16 @@
 Change history
 ==============
 
+3.0.1 (2026-10-12)
+------------------
+
+**Bugfixes**
+
+* [#190] Support the DRF 3.18 dictionary-based list-serializer errors in the
+  exception handler. Errors for the first item of a list (index ``0``) lost their
+  index in ``invalidParams``. The list-based format is still supported.
+
+
 3.0.0 (2026-10-01)
 -------------------
 

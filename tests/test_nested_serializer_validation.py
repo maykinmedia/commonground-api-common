@@ -1,3 +1,5 @@
+import pytest
+
 from testapp.serializers import GroupSerializer
 from vng_api_common.exception_handling import get_validation_errors
 
@@ -84,3 +86,54 @@ def test_create_valid():
     )
 
     assert serializer.is_valid()
+
+
+def test_create_invalid_params_first_item_invalid():
+    """
+    DRF 3.18 reports list-serializer errors as a dict keyed by index. Errors for
+    the first item (index ``0``) must keep their index in the parameter name.
+    """
+    serializer = GroupSerializer(
+        data={"persons": [{"name": "john", "address": {"number": "416"}}]},
+        partial=False,
+    )
+
+    assert not serializer.is_valid()
+
+    validation_errors = list(get_validation_errors(serializer.errors))
+
+    assert [error["name"] for error in validation_errors] == [
+        "persons.0.address.street"
+    ]
+
+
+@pytest.mark.filterwarnings("ignore:The list-based error format")
+@pytest.mark.parametrize("errors_as_dict", (True, False))
+def test_create_invalid_params_list_serializer_error_formats(settings, errors_as_dict):
+    """
+    The parameter names must be identical for the dict (DRF 3.18+ default) and
+    the list (DRF < 3.18, or ``LIST_SERIALIZER_ERRORS_AS_DICT = False``) formats.
+    """
+    settings.REST_FRAMEWORK = {
+        **settings.REST_FRAMEWORK,
+        "LIST_SERIALIZER_ERRORS_AS_DICT": errors_as_dict,
+    }
+    serializer = GroupSerializer(
+        data={
+            "persons": [
+                {"name": "john", "address": {"number": "416"}},
+                {"name": "jane", "address": {"street": "Herengracht", "number": "1"}},
+                {"address": {"street": "Herengracht", "number": "100"}},
+            ]
+        },
+        partial=False,
+    )
+
+    assert not serializer.is_valid()
+
+    validation_errors = list(get_validation_errors(serializer.errors))
+
+    assert [error["name"] for error in validation_errors] == [
+        "persons.0.address.street",
+        "persons.2.name",
+    ]
