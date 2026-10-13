@@ -87,7 +87,8 @@ def perform_dict(
     - Propagates the parent field name (e.g., `parent.child`).
     """
     for sub_field, sub_errors in errors.items():
-        for err in get_validation_errors(sub_errors, field_name=sub_field):
+        # DRF >= 3.18 keys list-serializer errors by (int) index, and ``0`` is falsy
+        for err in get_validation_errors(sub_errors, field_name=str(sub_field)):
             prefix = format_field_name(field_name)
             err["name"] = f"{prefix}.{err['name']}" if prefix else err["name"]
             yield err
