@@ -86,6 +86,7 @@ tests = [
     "zgw-consumers-oas",
     "djangorestframework-gis",
     "drf-extra-fields",
+    "hypothesis",
 ]
 type-checking = [
     "pyright",
@@ -133,6 +134,7 @@ include = ["vng_api_common*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 DJANGO_SETTINGS_MODULE = "testapp.settings"
+pythonpath = "."
 
 [tool.coverage.run]
 branch = true

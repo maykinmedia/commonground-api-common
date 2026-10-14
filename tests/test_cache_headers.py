@@ -13,7 +13,7 @@ from testapp.serializers import HobbySerializer
 from testapp.viewsets import PersonViewSet
 from tests import generate_schema
 from vng_api_common.caching.decorators import conditional_retrieve
-from vng_api_common.caching.etags import EtagUpdate
+from vng_api_common.caching.etags import EtagUpdate, calculate_etag
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -24,10 +24,9 @@ def test_etag_header_present(api_client, person):
 
     response = api_client.get(path)
 
-    person.refresh_from_db()
     assert response.status_code == status.HTTP_200_OK
     assert "ETag" in response
-    assert response["ETag"] == f'"{person._etag}"'
+    assert response["ETag"] == f'"{calculate_etag(person)}"'
 
 
 def test_304_on_cached_resource(api_client, person):
