@@ -8,10 +8,10 @@ from .etags import calculate_etag
 
 class ETagMixin(models.Model):
     """
-    Automatically calculate the (new) ETag value on save.
+    Mark a model as a resource with ETags.
 
-    Note that the signal receivers in :mod:`vng_api_common.caching.signals` are
-    responsible for (cached) _etag value invalidation.
+    The ETags are stored in :class:`StoredETag`; ``_etag`` is no longer maintained
+    and remains so models need no migration.
     """
 
     _etag = models.CharField(
@@ -26,7 +26,9 @@ class ETagMixin(models.Model):
 
     def calculate_etag_value(self) -> str:
         """
-        Calculate and save the ETag value.
+        Calculate the ETag and save it in ``_etag``.
+
+        .. deprecated:: Use :func:`vng_api_common.caching.calculate_etag`.
         """
         if not self.pk:
             warnings.warn(
@@ -35,3 +37,25 @@ class ETagMixin(models.Model):
         self._etag = calculate_etag(self)
         self.save(update_fields=["_etag"])
         return self._etag
+
+
+class StoredETag(models.Model):
+    """
+    The stored ETag of a resource: see :mod:`vng_api_common.caching.store`.
+
+    A row exists from the first write that affects the resource until its delete.
+    """
+
+    model = models.CharField(max_length=255)  # the concrete model's ``label_lower``
+    object_id = models.CharField(max_length=255)
+    token = models.UUIDField()
+    etag = models.CharField(max_length=32, null=True)
+    stamp = models.CharField(max_length=32, blank=True)
+
+    class Meta:
+        app_label = "vng_api_common"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["model", "object_id"], name="unique_stored_etag"
+            )
+        ]

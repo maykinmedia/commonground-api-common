@@ -1,46 +1,45 @@
 from collections.abc import Set as AbstractSet
-from functools import partial
 
-from rest_framework_condition.decorators import condition as drf_condition
-
-from .etags import etag_func
+from .conditional import conditional
 from .registry import extract_dependencies
 
 
 def conditional_retrieve(
     action="retrieve",
     etag_field="_etag",
-    extra_depends_on: set[str] | None = None,
+    extra_depends_on: AbstractSet[str] = frozenset(),
     variant_params: AbstractSet[str] = frozenset(),
 ):
     """
     Decorate a viewset to apply conditional GET requests.
 
-    The decorator patches the handler to calculate and emit the required ETag-related
-    headers. Additionally, it sets up the dependency tree for the exposed resource so
-    that the ETag value can be recalculated when the resource or relevant related
-    resources are modified, resulting in an updated ETag value. This is introspected
-    through the specified viewset serializer class.
+    The handler of ``action`` sends the ETag of the resource's representation and
+    answers a matching ``If-None-Match`` with 304. The serializer is introspected for
+    the relations the representation reads, so writes to them invalidate the ETag.
 
-    :param action: The viewset action to decorate
-    :param etag_field: The model field containing the (cached) ETag value
-    :param extra_depends_on: A set of additional field names the ETag value calculation
-      depends on. Normally, this is inferred from the serializer, but in some cases (
-      .e.g. ``SerializerMethodField``) this cannot be automatically detected. These
-      fields will be added to the automatically introspected serializer relations.
-    :param variant_params: Query parameters that select another representation,
-      such as ``expand``. Not honoured yet.
+    .. code-block:: python
+
+        @conditional_retrieve(extra_depends_on={"rollen"}, variant_params={"expand"})
+        class ZaakViewSet(viewsets.ReadOnlyModelViewSet): ...
+
+    :param action: the viewset action to decorate
+    :param etag_field: ignored; ETags are stored in
+      :class:`~vng_api_common.caching.models.StoredETag`
+    :param extra_depends_on: model fields the representation reads that can't be
+      introspected, such as those a ``SerializerMethodField`` reads
+    :param variant_params: query parameters that select another representation, such
+      as ``expand``; responses to requests with them get no ETag
     """
 
     def decorator(viewset: type):
-        extract_dependencies(viewset, extra_depends_on or set())
-        condition = drf_condition(etag_func=partial(etag_func, etag_field=etag_field))
-        original_handler = getattr(viewset, action)
-        handler = condition(original_handler)
+        extract_dependencies(viewset, frozenset(extra_depends_on))
+        handler = conditional(getattr(viewset, action), frozenset(variant_params))
         setattr(viewset, action, handler)
-        if not hasattr(viewset, "_conditional_retrieves"):
-            viewset._conditional_retrieves = []
-        viewset._conditional_retrieves.append(action)
+        # a new list, so a subclass doesn't add to its base's
+        viewset._conditional_retrieves = [
+            *getattr(viewset, "_conditional_retrieves", []),
+            action,
+        ]
         return viewset
 
     return decorator

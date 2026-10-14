@@ -62,3 +62,7 @@ class JWTSecret(models.Model):
 
     def __str__(self):
         return self.identifier
+
+
+# registers the model with Django
+from .caching.models import StoredETag  # noqa: E402,F401
