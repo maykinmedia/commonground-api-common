@@ -288,10 +288,23 @@ class Nesting(Enum):
     ROLLED_BACK_SAVEPOINT = auto()
 
 
+def seed() -> None:
+    """
+    Two folders and a row of every other model, so every operation applies from
+    the first transaction: a move, say, needs a sheet and a folder to move it to.
+    """
+    first, second = (Folder.objects.create(name="a", code="a") for _ in range(2))
+    Sheet.objects.create(folder=first, title="a", position=0)
+    Tag.objects.create(label="a").folders.add(second)
+    Attachment.objects.create(folder=first, filename="a")
+    Shortcut.objects.create(label="a", target=second)
+
+
 class EtagOracle(RuleBasedStateMachine):
     def __init__(self) -> None:
         super().__init__()
         reset_database()
+        seed()
         self.client = Client()
         self.served = ServedBodies()
 
@@ -302,14 +315,14 @@ class EtagOracle(RuleBasedStateMachine):
         try:
             with transaction.atomic():
                 for _ in range(data.draw(st.integers(1, 3), label="operations")):
-                    # drawn from all operations, so a choice keeps its meaning when
-                    # the shrinker removes earlier steps
-                    run = data.draw(
-                        st.sampled_from(list(OPERATIONS)), label="operation"
-                    )
+                    # drawn from the operations that apply, so no draw is wasted
+                    applicable = [
+                        run
+                        for run, registration in OPERATIONS.items()
+                        if registration.applicable()
+                    ]
+                    run = data.draw(st.sampled_from(applicable), label="operation")
                     registration = OPERATIONS[run]
-                    if not registration.applicable():
-                        continue
                     nesting = data.draw(st.sampled_from(Nesting), label=run.__name__)
                     if nesting is Nesting.PLAIN:
                         registration.run(session)
