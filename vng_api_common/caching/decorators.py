@@ -1,3 +1,4 @@
+from collections.abc import Set as AbstractSet
 from functools import partial
 
 from rest_framework_condition.decorators import condition as drf_condition
@@ -10,6 +11,7 @@ def conditional_retrieve(
     action="retrieve",
     etag_field="_etag",
     extra_depends_on: set[str] | None = None,
+    variant_params: AbstractSet[str] = frozenset(),
 ):
     """
     Decorate a viewset to apply conditional GET requests.
@@ -26,6 +28,8 @@ def conditional_retrieve(
       depends on. Normally, this is inferred from the serializer, but in some cases (
       .e.g. ``SerializerMethodField``) this cannot be automatically detected. These
       fields will be added to the automatically introspected serializer relations.
+    :param variant_params: Query parameters that select another representation,
+      such as ``expand``. Not honoured yet.
     """
 
     def decorator(viewset: type):
