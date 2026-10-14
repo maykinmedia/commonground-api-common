@@ -5,9 +5,10 @@ time is an ETag served with two bodies.
 
 A hypothesis state machine drives three worker threads, each with a database
 connection of its own, one step at a time: begin a transaction, write, commit or
-roll back, or GET a resource. Any step may pause its worker before or after the
-reads of a folder's serialization (see ``testapp.checkpoints``), wherever that
-happens: in a callback after commit, while answering a GET, or elsewhere. The
+roll back, or GET a resource. Any step may pause its worker right after COMMIT,
+or before or after the reads of a folder's serialization (see
+``testapp.checkpoints``), wherever that happens: in a callback after commit, while
+answering a GET, or elsewhere. The
 other workers then run until the machine resumes it. After every step the
 machine waits until each worker is idle, paused, or waiting on a Postgres lock,
 so a worker blocked by a paused one does not stall it. Workers in a deadlock are
@@ -192,7 +193,10 @@ class Worker:
         transaction.on_commit(self._mark_committed)
 
     def _mark_committed(self) -> None:
+        # registered first, so it runs right after COMMIT, before any callback the
+        # ETag code registers: a step may pause in between
         self.committed = True
+        checkpoints.checkpoint()
 
     def write(self, write: Write, rank: int, other: int, value: str) -> None:
         try:
@@ -289,8 +293,8 @@ WRITES: tuple[Write, ...] = (
 WORKERS = 3
 RANK = st.integers(min_value=0, max_value=2)
 VALUES = st.sampled_from(["a", "b"])
-# the checkpoints a step may pause at: before and after the reads of the first
-# and second folder it serializes
+# the checkpoints a step may pause at: right after COMMIT, and before and after
+# the reads of the folders it serializes
 CHECKPOINTS = range(4)
 PAUSE_AT = st.none() | st.sampled_from(CHECKPOINTS)
 
@@ -572,5 +576,49 @@ def test_a_commit_while_a_get_is_paused(pause_at: int) -> None:
         machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
         machine.commit(w=0, pause_at=None)
         machine.resume(w=1)
+    finally:
+        machine.teardown()
+
+
+@pytest.mark.parametrize("pause_at", CHECKPOINTS)
+def test_a_get_filling_in_while_a_commit_lands(pause_at: int) -> None:
+    """
+    A commit leaves a folder's ETag to be filled in. A worker GETs the folder and
+    pauses, while it calculates the ETag or after. Meanwhile another worker commits
+    a new sheet in the folder. The paused GET may serve what it read, but must not
+    store its ETag over the newer write.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.served_etags_match_representations()
+        machine.begin(w=0)
+        machine.write(w=0, write=add_sheet, rank=0, other=0, value="a", pause_at=None)
+        machine.commit(w=0, pause_at=None)
+        machine.get(w=1, model=Folder, rank=0, pause_at=pause_at)
+        machine.begin(w=0)
+        machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
+        machine.commit(w=0, pause_at=None)
+        machine.resume(w=1)
+    finally:
+        machine.teardown()
+
+
+def test_moves_of_one_sheet_by_two_transactions() -> None:
+    """
+    A worker moves a sheet to the second folder. Another worker moves it back, and
+    waits for the first to commit. The second must invalidate the folder the sheet
+    is in by then, not the one it read before it waited. A GET fills that folder's
+    ETag in before the second commits.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.served_etags_match_representations()
+        machine.begin(w=0)
+        machine.write(w=0, write=move_sheet, rank=0, other=1, value="a", pause_at=None)
+        machine.begin(w=1)
+        machine.write(w=1, write=move_sheet, rank=0, other=0, value="a", pause_at=None)
+        machine.commit(w=0, pause_at=None)
+        machine.get(w=2, model=Folder, rank=1, pause_at=None)
+        machine.commit(w=1, pause_at=None)
     finally:
         machine.teardown()
