@@ -147,3 +147,20 @@ def test_without_the_setting(
 
     assert_served_etags_match(client, served)
 
+
+def test_old_migrations_can_disconnect_the_old_receiver(
+    client: Client, folder: Folder, served: ServedBodies
+) -> None:
+    from django.db.models.signals import post_save
+
+    from vng_api_common.caching.signals import (
+        mark_related_instances_for_etag_update as old_receiver,
+    )
+
+    # as Open Zaak's zaken/0017 does around its data migration
+    post_save.disconnect(old_receiver, sender=None)
+    folder.save()
+    post_save.connect(old_receiver, sender=None)
+    folder.save()
+
+    assert_served_etags_match(client, served)
