@@ -4,7 +4,10 @@ resource serves the ETag of its current representation and that an ETag never
 comes with two bodies.
 """
 
+from __future__ import annotations
+
 import threading
+from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -15,6 +18,9 @@ from django.urls import reverse
 
 from testapp.models import Folder, Sheet, Shortcut, Tag
 from vng_api_common.caching import calculate_etag
+
+if TYPE_CHECKING:  # what the test client returns
+    from django.test.client import _MonkeyPatchedWSGIResponse as Response
 
 RESOURCES: dict[type[Model], str] = {
     Folder: "folder-detail",
@@ -91,7 +97,7 @@ class ServedBodies:
 def assert_served_etags_match(client: Client, served: ServedBodies) -> None:
     """
     A GET is answered with the ETag of the current representation, and a GET
-    conditional on that ETag with 304 and that ETag.
+    conditional on that ETag with 304 and that ETag, and so is a conditional HEAD.
     """
     for model in RESOURCES:
         for pk in model._default_manager.values_list("pk", flat=True):
@@ -104,8 +110,16 @@ def assert_served_etags_match(client: Client, served: ServedBodies) -> None:
             )
             served.record(path, response.get("ETag"), response.content)
 
-            response = client.get(path, headers={"If-None-Match": expected})
+            condition = {"If-None-Match": expected}
+            response = client.get(path, headers=condition)
             assert (response.status_code, response.get("ETag")) == (304, expected), (
                 f"{model.__name__} {pk} answers If-None-Match with ETag "
                 f"{response.get('ETag')}, its representation hashes to {expected}"
             )
+            assert_head_matches(client.head(path, headers=condition), response)
+
+
+def assert_head_matches(head: Response, get: Response) -> None:
+    """A HEAD gets the status and ETag of its GET, and no body (RFC 9110, 9.3.2)."""
+    assert (head.status_code, head.get("ETag")) == (get.status_code, get.get("ETag"))
+    assert head.content == b""
