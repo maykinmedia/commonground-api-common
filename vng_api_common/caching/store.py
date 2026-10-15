@@ -154,17 +154,19 @@ def fill(resource: Resource, token: UUID | None, etag: str, stamp: str) -> None:
     for a writer: the stored ETag is the writer's to replace.
     """
     table = _model()
-    if token is None:
-        row = table(**_lookup(resource), token=uuid4(), etag=etag, stamp=stamp)
-        table.objects.bulk_create([row], ignore_conflicts=True)
-        return
-    # a writer holding the row's lock replaces the token: skip it, don't wait
-    unlocked = (
-        table.objects.filter(**_lookup(resource), token=token)
-        .select_for_update(skip_locked=True)
-        .values("pk")
-    )
+    # in a transaction or savepoint of its own: a failed fill leaves an enclosing
+    # transaction usable
     with transaction.atomic():
+        if token is None:
+            row = table(**_lookup(resource), token=uuid4(), etag=etag, stamp=stamp)
+            table.objects.bulk_create([row], ignore_conflicts=True)
+            return
+        # a writer holding the row's lock replaces the token: skip it, don't wait
+        unlocked = (
+            table.objects.filter(**_lookup(resource), token=token)
+            .select_for_update(skip_locked=True)
+            .values("pk")
+        )
         table.objects.filter(pk__in=unlocked).update(etag=etag, stamp=stamp)
 
 

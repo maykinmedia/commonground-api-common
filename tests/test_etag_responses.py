@@ -16,7 +16,9 @@ A HEAD is answered as its GET is, without the body.
 """
 
 from collections.abc import Callable
+from contextlib import nullcontext
 
+from django.db import transaction
 from django.db.models import Model
 from django.http import HttpResponse
 from django.test import Client
@@ -25,7 +27,14 @@ import pytest
 
 from testapp.models import Folder, Sheet, Shortcut, Tag
 
-from .etags import RESOURCES, current_etag, detail_url
+from .etags import (
+    RESOURCES,
+    ServedBodies,
+    assert_served_etags_match,
+    current_etag,
+    detail_url,
+    forget_stored_etags,
+)
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -154,3 +163,31 @@ def test_a_head_gets_the_etag_of_its_get_and_no_body(
     assert (head.status_code, head["ETag"]) == (200, current_etag(model, pk))
     assert head.content == b""
     assert client.get(url).content, "a GET has a body"
+
+
+@pytest.mark.parametrize("enclosing", [False, True], ids=["autocommit", "atomic"])
+@pytest.mark.parametrize("stored", ["none yet", "written since"])
+def test_a_failed_fill_leaves_the_response(
+    client: Client,
+    folders: tuple[Folder, Folder],
+    monkeypatch: pytest.MonkeyPatch,
+    stored: str,
+    enclosing: bool,
+) -> None:
+    folder = folders[0]
+    if stored == "none yet":
+        forget_stored_etags()
+    else:
+        folder.save()
+    too_long = "f" * 33  # for the column: storing it fails in the database
+    monkeypatch.setattr(
+        "vng_api_common.caching.conditional.calculate_etag", lambda instance: too_long
+    )
+
+    with transaction.atomic() if enclosing else nullcontext():
+        response = client.get(detail_url(Folder, folder.pk))
+        assert Folder.objects.exists(), "the transaction is still usable"
+
+    assert (response.status_code, response["ETag"]) == (200, f'"{too_long}"')
+    monkeypatch.undo()
+    assert_served_etags_match(client, ServedBodies())
