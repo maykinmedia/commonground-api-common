@@ -79,8 +79,11 @@ def conditional(handler: Handler, variant_params: AbstractSet[str]) -> Handler:
 def snapshot(using: str = DEFAULT_DB_ALIAS) -> Generator[None]:
     """
     Read in one REPEATABLE READ, read-only transaction, so the ETag and the body
-    describe the same data. In a transaction already (``ATOMIC_REQUESTS``, tests),
-    read in that one.
+    describe the same data.
+
+    In a transaction already (tests, ``ATOMIC_REQUESTS``), read in that one. Under
+    ``ATOMIC_REQUESTS`` that is READ COMMITTED: a write that commits between reading
+    the ETag and the body pairs the ETag of one state with the body of another.
     """
     if transaction.get_connection(using).in_atomic_block:
         yield

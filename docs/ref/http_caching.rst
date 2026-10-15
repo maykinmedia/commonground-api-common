@@ -64,6 +64,13 @@ extra methods/headers show up in the generated API schema.
         queryset = MyModel.objects.all()
         serializer_class = MyModelSerializer
 
+.. warning:: Don't serve conditional requests with ``ATOMIC_REQUESTS``. A
+   conditional ``GET`` reads the ETag and the body in one ``REPEATABLE READ``
+   transaction, so both describe the same data. Inside the request's transaction it
+   reads in ``READ COMMITTED`` instead, and a write that commits in between pairs
+   the ETag of one state with the body of another. A client may then get a 304 for
+   a body it should not keep.
+
 
 Public API
 ==========
