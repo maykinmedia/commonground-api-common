@@ -5,7 +5,8 @@ resource's current representation.
 A hypothesis state machine writes through the ORM, the way application code
 does: in transactions, with savepoints that are kept or rolled back, through
 several Python objects for one row, with and without ``update_fields``, on both
-sides of a many-to-many, with deletes that cascade or set null. After every
+sides of a many-to-many, with deletes that cascade or set null. A transaction may
+start from data that predates stored ETags, as right after the upgrade. After every
 transaction it sends each resource a GET conditional on the ETag of its current
 representation, as computed by ``calculate_etag`` for a freshly loaded object,
 and expects a 304 carrying that ETag, for a HEAD too.
@@ -38,7 +39,12 @@ from hypothesis.stateful import (
 
 from testapp.models import Attachment, Folder, Sheet, Shortcut, Tag
 
-from .etags import ServedBodies, assert_served_etags_match, reset_database
+from .etags import (
+    ServedBodies,
+    assert_served_etags_match,
+    forget_stored_etags,
+    reset_database,
+)
 
 # two values each, so writes can restore an earlier state
 VALUES = st.sampled_from(["a", "b"])
@@ -311,6 +317,9 @@ class EtagOracle(RuleBasedStateMachine):
     @rule(data=st.data())
     def run_transaction(self, data: st.DataObject) -> None:
         """One transaction of up to three operations, each in or out of a savepoint."""
+        # one in four, so most transactions write over ETags a GET filled in
+        if data.draw(st.sampled_from([False, False, False, True]), label="upgrade"):
+            forget_stored_etags()
         session = Session(data)
         try:
             with transaction.atomic():

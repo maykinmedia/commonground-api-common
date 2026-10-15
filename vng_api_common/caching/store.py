@@ -145,8 +145,9 @@ def fill(resource: Resource, token: UUID | None, etag: str, stamp: str) -> None:
     Store ``etag``, calculated after reading ``token``, unless a write replaced the
     token since.
 
-    With ``token=None``, store it only if no row exists yet. A fill never waits for
-    a writer: the stored ETag is the writer's to replace.
+    With ``token=None``, store it only if no row exists yet: if a writer is
+    inserting one, wait for it, and leave its row. A fill with a token never waits
+    for a writer: the stored ETag is the writer's to replace.
     """
     table = _model()
     if token is None:

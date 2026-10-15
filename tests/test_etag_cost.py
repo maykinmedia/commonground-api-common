@@ -20,7 +20,7 @@ import pytest
 from testapp.models import Folder, Sheet, Tag
 from testapp.serializers import SERIALIZERS
 
-from .etags import detail_url
+from .etags import detail_url, forget_stored_etags
 
 pytestmark = [
     pytest.mark.django_db(transaction=True),
@@ -166,3 +166,14 @@ def test_a_304_costs_the_same_however_big_the_resource():
 
 def test_a_200_with_a_stored_etag_serializes_once():
     assert get_cost(LARGE, conditional=False).serializations == 1
+
+
+def test_the_first_get_after_the_upgrade_stores_the_etag():
+    seeded = seed(LARGE)
+    forget_stored_etags()  # as the migration leaves data written before it
+    client = Client()
+    url = detail_url(Folder, seeded.folder.pk)
+    etag = client.get(url)["ETag"]
+    with cost() as measured:
+        client.get(url, headers={"If-None-Match": etag})
+    assert measured[0].serializations == 0
