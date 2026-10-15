@@ -25,6 +25,8 @@ from uuid import UUID, uuid4
 from django.conf import settings
 from django.db import models, transaction
 
+import vng_api_common
+
 from ..utils import get_domain
 
 if TYPE_CHECKING:
@@ -78,15 +80,17 @@ def _lookup(resource: Resource) -> dict[str, object]:
 
 def current_stamp() -> str:
     """
-    A digest of what a representation depends on besides the data: the
-    ``ETAG_REPRESENTATION_VERSION`` setting, the domain and the scheme of hyperlinks.
+    A digest of what a representation depends on besides the data: the release of
+    this library, the project's release in ``ETAG_REPRESENTATION_VERSION``, and the
+    domain and scheme of hyperlinks.
 
     A stored ETag with another stamp is calculated anew: another release or
     another domain may represent the same data differently.
     """
     # JSON, so no value can run into the next
     parts = [
-        settings.ETAG_REPRESENTATION_VERSION,
+        vng_api_common.__version__,
+        getattr(settings, "ETAG_REPRESENTATION_VERSION", ""),
         get_domain(),
         "https" if settings.IS_HTTPS else "http",
     ]

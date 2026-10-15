@@ -3,7 +3,8 @@ A deploy can change representations without writing a row, so a stored ETag must
 not outlive the code it was calculated with.
 
 Releases that represent resources differently differ in the setting
-``ETAG_REPRESENTATION_VERSION``; Open Zaak sets it to its release. The new release
+``ETAG_REPRESENTATION_VERSION``; Open Zaak sets it to its release. A release of
+this library needs no setting. The new release
 here changes what a ``SerializerMethodField`` returns, which no introspection of
 the serializers could notice. After a rollback, the release before serves from
 the same database again.
@@ -19,6 +20,7 @@ from django.test import Client
 import pytest
 from pytest_django import Settings
 
+import vng_api_common
 from testapp.models import Folder, Sheet
 from testapp.serializers import FolderSerializer
 
@@ -98,6 +100,25 @@ def test_a_rollback_and_a_redeploy(
     assert_served_etags_match(client, served)
 
 
+def test_an_upgrade_of_this_library_serves_etags_of_its_representations(
+    client: Client,
+    folder: Folder,
+    served: ServedBodies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert_served_etags_match(client, served)
+    etag = current_etag(Folder, folder.pk)
+
+    # the project's release, and so ETAG_REPRESENTATION_VERSION, stays
+    monkeypatch.setattr(vng_api_common, "__version__", "99.0.0")
+    monkeypatch.setattr(
+        FolderSerializer, "get_first_sheet_title", first_sheet_title_in_capitals
+    )
+
+    assert current_etag(Folder, folder.pk) != etag, "not another representation"
+    assert_served_etags_match(client, served)
+
+
 def test_the_upgrade_serves_etags_of_existing_data(
     client: Client, folder: Folder, served: ServedBodies
 ) -> None:
@@ -117,3 +138,12 @@ def test_a_new_domain_serves_etags_of_its_hyperlinks(
 
     assert current_etag(Folder, folder.pk) != etag, "not another representation"
     assert_served_etags_match(client, served)
+
+
+def test_without_the_setting(
+    client: Client, settings: Settings, folder: Folder, served: ServedBodies
+) -> None:
+    del settings.ETAG_REPRESENTATION_VERSION  # not every project imports conf.api
+
+    assert_served_etags_match(client, served)
+

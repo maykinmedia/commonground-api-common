@@ -101,7 +101,8 @@ TIME_LEEWAY = 0  # default in PyJWT
 
 JWT_EXPIRY = 3600
 
-# the release whose representations the stored ETags were calculated with
+# the project's release: set it to yours, so a release that represents resources
+# differently calculates stored ETags anew (a release of this library does so itself)
 ETAG_REPRESENTATION_VERSION = ""
 
 COMMONGROUND_API_COMMON_GET_DOMAIN = "vng_api_common.utils.get_site_domain"
