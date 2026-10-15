@@ -22,7 +22,12 @@ from pytest_django import Settings
 from testapp.models import Folder, Sheet
 from testapp.serializers import FolderSerializer
 
-from .etags import ServedBodies, assert_served_etags_match, current_etag
+from .etags import (
+    ServedBodies,
+    assert_served_etags_match,
+    current_etag,
+    forget_stored_etags,
+)
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -90,6 +95,14 @@ def test_a_rollback_and_a_redeploy(
     deploy("1.0.0")  # rolled back, after the new release served
     assert_served_etags_match(client, served)
     deploy("1.1.0")  # deployed again, after the old release served again
+    assert_served_etags_match(client, served)
+
+
+def test_the_upgrade_serves_etags_of_existing_data(
+    client: Client, folder: Folder, served: ServedBodies
+) -> None:
+    forget_stored_etags()  # as the migration leaves data written before it
+
     assert_served_etags_match(client, served)
 
 

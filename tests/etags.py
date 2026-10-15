@@ -18,6 +18,7 @@ from django.urls import reverse
 
 from testapp.models import Folder, Sheet, Shortcut, Tag
 from vng_api_common.caching import calculate_etag
+from vng_api_common.caching.models import StoredETag
 
 if TYPE_CHECKING:  # what the test client returns
     from django.test.client import _MonkeyPatchedWSGIResponse as Response
@@ -60,6 +61,14 @@ def reset_database() -> None:
             " WHERE s.relkind = 'S' AND d.refobjid = ANY(%s::regclass[])",
             [tables],
         )
+
+
+def forget_stored_etags() -> None:
+    """
+    Leave the database as the migration that adds stored ETags leaves existing
+    data: no resource has a stored ETag yet.
+    """
+    StoredETag.objects.all().delete()
 
 
 def detail_url(model: type[Model], pk: int) -> str:

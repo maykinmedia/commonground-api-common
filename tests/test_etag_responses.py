@@ -120,20 +120,23 @@ def test_no_304_or_etag_for_what_the_client_may_not_see(
 
 
 @send_with
+@pytest.mark.parametrize("if_none_match", ["current ETag", "*"])
 @pytest.mark.parametrize("model", [Folder, Sheet])
 def test_a_304_for_what_the_client_may_see(
     client: Client,
     folders: tuple[Folder, Folder],
     send: Callable[..., HttpResponse],
     model: type[Model],
+    if_none_match: str,
 ) -> None:
     pk = in_folder(model, folders[0]).pk
     etag = current_etag(model, pk)
+    condition = etag if if_none_match == "current ETag" else "*"
 
     response = send(
         client,
         detail_url(model, pk),
-        headers={"X-Allowed-Codes": "a", "If-None-Match": etag},
+        headers={"X-Allowed-Codes": "a", "If-None-Match": condition},
     )
 
     assert (response.status_code, response["ETag"]) == (304, etag)

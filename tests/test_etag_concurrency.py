@@ -5,7 +5,8 @@ time is an ETag served with two bodies.
 
 A hypothesis state machine drives three worker threads, each with a database
 connection of its own, one step at a time: begin a transaction, write, commit or
-roll back, or GET a resource. Any step may pause its worker right after COMMIT,
+roll back, or GET a resource. Between transactions the data may come to predate
+stored ETags, as right after the upgrade. Any step may pause its worker right after COMMIT,
 or before or after the reads of a folder's serialization (see
 ``testapp.checkpoints``), wherever that happens: in a callback after commit, while
 answering a GET, or elsewhere. The
@@ -64,6 +65,7 @@ from .etags import (
     ServedBodies,
     assert_served_etags_match,
     detail_url,
+    forget_stored_etags,
     reset_database,
 )
 
@@ -309,6 +311,11 @@ def inside_transaction(worker: Worker) -> bool:
     return worker.idle and worker.in_transaction
 
 
+def quiet(machine: ConcurrentEtags) -> bool:
+    """Whether no worker is busy or in a transaction, as during a migration."""
+    return all(map(outside_transaction, machine.workers))
+
+
 def paused(worker: Worker) -> bool:
     """Whether the worker can resume."""
     return worker.paused
@@ -462,6 +469,12 @@ class ConcurrentEtags(RuleBasedStateMachine):
         if outside_transaction(worker):
             self.step(worker, lambda: worker.get(model, rank), pause_at=pause_at)
 
+    @precondition(quiet)
+    @rule()
+    def upgrade(self) -> None:
+        if quiet(self):
+            forget_stored_etags()
+
     @precondition(any_worker(paused))
     @rule(w=workers_that(paused))
     def resume(self, w: int) -> None:
@@ -599,6 +612,43 @@ def test_a_get_filling_in_while_a_commit_lands(pause_at: int) -> None:
         machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
         machine.commit(w=0, pause_at=None)
         machine.resume(w=1)
+    finally:
+        machine.teardown()
+
+
+@pytest.mark.parametrize("pause_at", CHECKPOINTS)
+def test_a_first_fill_while_a_commit_lands(pause_at: int) -> None:
+    """
+    Right after the upgrade, a worker GETs a folder, the first to since, and pauses
+    while it calculates the ETag. Meanwhile another worker commits a new sheet in
+    the folder. The paused GET must not store its ETag over the newer write.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.upgrade()
+        machine.get(w=1, model=Folder, rank=0, pause_at=pause_at)
+        machine.begin(w=0)
+        machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
+        machine.commit(w=0, pause_at=None)
+        machine.resume(w=1)
+    finally:
+        machine.teardown()
+
+
+def test_a_first_fill_while_a_write_is_open() -> None:
+    """
+    Right after the upgrade, a worker adds a sheet to a folder and keeps its
+    transaction open. Another worker GETs the folder, the first to since: it reads
+    the folder without the sheet. Then the writer commits. The GET must not store
+    its ETag over the write.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.upgrade()
+        machine.begin(w=0)
+        machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
+        machine.get(w=1, model=Folder, rank=0, pause_at=None)
+        machine.commit(w=0, pause_at=None)
     finally:
         machine.teardown()
 
