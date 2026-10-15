@@ -185,3 +185,12 @@ def invalidate_on_m2m_change(
         case M2MAction.POST_CLEAR:
             others = ()
     invalidate(frozenset(affected(instance).union(*map(affected, others))))
+
+
+def mark_related_instances_for_etag_update(
+    sender: type[models.Model], instance: models.Model, **kwargs: object
+) -> None:
+    """
+    Does nothing: the receiver before stored ETags, kept so that migrations which
+    disconnect it while they run, such as Open Zaak's, still import.
+    """
