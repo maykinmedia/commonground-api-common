@@ -8,7 +8,7 @@ several Python objects for one row, with and without ``update_fields``, on both
 sides of a many-to-many, with deletes that cascade or set null. After every
 transaction it sends each resource a GET conditional on the ETag of its current
 representation, as computed by ``calculate_etag`` for a freshly loaded object,
-and expects a 304 carrying that ETag.
+and expects a 304 carrying that ETag, for a HEAD too.
 
 It only relies on public behaviour, so it holds for any way of maintaining the
 stored ETags. The models and their representations are in ``testapp``: see
