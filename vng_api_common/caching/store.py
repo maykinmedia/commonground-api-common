@@ -115,6 +115,10 @@ def invalidate(resources: Collection[Resource]) -> None:
     The rows are written in a canonical order (model, then primary key), so
     concurrent writers lock them in the same order.
     """
+    # PostgreSQL inserts the rows of ``UNNEST`` in array order, and an ``ON
+    # CONFLICT`` locks each existing row as it comes to it. SQL doesn't promise that
+    # order; if another one came about, PostgreSQL detects the deadlock and aborts
+    # one writer, so it costs a failed write, not a stale ETag.
     keys = sorted({_key(resource) for resource in resources})
     if not keys:
         return
