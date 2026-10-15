@@ -15,13 +15,16 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial, wraps
 
-from django.db import DEFAULT_DB_ALIAS, models, transaction
+from django.db import DEFAULT_DB_ALIAS, DatabaseError, models, transaction
 from django.utils.http import parse_etags
 
+import structlog
 from rest_framework.response import Response
 
 from .etags import calculate_etag
 from .store import Resource, current_stamp, fill, read
+
+logger = structlog.stdlib.get_logger(__name__)
 
 type Handler = Callable[..., Response]
 
@@ -69,7 +72,11 @@ def conditional(handler: Handler, variant_params: AbstractSet[str]) -> Handler:
                     response["ETag"] = header
         # after the snapshot: a write to fill with is not allowed in it
         if etag.fill is not None:
-            etag.fill()
+            try:
+                etag.fill()
+            except DatabaseError:
+                # the response stands; the next GET calculates the ETag again
+                logger.exception("etag_fill_failed", path=request.path)
         return response
 
     return conditional_handler
