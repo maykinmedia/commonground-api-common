@@ -29,6 +29,7 @@ from rest_framework.relations import HyperlinkedIdentityField
 from rest_framework.schemas.generators import BaseSchemaGenerator
 from rest_framework.serializers import ListSerializer, Serializer
 
+from ..serializers import GegevensGroepSerializer
 from .store import Resource
 
 logger = structlog.stdlib.get_logger(__name__)
@@ -107,11 +108,11 @@ def _edges(
             continue  # the resource itself
         nested = field.child if isinstance(field, ListSerializer) else field
 
-        reached, lookup, resolved = model, prefix, True
+        reached, lookup, unresolved = model, prefix, None
         for name in field.source_attrs:
             relation = _relation(reached, name)
             if relation is None:
-                resolved = False
+                unresolved = name
                 break
             query_name, reached = relation
             lookup = f"{lookup}__{query_name}" if lookup else query_name
@@ -119,11 +120,24 @@ def _edges(
 
         if not isinstance(nested, Serializer):
             continue
-        if resolved:  # ``source="*"`` reads the same row
+        if unresolved is None:  # ``source="*"`` reads the same row
             yield from _edges(resource, reached, lookup, nested)
-        elif len(field.source_attrs) == 1:
-            # a group of this row's columns, such as a ``GegevensGroepType``
-            yield from _edges(resource, model, prefix, nested)
+        elif (
+            isinstance(nested, GegevensGroepSerializer)
+            and unresolved == field.source_attrs[-1]
+        ):
+            # a group of the columns of the row reached, a ``GegevensGroepType``
+            yield from _edges(resource, reached, lookup, nested)
+        else:
+            # it reads rows through something other than a relation, such as a
+            # property: which rows can't be introspected
+            logger.warning(
+                "nested_source_not_a_relation",
+                resource=resource.__name__,
+                source=field.source,
+                attribute=unresolved,
+                hint="declare the relations it reads in extra_depends_on",
+            )
 
 
 def extract_dependencies(
