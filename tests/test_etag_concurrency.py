@@ -5,7 +5,8 @@ time is an ETag served with two bodies.
 
 A hypothesis state machine drives three worker threads, each with a database
 connection of its own, one step at a time: begin a transaction, write, commit or
-roll back, or GET a resource. Between transactions the data may come to predate
+roll back, or GET a resource. A transaction may batch its invalidations, as
+``batched_invalidation`` does. Between transactions the data may come to predate
 stored ETags, as right after the upgrade. Any step may pause its worker right after COMMIT,
 or before or after the reads of a folder's serialization (see
 ``testapp.checkpoints``), wherever that happens: in a callback after commit, while
@@ -34,6 +35,7 @@ import queue
 import threading
 import time
 from collections.abc import Callable, Collection, Mapping
+from contextlib import AbstractContextManager
 from enum import Enum
 
 from django.db import DatabaseError, IntegrityError, connection, transaction
@@ -60,6 +62,7 @@ from hypothesis.stateful import (
 
 from testapp import checkpoints
 from testapp.models import Folder, Sheet, Shortcut, Tag
+from vng_api_common.caching import batched_invalidation
 
 from .etags import (
     RESOURCES,
@@ -122,7 +125,7 @@ class Worker:
         self.done.set()
         self.error: BaseException | None = None
         self.gate: checkpoints.Gate | None = None
-        self.atomic: transaction.Atomic | None = None
+        self.atomic: AbstractContextManager[None] | None = None
         self.committed = False
         self.aborts: list[Abort] = []  # of its transactions, since the machine looked
         self.client = Client()
@@ -193,8 +196,8 @@ class Worker:
             cursor.execute("SELECT pg_backend_pid()")
             (self.pid,) = cursor.fetchone()
 
-    def begin(self) -> None:
-        self.atomic = transaction.atomic()
+    def begin(self, batched: bool) -> None:
+        self.atomic = batched_invalidation() if batched else transaction.atomic()
         self.atomic.__enter__()
         self.committed = False
         transaction.on_commit(self._mark_committed)
@@ -455,11 +458,11 @@ class ConcurrentEtags(RuleBasedStateMachine):
     # Each rule checks its worker can take the step, also when called directly.
 
     @precondition(any_worker(outside_transaction))
-    @rule(w=workers_that(outside_transaction))
-    def begin(self, w: int) -> None:
+    @rule(w=workers_that(outside_transaction), batched=st.booleans())
+    def begin(self, w: int, batched: bool = False) -> None:
         worker = self.workers[w]
         if outside_transaction(worker):
-            self.step(worker, worker.begin)
+            self.step(worker, lambda: worker.begin(batched))
 
     @precondition(any_worker(inside_transaction))
     @rule(
@@ -598,8 +601,9 @@ def test_lost_update_of_a_recompute_after_commit(pause_at: int) -> None:
         machine.teardown()
 
 
+@pytest.mark.parametrize("batched", [False, True], ids=["at once", "batched"])
 @pytest.mark.parametrize("pause_at", CHECKPOINTS)
-def test_a_get_while_a_commit_is_paused(pause_at: int) -> None:
+def test_a_get_while_a_commit_is_paused(pause_at: int, batched: bool) -> None:
     """
     A folder is served. A worker commits a new sheet in it and pauses, like a
     recompute after commit. Meanwhile another worker GETs the folder: it sees the
@@ -608,7 +612,7 @@ def test_a_get_while_a_commit_is_paused(pause_at: int) -> None:
     machine = ConcurrentEtags()
     try:
         machine.served_etags_match_representations()
-        machine.begin(w=0)
+        machine.begin(w=0, batched=batched)
         machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
         machine.commit(w=0, pause_at=pause_at)
         machine.get(w=1, model=Folder, rank=0, pause_at=None)
@@ -679,7 +683,8 @@ def test_a_first_fill_while_a_commit_lands(pause_at: int) -> None:
         machine.teardown()
 
 
-def test_a_first_fill_while_a_write_is_open() -> None:
+@pytest.mark.parametrize("batched", [False, True], ids=["at once", "batched"])
+def test_a_first_fill_while_a_write_is_open(batched: bool) -> None:
     """
     Right after the upgrade, a worker adds a sheet to a folder and keeps its
     transaction open. Another worker GETs the folder, the first to since: it reads
@@ -689,7 +694,7 @@ def test_a_first_fill_while_a_write_is_open() -> None:
     machine = ConcurrentEtags()
     try:
         machine.upgrade()
-        machine.begin(w=0)
+        machine.begin(w=0, batched=batched)
         machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
         machine.get(w=1, model=Folder, rank=0, pause_at=None)
         machine.commit(w=0, pause_at=None)
@@ -697,7 +702,28 @@ def test_a_first_fill_while_a_write_is_open() -> None:
         machine.teardown()
 
 
-def test_a_save_that_cant_move_a_row_waits_for_one_that_does() -> None:
+def test_a_fill_between_a_batched_write_and_its_end() -> None:
+    """
+    A commit leaves a folder's ETag to be filled in. A worker adds a sheet to the
+    folder in a batch, which doesn't lock the stored ETag until it ends. Meanwhile
+    a GET fills the ETag in, without the sheet. The batch's end must replace it
+    before the commit.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.begin(w=0)
+        machine.write(w=0, write=add_sheet, rank=0, other=0, value="a", pause_at=None)
+        machine.commit(w=0, pause_at=None)
+        machine.begin(w=0, batched=True)
+        machine.write(w=0, write=add_sheet, rank=0, other=0, value="b", pause_at=None)
+        machine.get(w=1, model=Folder, rank=0, pause_at=None)
+        machine.commit(w=0, pause_at=None)
+    finally:
+        machine.teardown()
+
+
+@pytest.mark.parametrize("batched", [False, True], ids=["at once", "batched"])
+def test_a_save_that_cant_move_a_row_waits_for_one_that_does(batched: bool) -> None:
     """
     A worker moves a sheet to the second folder. Another worker retitles it, writing
     the title alone, without locking it first: its update waits. Once the move
@@ -707,11 +733,11 @@ def test_a_save_that_cant_move_a_row_waits_for_one_that_does() -> None:
     machine = ConcurrentEtags()
     try:
         machine.served_etags_match_representations()
-        machine.begin(w=0)
+        machine.begin(w=0, batched=batched)
         machine.write(
             w=0, write=move_sheet_alone, rank=0, other=1, value="a", pause_at=None
         )
-        machine.begin(w=1)
+        machine.begin(w=1, batched=batched)
         machine.write(
             w=1, write=retitle_sheet_alone, rank=0, other=0, value="b", pause_at=None
         )
@@ -722,7 +748,8 @@ def test_a_save_that_cant_move_a_row_waits_for_one_that_does() -> None:
         machine.teardown()
 
 
-def test_a_move_waits_for_a_save_that_cant_move_the_row() -> None:
+@pytest.mark.parametrize("batched", [False, True], ids=["at once", "batched"])
+def test_a_move_waits_for_a_save_that_cant_move_the_row(batched: bool) -> None:
     """
     A worker retitles a sheet, writing the title alone. Another worker moves it to
     the second folder: its lock waits. Once the retitle commits, a GET fills the
@@ -732,11 +759,11 @@ def test_a_move_waits_for_a_save_that_cant_move_the_row() -> None:
     machine = ConcurrentEtags()
     try:
         machine.served_etags_match_representations()
-        machine.begin(w=1)
+        machine.begin(w=1, batched=batched)
         machine.write(
             w=1, write=retitle_sheet_alone, rank=0, other=0, value="b", pause_at=None
         )
-        machine.begin(w=0)
+        machine.begin(w=0, batched=batched)
         machine.write(
             w=0, write=move_sheet_alone, rank=0, other=1, value="a", pause_at=None
         )
@@ -747,7 +774,8 @@ def test_a_move_waits_for_a_save_that_cant_move_the_row() -> None:
         machine.teardown()
 
 
-def test_a_save_of_what_a_list_shows_while_a_row_joins_it() -> None:
+@pytest.mark.parametrize("batched", [False, True], ids=["at once", "batched"])
+def test_a_save_of_what_a_list_shows_while_a_row_joins_it(batched: bool) -> None:
     """
     A worker moves a sheet into the second folder. Another worker recodes that
     folder, which its sheets show: it can't see the sheet yet. Once the move
@@ -758,11 +786,11 @@ def test_a_save_of_what_a_list_shows_while_a_row_joins_it() -> None:
     machine = ConcurrentEtags()
     try:
         machine.served_etags_match_representations()
-        machine.begin(w=0)
+        machine.begin(w=0, batched=batched)
         machine.write(
             w=0, write=move_sheet_alone, rank=0, other=1, value="a", pause_at=None
         )
-        machine.begin(w=1)
+        machine.begin(w=1, batched=batched)
         machine.write(
             w=1, write=recode_folder_alone, rank=1, other=0, value="c", pause_at=None
         )
@@ -773,7 +801,8 @@ def test_a_save_of_what_a_list_shows_while_a_row_joins_it() -> None:
         machine.teardown()
 
 
-def test_moves_of_one_sheet_by_two_transactions() -> None:
+@pytest.mark.parametrize("batched", [False, True], ids=["at once", "batched"])
+def test_moves_of_one_sheet_by_two_transactions(batched: bool) -> None:
     """
     A worker moves a sheet to the second folder. Another worker moves it back, and
     waits for the first to commit. The second must invalidate the folder the sheet
@@ -783,9 +812,9 @@ def test_moves_of_one_sheet_by_two_transactions() -> None:
     machine = ConcurrentEtags()
     try:
         machine.served_etags_match_representations()
-        machine.begin(w=0)
+        machine.begin(w=0, batched=batched)
         machine.write(w=0, write=move_sheet, rank=0, other=1, value="a", pause_at=None)
-        machine.begin(w=1)
+        machine.begin(w=1, batched=batched)
         machine.write(w=1, write=move_sheet, rank=0, other=0, value="a", pause_at=None)
         machine.commit(w=0, pause_at=None)
         machine.get(w=2, model=Folder, rank=1, pause_at=None)

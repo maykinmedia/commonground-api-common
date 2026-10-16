@@ -11,14 +11,21 @@ wins. ``specs/etag/EtagToken.tla`` model-checks this protocol.
     invalidate({Resource(Folder, 1)})  # in the writing transaction
     stored = read(Resource(Folder, 1))  # Stored(token=UUID(...), etag=None, stamp="")
     fill(Resource(Folder, 1), stored.token, etag, current_stamp())  # no-op if written since
+
+In :func:`batched_invalidation`, writes collect the tokens to write, and its end
+writes them in one statement, before the transaction commits.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Collection, Hashable
-from dataclasses import dataclass
+import operator
+from collections.abc import Collection, Generator, Hashable
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass, field
+from functools import reduce
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
@@ -111,19 +118,88 @@ def read(resource: Resource) -> Stored | None:
     return None if row is None else Stored(*row)
 
 
+@dataclass
+class _Batch:
+    """The rows the writes in a batch invalidated, and those of resources deleted."""
+
+    invalidated: set[tuple[str, str]] = field(default_factory=set)
+    deleted: set[tuple[str, str]] = field(default_factory=set)
+
+
+_batch: ContextVar[_Batch | None] = ContextVar("batch", default=None)
+
+
+@contextmanager
+def batched_invalidation(*, savepoint: bool = True) -> Generator[None]:
+    """
+    Make a loop of writes cheaper: every write invalidates the ETags it affects
+    with a query of its own, and in this block all of them share one.
+
+    .. code-block:: python
+
+        with batched_invalidation():
+            for zaak in gerelateerde_zaken:
+                RelevanteZaakRelatie.objects.create(zaak=zaak, url=url)
+
+    Use it where one request writes many rows, such as a create with nested
+    relations. The block is a transaction, as in ``transaction.atomic()``: an
+    exception rolls back its writes. It nests in transactions and in itself.
+    Clients see the same ETags as without it.
+
+    Inside a transaction, ``savepoint=False`` saves the two queries of a
+    savepoint, as it does for ``transaction.atomic``: an exception in the block
+    then rolls back the whole transaction.
+    """
+    # The writes in the block collect the rows to invalidate, and the block's end
+    # writes their tokens, before the transaction commits. Until then the writes
+    # don't lock the stored ETags, so a GET may fill one in from the committed data;
+    # the end replaces it. ``specs/etag/EtagToken.tla`` checks this (BatchedTxs).
+    # Rows of writes rolled back to a savepoint are invalidated too: needlessly,
+    # but safely. The rows of deleted resources are deleted at the end too, as a
+    # rollback to a savepoint undoes a delete but not what the batch collected; a
+    # resource that exists again has no stored ETag then, which is as safe as a
+    # token. A nested block only opens a savepoint, and the outermost writes.
+    if _batch.get() is not None:
+        with transaction.atomic(savepoint=savepoint):
+            yield
+        return
+    batch = _Batch()
+    token = _batch.set(batch)
+    try:
+        with transaction.atomic(savepoint=savepoint):
+            yield
+            _batch.reset(token)
+            token = None
+            _delete_rows(batch.deleted)
+            _write_tokens(batch.invalidated - batch.deleted)
+    finally:
+        if token is not None:
+            _batch.reset(token)
+
+
 def invalidate(resources: Collection[Resource]) -> None:
     """
     Replace the stored ETags of ``resources`` with fresh tokens, in one statement in
-    the current transaction.
+    the current transaction, or at the end of the :func:`batched_invalidation`
+    around it.
+    """
+    keys = {_key(resource) for resource in resources}
+    if (batch := _batch.get()) is not None:
+        batch.invalidated.update(keys)
+    else:
+        _write_tokens(keys)
 
-    The rows are written in a canonical order (model, then primary key), so
-    concurrent writers lock them in the same order.
+
+def _write_tokens(keys: Collection[tuple[str, str]]) -> None:
+    """
+    Write fresh tokens to the rows of ``keys``, in one statement, in a canonical
+    order (model, then primary key), so concurrent writers lock them in the same
+    order.
     """
     # PostgreSQL inserts the rows of ``UNNEST`` in array order, and an ``ON
     # CONFLICT`` locks each existing row as it comes to it. SQL doesn't promise that
     # order; if another one came about, PostgreSQL detects the deadlock and aborts
     # one writer, so in a transaction it costs a failed write, not a stale ETag.
-    keys = sorted({_key(resource) for resource in resources})
     if not keys:
         return
     table = _model()
@@ -136,7 +212,7 @@ def invalidate(resources: Collection[Resource]) -> None:
                 etag=None,
                 stamp="",
             )
-            for label, object_id in keys
+            for label, object_id in sorted(keys)
         ],
         update_conflicts=True,
         unique_fields=["model", "object_id"],
@@ -171,5 +247,22 @@ def fill(resource: Resource, token: UUID | None, etag: str, stamp: str) -> None:
 
 
 def forget(resource: Resource) -> None:
-    """Delete the stored ETag of a deleted resource."""
-    _model().objects.filter(**_lookup(resource)).delete()
+    """
+    Delete the stored ETag of a deleted resource, in the current transaction, or at
+    the end of the :func:`batched_invalidation` around it.
+    """
+    if (batch := _batch.get()) is not None:
+        batch.deleted.add(_key(resource))
+    else:
+        _delete_rows({_key(resource)})
+
+
+def _delete_rows(keys: Collection[tuple[str, str]]) -> None:
+    """Delete the rows of ``keys``, in one statement."""
+    if not keys:
+        return
+    rows = reduce(
+        operator.or_,
+        (models.Q(model=label, object_id=object_id) for label, object_id in keys),
+    )
+    _model().objects.filter(rows).delete()

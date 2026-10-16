@@ -92,6 +92,25 @@ Instead of ``QuerySet.update``, use
 
     invalidating_update(Zaak.objects.filter(pk=zaak.pk), archiefactiedatum=None)
 
+Many writes
+~~~~~~~~~~~
+
+Every write sends a query of its own to invalidate the ETags it affects. Where a
+request writes many rows, run the writes in
+:func:`~vng_api_common.caching.batched_invalidation`, a transaction in which they
+share one:
+
+.. code-block:: python
+
+    from vng_api_common.caching import batched_invalidation
+
+    with batched_invalidation():
+        for zaak in gerelateerde_zaken:
+            RelevanteZaakRelatie.objects.create(zaak=zaak, url=url)
+
+Inside a transaction, ``batched_invalidation(savepoint=False)`` skips the
+savepoint, as ``transaction.atomic(savepoint=False)`` does.
+
 Releases and settings
 ~~~~~~~~~~~~~~~~~~~~~
 
