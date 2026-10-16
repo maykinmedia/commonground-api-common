@@ -80,12 +80,17 @@ def get_etag_serializer(instance: models.Model) -> serializers.Serializer:
 
 def calculate_etag(instance: models.Model) -> str:
     """
-    Calculate the MD5 hash of a resource representation in the API.
+    The ETag the API sends for ``instance`` as it is now, without the quotes.
 
-    The serializer for the model class is retrieved, and then used to construct
-    the representation of the instance. Then, the representation is rendered
-    to camelCase JSON, after which the MD5 hash is calculated of this result.
+    .. code-block:: python
+
+        response = client.get(reverse("zaak-detail", kwargs={"uuid": zaak.uuid}))
+        assert response["ETag"] == f'"{calculate_etag(zaak)}"'
+
+    It serializes the instance, as a ``GET`` does: use it in tests and scripts, not
+    in a loop of writes.
     """
+    # the MD5 of the camelCase JSON the model's serializer renders
     serializer = get_etag_serializer(instance)
 
     # render the output to json, which is used as hash input
