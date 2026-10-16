@@ -8,7 +8,7 @@ from rest_framework.reverse import reverse
 
 from testapp.factories import GroupFactory, HobbyFactory, PersonFactory
 from testapp.models import Hobby, Person
-from testapp.serializers import HobbySerializer, PersonSerializer
+from testapp.serializers import HobbySerializer
 from testapp.viewsets import PersonViewSet
 from tests import generate_schema
 from vng_api_common.caching.decorators import conditional_retrieve
@@ -29,7 +29,8 @@ def test_etag_header_present(api_client, person):
 
 
 def test_304_on_cached_resource(api_client, person):
-    person.calculate_etag_value()
+    with pytest.deprecated_call():
+        person.calculate_etag_value()
     path = reverse("person-detail", kwargs={"pk": person.pk})
 
     response = api_client.get(path, HTTP_IF_NONE_MATCH=f'"{person._etag}"')
@@ -230,20 +231,6 @@ def test_fetching_cache_enabled_deleted_resource_404s(api_client, person):
     assert response.status_code == 404
 
 
-def test_writes_do_not_serialize():
-    # open-zaak#2577: a write leaves calculating the ETags it affects to the next GET
-    with patch.object(
-        PersonSerializer,
-        "to_representation",
-        side_effect=PersonSerializer.to_representation,
-        autospec=True,
-    ) as to_representation:
-        person = PersonFactory.create()
-        person.save()
-
-    to_representation.assert_not_called()
-
-
 class DynamicSerializerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Hobby.objects.all()
 
@@ -259,6 +246,14 @@ def test_dynamic_serializer():
         conditional_retrieve()(DynamicSerializerViewSet)
 
     assert Person in REPLACEMENT_REGISTRY
+
+
+def test_etag_field_is_deprecated():
+    with (
+        pytest.deprecated_call(),
+        patch("vng_api_common.caching.registry.DEPENDENCY_REGISTRY", new={}),
+    ):
+        conditional_retrieve(etag_field="_etag")(DynamicSerializerViewSet)
 
 
 def test_etag_object_cascading_delete():

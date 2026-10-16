@@ -62,14 +62,6 @@ def _matters(model: type[models.Model]) -> bool:
     return is_resource(model) or model in DEPENDENCY_REGISTRY
 
 
-def _only_etag(update_fields: AbstractSet[str] | None) -> bool:
-    """
-    Whether a save writes ``_etag`` alone, as ``ETagMixin.calculate_etag_value``
-    does: nothing a representation reads.
-    """
-    return update_fields == {"_etag"}
-
-
 def _lock(instance: models.Model, using: str) -> bool:
     """
     Lock the row, so that reading its old parents and writing it can't interleave
@@ -125,7 +117,7 @@ def invalidate_before_save(
     Before a save of a row that may exist, lock it, in a transaction, and
     invalidate the resources :func:`~.registry.before_save` names.
     """
-    if raw or not _matters(sender) or _only_etag(update_fields):
+    if raw or not _matters(sender):
         return
     pk = sender._meta.pk
     if instance.pk is None or (
@@ -155,7 +147,7 @@ def invalidate_after_save(
     Invalidate the resources whose representations the save may have changed, and
     again those it invalidated before it wrote.
     """
-    if raw or not _matters(sender) or _only_etag(update_fields):
+    if raw or not _matters(sender):
         return
     if vars(instance).pop(_ABSENT, False) and not created:
         # another transaction inserted the row meanwhile, and this save overwrote
@@ -237,3 +229,9 @@ def mark_related_instances_for_etag_update(
     Does nothing: the receiver before stored ETags, kept so that migrations which
     disconnect it while they run, such as Open Zaak's, still import.
     """
+
+
+def mark_m2m_related_instances_for_etag_update(
+    sender: type[models.Model], instance: models.Model, **kwargs: object
+) -> None:
+    """Does nothing, as :func:`mark_related_instances_for_etag_update`."""
