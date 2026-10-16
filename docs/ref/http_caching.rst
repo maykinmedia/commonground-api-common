@@ -81,7 +81,8 @@ Writes that send no signals
 
 ``QuerySet.update``, ``bulk_create``, ``bulk_update`` and raw SQL send no model
 signals, so they don't invalidate anything and may result in stale ETags: clients
-keep getting 304s for resources they changed.
+keep getting 304s for resources they changed. Make up for it in the same
+transaction as the write.
 
 Instead of ``QuerySet.update``, use
 :func:`~vng_api_common.caching.invalidating_update`:
@@ -91,6 +92,44 @@ Instead of ``QuerySet.update``, use
     from vng_api_common.caching import invalidating_update
 
     invalidating_update(Zaak.objects.filter(pk=zaak.pk), archiefactiedatum=None)
+
+After ``bulk_create``, pass the new objects to
+:func:`~vng_api_common.caching.invalidate_etags`:
+
+.. code-block:: python
+
+    from vng_api_common.caching import invalidate_etags
+
+    with transaction.atomic():
+        zios = ZaakInformatieObject.objects.bulk_create(
+            [ZaakInformatieObject(zaak=zaak, informatieobject=url) for url in urls]
+        )
+        invalidate_etags(*zios)
+
+Around ``bulk_update``, call it after, and before as well when the update changes
+a ``ForeignKey``: the objects' old parents need new ETags too.
+
+.. code-block:: python
+
+    with transaction.atomic():
+        invalidate_etags(*zios)  # their old zaken
+        for zio in zios:
+            zio.zaak = other_zaak
+        ZaakInformatieObject.objects.bulk_update(zios, ["zaak"])
+        invalidate_etags(*zios)  # their new zaak
+
+After raw SQL, :func:`~vng_api_common.caching.invalidate_all_etags` invalidates
+the stored ETags of the resource models you pass, or all of them. It is one
+``UPDATE`` that row-locks every stored ETag it covers until commit; pass the
+models whose API representation shows the columns you wrote, not the tables:
+
+.. code-block:: python
+
+    from vng_api_common.caching import invalidate_all_etags
+
+    with transaction.atomic(), connection.cursor() as cursor:
+        cursor.execute("UPDATE zaken_zaak SET archiefstatus = 'gearchiveerd' ...")
+        invalidate_all_etags(Zaak)
 
 Many writes
 ~~~~~~~~~~~

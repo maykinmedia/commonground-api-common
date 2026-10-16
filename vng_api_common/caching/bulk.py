@@ -1,11 +1,19 @@
 """
-Updates in bulk that keep ETags right: see :func:`invalidating_update`.
+Tools to correctly handle ETags for writes that send no signals.
 """
+
+from collections import defaultdict
 
 from django.db import models, transaction
 
-from .registry import DEPENDENCY_REGISTRY, before_save, is_resource, written_by
-from .store import Resource, invalidate
+from .registry import (
+    DEPENDENCY_REGISTRY,
+    affected,
+    before_save,
+    is_resource,
+    written_by,
+)
+from .store import Resource, invalidate, invalidate_all
 
 
 def invalidating_update(queryset: models.QuerySet, /, **values: object) -> int:
@@ -44,3 +52,64 @@ def invalidating_update(queryset: models.QuerySet, /, **values: object) -> int:
         reading = (d.resources_of(pks) for d in dependencies if d.reads(written))
         invalidate(frozenset(own).union(*reading))
     return count
+
+
+def invalidate_etags(*objs: models.Model) -> None:
+    """
+    Give new ETags to the resources that show ``objs``: their own, and those of
+    every resource that lists or links them. Call it after writes that send no
+    signals, so clients don't get 304s for what they changed.
+
+    .. code-block:: python
+
+        zios = ZaakInformatieObject.objects.bulk_create(
+            [ZaakInformatieObject(zaak=zaak, informatieobject=url) for url in urls]
+        )
+        invalidate_etags(*zios)
+
+    It changes the ETags of the resources that show the objects as they are now.
+    So when a ``bulk_update`` changes a ``ForeignKey``, call it before as well,
+    for the objects' old parents:
+
+    .. code-block:: python
+
+        with transaction.atomic():
+            invalidate_etags(*zios)  # their old zaken
+            for zio in zios:
+                zio.zaak = other_zaak
+            ZaakInformatieObject.objects.bulk_update(zios, ["zaak"])
+            invalidate_etags(*zios)  # their new zaak
+
+    Call it in the same transaction as the writes, so no client sees their data
+    under an old ETag.
+    """
+    # Lock the rows first, as a save does, so no other transaction moves them
+    # between reading their parents and the write that follows.
+    by_model: defaultdict[type[models.Model], list[models.Model]] = defaultdict(list)
+    for obj in objs:
+        by_model[type(obj)].append(obj)
+    if transaction.get_connection().in_atomic_block:
+        for model, instances in by_model.items():
+            rows = model._base_manager.filter(pk__in=[obj.pk for obj in instances])
+            list(rows.order_by("pk").select_for_update().values_list("pk"))
+    invalidate(frozenset().union(*map(affected, objs)))
+
+
+def invalidate_all_etags(*resource_models: type[models.Model]) -> None:
+    """
+    Give new ETags to every resource, or to every resource of ``resource_models``.
+    For writes whose reach you can't name, such as raw SQL; every resource it
+    covers is calculated again on its next ``GET``.
+
+    .. code-block:: python
+
+        with transaction.atomic(), connection.cursor() as cursor:
+            cursor.execute("UPDATE zaken_zaak SET archiefstatus = 'gearchiveerd' ...")
+            invalidate_all_etags(Zaak)
+
+    It is one ``UPDATE`` of every stored ETag it covers, and it holds their row
+    locks until the transaction commits: on large tables, keep that transaction
+    short. Pass the models of the API resources that show what the SQL wrote, not
+    the tables it wrote.
+    """
+    invalidate_all(resource_models)
