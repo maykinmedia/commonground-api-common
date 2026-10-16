@@ -122,3 +122,19 @@ def test_a_failure_after_the_update(
     monkeypatch.undo()
 
     assert_served_etags_match(client, served)
+
+
+def test_the_recipe_of_main_after_a_queryset_update(
+    client: Client, folders: tuple[Folder, Folder]
+):
+    """``main`` documented calculating the ETag after a ``QuerySet.update``."""
+    first, _ = folders
+    served = ServedBodies()
+    assert_served_etags_match(client, served)
+
+    Folder.objects.filter(pk=first.pk).update(name="c")
+    first.refresh_from_db()
+    with pytest.deprecated_call():
+        first.calculate_etag_value()
+
+    assert_served_etags_match(client, served)

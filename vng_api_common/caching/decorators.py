@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Set as AbstractSet
 
 from .conditional import conditional
@@ -5,8 +6,8 @@ from .registry import extract_dependencies
 
 
 def conditional_retrieve(
-    action="retrieve",
-    etag_field="_etag",
+    action: str = "retrieve",
+    etag_field: str | None = None,
     extra_depends_on: AbstractSet[str] = frozenset(),
     variant_params: AbstractSet[str] = frozenset(),
 ):
@@ -23,13 +24,18 @@ def conditional_retrieve(
         class ZaakViewSet(viewsets.ReadOnlyModelViewSet): ...
 
     :param action: the viewset action to decorate
-    :param etag_field: ignored; ETags are stored in
+    :param etag_field: deprecated and ignored: ETags are stored in
       :class:`~vng_api_common.caching.models.StoredETag`
     :param extra_depends_on: model fields the representation reads that can't be
       introspected, such as those a ``SerializerMethodField`` reads
     :param variant_params: query parameters that select another representation, such
       as ``expand``; responses to requests with them get no ETag
     """
+
+    if etag_field is not None:
+        warnings.warn(
+            "conditional_retrieve ignores etag_field", DeprecationWarning, stacklevel=2
+        )
 
     def decorator(viewset: type):
         extract_dependencies(viewset, frozenset(extra_depends_on))

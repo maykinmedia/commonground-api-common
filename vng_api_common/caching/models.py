@@ -8,10 +8,12 @@ from .etags import calculate_etag
 
 class ETagMixin(models.Model):
     """
-    Mark a model as a resource with ETags.
+    Keep the ``_etag`` column of an existing model, so it needs no migration.
 
-    The ETags are stored in :class:`StoredETag`; ``_etag`` is no longer maintained
-    and remains so models need no migration.
+    The ETags are stored in :class:`StoredETag`; ``_etag`` is no longer maintained.
+
+    .. deprecated:: New models don't need it; drop it from existing ones in two
+      releases, as the HTTP caching docs show.
     """
 
     _etag = models.CharField(
@@ -26,10 +28,18 @@ class ETagMixin(models.Model):
 
     def calculate_etag_value(self) -> str:
         """
-        Calculate the ETag and save it in ``_etag``.
+        Calculate the ETag and save it in ``_etag``. The save invalidates the
+        stored ETag, so this still does after a ``QuerySet.update`` what it did.
 
-        .. deprecated:: Use :func:`vng_api_common.caching.calculate_etag`.
+        .. deprecated:: Use :func:`~vng_api_common.caching.invalidating_update`
+          instead of ``QuerySet.update``.
         """
+        warnings.warn(
+            "calculate_etag_value is deprecated: use invalidating_update instead of "
+            "QuerySet.update",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if not self.pk:
             warnings.warn(
                 "You should not calculate ETags on unsaved objects", RuntimeWarning
