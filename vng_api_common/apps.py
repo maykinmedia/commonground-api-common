@@ -30,7 +30,7 @@ class CommonGroundAPICommonConfig(AppConfig):
     def ready(self):
         from . import checks  # noqa
         from . import schema  # noqa
-        from .caching import signals  # noqa
+        from .caching import checks as caching_checks, signals  # noqa
         from .extensions import gegevensgroep, hyperlink, polymorphic, query  # noqa
 
         register_serializer_field()

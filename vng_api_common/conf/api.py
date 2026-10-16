@@ -4,6 +4,7 @@ __all__ = [
     "BASE_SPECTACULAR_SETTINGS",
     "COMMON_SPEC",
     "COMMONGROUND_API_COMMON_GET_DOMAIN",
+    "ETAG_REPRESENTATION_VERSION",
     "GEMMA_URL_COMPONENTTYPE",
     "GEMMA_URL_INFORMATIEMODEL_VERSIE",
     "GEMMA_URL_INFORMATIEMODEL",
@@ -99,5 +100,9 @@ COMMON_SPEC = f"https://raw.githubusercontent.com/{vng_repo}/feature/{vng_branch
 TIME_LEEWAY = 0  # default in PyJWT
 
 JWT_EXPIRY = 3600
+
+# the project's release: set it to yours, so a release that represents resources
+# differently calculates stored ETags anew (a release of this library does so itself)
+ETAG_REPRESENTATION_VERSION = ""
 
 COMMONGROUND_API_COMMON_GET_DOMAIN = "vng_api_common.utils.get_site_domain"
