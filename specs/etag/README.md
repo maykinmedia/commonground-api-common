@@ -66,6 +66,7 @@ to `out/states/` on disk, because `/tmp` may be a tmpfs, which uses RAM.
 | `proposed_mutant_*` | violated | every design decision is needed |
 | `proposed_nv_*` | the `NV_` invariant violated | the situations the proof must cover are reachable |
 | `token`, `token_two_fillers`, `token_tokens_only`, `token_three_writers` | no error | the token design is correct in these scopes |
+| `token_batched`, `token_batched_mixed` | no error | so is batching the invalidations, by every writer or by one |
 | `token_mutant_*` | violated | every design decision is needed |
 | `token_nv_*` | the `NV_` invariant violated | the situations the proof must cover are reachable |
 

@@ -30,6 +30,14 @@
 (*                   lock; FALSE: it may use data read before              *)
 (*   DropFillOnWrite a later write in the same transaction that marks the  *)
 (*                   parent turns its stored value back into the token     *)
+(*                                                                         *)
+(* Batching, as batched_invalidation(): the threads in BatchedTxs collect  *)
+(* the parents they invalidate without writing their tokens, and Flush     *)
+(* writes them all at once, taking their row locks.  Writes after the      *)
+(* flush lock at once.  A savepoint rollback keeps what was collected, as  *)
+(* the set in Python memory does.                                          *)
+(*   FlushBeforeCommit  a batched thread flushes before it commits; FALSE: *)
+(*                   it may commit unflushed, losing what it collected     *)
 (***************************************************************************)
 EXTENDS Naturals, Sequences, FiniteSets, TLC
 
@@ -39,7 +47,8 @@ CONSTANTS
     NoTok,        \* the token field of a real ETag
     Bottom,       \* the shared marker when FreshToken = FALSE
     FreshToken, InvalidateInTx, TokenFirst, CompareAndSet,
-    WriterFills, FillUnderLock, DropFillOnWrite
+    WriterFills, FillUnderLock, DropFillOnWrite,
+    BatchedTxs, FlushBeforeCommit
 
 VARIABLES
     db,       \* committed rows, the _etag column included
@@ -52,9 +61,10 @@ VARIABLES
     rd,       \* per thread: representations it serialized earlier (FillUnderLock = FALSE)
     pending,  \* per thread: invalidations left for on_commit (InvalidateInTx = FALSE)
     fs,       \* per filler: the fill in progress
+    flushed,  \* per thread in BatchedTxs: whether it wrote what it collected
     hist      \* history, for the non-vacuity checks only
 
-vars == <<db, phase, wlog, nw, sp, inv, fills, rd, pending, fs, hist>>
+vars == <<db, phase, wlog, nw, sp, inv, fills, rd, pending, fs, flushed, hist>>
 
 -----------------------------------------------------------------------------
 (* Rows, representations and stored values *)
@@ -97,14 +107,19 @@ View(t) == ApplyAll(db, wlog[t])
 Invalidate(d, ps, t) ==
     [d EXCEPT !.etag = [p \in Parents |-> IF p \in ps THEN Token(t) ELSE d.etag[p]]]
 
+\* Whether the parents thread t invalidates are written, so locked: at once,
+\* or for a batched thread once it flushed.
+Locks(t) == t \notin BatchedTxs \/ flushed[t]
+
 \* What thread t stores in _etag at commit: its real ETag where it filled
-\* one, its token for every other parent it invalidated.
+\* one, its token for every other parent it invalidated.  A batched thread
+\* that commits unflushed stores nothing (FlushBeforeCommit = FALSE).
 FillOf(t, p) == {e \in fills[t] : e.p = p}
 
 CommitEtags(d, t) ==
     [d EXCEPT !.etag =
         [p \in Parents |->
-            IF p \notin inv[t] THEN d.etag[p]
+            IF p \notin inv[t] \/ ~Locks(t) THEN d.etag[p]
             ELSE IF FillOf(t, p) # {} THEN Etag((CHOOSE e \in FillOf(t, p) : TRUE).rep)
             ELSE Token(t)]]
 
@@ -114,7 +129,7 @@ Row(w) == IF w.kind = "own" THEN w.p ELSE w.c
 \* set inside the transaction.
 WriterRows(u) ==
     {Row(wlog[u][i]) : i \in 1..Len(wlog[u])}
-        \cup (IF InvalidateInTx THEN inv[u] ELSE {})
+        \cup (IF InvalidateInTx /\ Locks(u) THEN inv[u] ELSE {})
 
 LockedByWriter(row, except) == \E u \in Txs \ except : row \in WriterRows(u)
 
@@ -126,14 +141,14 @@ NoSp == [st |-> "none", w |-> 0, inv |-> {}, fills |-> {}]
 Begin(t) ==
     /\ phase[t] = "idle"
     /\ phase' = [phase EXCEPT ![t] = "active"]
-    /\ UNCHANGED <<db, wlog, nw, sp, inv, fills, rd, pending, fs, hist>>
+    /\ UNCHANGED <<db, wlog, nw, sp, inv, fills, rd, pending, fs, hist, flushed>>
 
 \* A write locks its own row and, inside the transaction, the parents it
 \* invalidates.
 CanWrite(t, row, ps) ==
     /\ phase[t] = "active"
     /\ nw[t] < MaxWrites
-    /\ \A r \in {row} \cup (IF InvalidateInTx THEN ps ELSE {}) :
+    /\ \A r \in {row} \cup (IF InvalidateInTx /\ Locks(t) THEN ps ELSE {}) :
           ~LockedByWriter(r, {t})
 
 \* Record write w and invalidate the parents in ps: affected(w).  A real
@@ -145,7 +160,7 @@ DoWrite(t, w, ps) ==
     /\ inv' = [inv EXCEPT ![t] = @ \cup ps]
     /\ fills' = [fills EXCEPT ![t] = IF DropFillOnWrite THEN @ \ dropped ELSE @]
     /\ hist' = IF dropped # {} THEN [hist EXCEPT !.fillDropped = @ \cup {t}] ELSE hist
-    /\ UNCHANGED <<db, phase, sp, rd, pending, fs>>
+    /\ UNCHANGED <<db, phase, sp, rd, pending, fs, flushed>>
 
 Insert(t, c, p) ==
     /\ "insert" \in Ops
@@ -186,7 +201,7 @@ WriterRead(t, p) ==
     /\ ~FillUnderLock
     /\ phase[t] = "active"
     /\ rd' = [rd EXCEPT ![t] = {e \in @ : e.p # p} \cup {[p |-> p, rep |-> Rep(p, View(t))]}]
-    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, pending, fs, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, pending, fs, hist, flushed>>
 
 \* The transaction stores the real ETag of a parent it invalidated, so of a
 \* parent whose row lock it holds.  FillUnderLock: it serializes now, after
@@ -196,11 +211,12 @@ WriterFill(t, p) ==
     /\ InvalidateInTx
     /\ phase[t] = "active"
     /\ p \in inv[t]
+    /\ Locks(t)
     /\ \E r \in Reps :
           /\ IF FillUnderLock THEN r = Rep(p, View(t))
                               ELSE [p |-> p, rep |-> r] \in rd[t]
           /\ fills' = [fills EXCEPT ![t] = {e \in @ : e.p # p} \cup {[p |-> p, rep |-> r]}]
-    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, rd, pending, fs, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, rd, pending, fs, hist, flushed>>
 
 OpenSavepoint(t) ==
     /\ Savepoints
@@ -208,7 +224,7 @@ OpenSavepoint(t) ==
     /\ sp[t].st = "none"
     /\ sp' = [sp EXCEPT ![t] = [st |-> "open", w |-> Len(wlog[t]),
                                  inv |-> inv[t], fills |-> fills[t]]]
-    /\ UNCHANGED <<db, phase, wlog, nw, inv, fills, rd, pending, fs, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, inv, fills, rd, pending, fs, hist, flushed>>
 
 \* Postgres undoes the _etag writes made inside the savepoint along with the
 \* data; Django drops the on_commit callbacks registered inside it.  What a
@@ -217,23 +233,36 @@ RollbackSavepoint(t) ==
     /\ phase[t] = "active"
     /\ sp[t].st = "open"
     /\ wlog' = [wlog EXCEPT ![t] = SubSeq(@, 1, sp[t].w)]
-    /\ inv' = [inv EXCEPT ![t] = sp[t].inv]
+    /\ inv' = [inv EXCEPT ![t] = IF Locks(t) THEN sp[t].inv ELSE @]
     /\ fills' = [fills EXCEPT ![t] = sp[t].fills]
     /\ sp' = [sp EXCEPT ![t].st = "closed"]
     /\ hist' = IF inv[t] # sp[t].inv THEN [hist EXCEPT !.spUndo = @ \cup {t}] ELSE hist
-    /\ UNCHANGED <<db, phase, nw, rd, pending, fs>>
+    /\ UNCHANGED <<db, phase, nw, rd, pending, fs, flushed>>
+
+\* The batch ends: one statement writes the collected tokens, taking the row
+\* locks, inside the transaction and outside any savepoint opened in it.
+Flush(t) ==
+    /\ t \in BatchedTxs
+    /\ phase[t] = "active"
+    /\ ~flushed[t]
+    /\ sp[t].st # "open"
+    /\ \A p \in inv[t] : ~LockedByWriter(p, {t})
+    /\ flushed' = [flushed EXCEPT ![t] = TRUE]
+    /\ hist' = [hist EXCEPT !.flushedInv = @ \/ inv[t] # {}]
+    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, fs>>
 
 ReleaseSavepoint(t) ==
     /\ phase[t] = "active"
     /\ sp[t].st = "open"
     /\ sp' = [sp EXCEPT ![t].st = "closed"]
-    /\ UNCHANGED <<db, phase, wlog, nw, inv, fills, rd, pending, fs, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, inv, fills, rd, pending, fs, hist, flushed>>
 
 \* The data and, inside the transaction, the _etag values become visible
 \* together.
 Commit(t) ==
     /\ phase[t] = "active"
     /\ sp[t].st # "open"
+    /\ FlushBeforeCommit => Locks(t)
     /\ LET d == ApplyAll(db, wlog[t]) IN
        db' = IF InvalidateInTx THEN CommitEtags(d, t) ELSE d
     /\ phase' = [phase EXCEPT ![t] = IF InvalidateInTx THEN "done" ELSE "callbacks"]
@@ -244,7 +273,7 @@ Commit(t) ==
     /\ rd' = [rd EXCEPT ![t] = {}]
     /\ hist' = [hist EXCEPT !.committed = IF wlog[t] # <<>> THEN @ \cup {t} ELSE @,
                             !.writerFilled = @ \/ fills[t] # {}]
-    /\ UNCHANGED <<nw, sp, fs>>
+    /\ UNCHANGED <<nw, sp, fs, flushed>>
 
 Rollback(t) ==
     /\ phase[t] = "active"
@@ -253,7 +282,7 @@ Rollback(t) ==
     /\ fills' = [fills EXCEPT ![t] = {}]
     /\ rd' = [rd EXCEPT ![t] = {}]
     /\ phase' = [phase EXCEPT ![t] = "done"]
-    /\ UNCHANGED <<db, nw, sp, pending, fs, hist>>
+    /\ UNCHANGED <<db, nw, sp, pending, fs, hist, flushed>>
 
 \* InvalidateInTx = FALSE: an on_commit callback writes the token.
 InvalidateAfterCommit(t) ==
@@ -262,13 +291,13 @@ InvalidateAfterCommit(t) ==
           /\ ~LockedByWriter(p, {})
           /\ db' = Invalidate(db, {p}, t)
           /\ pending' = [pending EXCEPT ![t] = @ \ {p}]
-    /\ UNCHANGED <<phase, wlog, nw, sp, inv, fills, rd, fs, hist>>
+    /\ UNCHANGED <<phase, wlog, nw, sp, inv, fills, rd, fs, hist, flushed>>
 
 FinishCallbacks(t) ==
     /\ phase[t] = "callbacks"
     /\ pending[t] = {}
     /\ phase' = [phase EXCEPT ![t] = "done"]
-    /\ UNCHANGED <<db, wlog, nw, sp, inv, fills, rd, pending, fs, hist>>
+    /\ UNCHANGED <<db, wlog, nw, sp, inv, fills, rd, pending, fs, hist, flushed>>
 
 -----------------------------------------------------------------------------
 (* Fillers: each statement reads the latest committed rows *)
@@ -283,13 +312,13 @@ ReadRow(f, p) ==
     /\ IsToken(db.etag[p])
     /\ fs' = [fs EXCEPT ![f] = [step |-> "row", p |-> p, seen |-> db.etag[p],
                                  own |-> db.own[p], mem |-> {}]]
-    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist, flushed>>
 
 \* The serializer's query for the hyperlink list.
 ReadMembers(f) ==
     /\ fs[f].step = "row"
     /\ fs' = [fs EXCEPT ![f].step = "ready", ![f].mem = Members(fs[f].p, db)]
-    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist, flushed>>
 
 \* TokenFirst = FALSE: serialize first, then look at _etag.
 ReadData(f, p) ==
@@ -297,14 +326,14 @@ ReadData(f, p) ==
     /\ fs[f].step = "idle"
     /\ fs' = [fs EXCEPT ![f] = [step |-> "data", p |-> p, seen |-> Etag(AnyRep),
                                  own |-> db.own[p], mem |-> Members(p, db)]]
-    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist, flushed>>
 
 ReadToken(f) ==
     /\ fs[f].step = "data"
     /\ fs' = [fs EXCEPT ![f] = IF IsToken(db.etag[fs[f].p])
                                 THEN [@ EXCEPT !.step = "ready", !.seen = db.etag[fs[f].p]]
                                 ELSE IdleF]
-    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist>>
+    /\ UNCHANGED <<db, phase, wlog, nw, sp, inv, fills, rd, pending, hist, flushed>>
 
 \* UPDATE ... SET _etag = <new> WHERE pk = p AND _etag = <token read>.
 \* It waits for writers holding the row, then checks the latest value.
@@ -318,10 +347,12 @@ Fill(f) ==
     /\ db' = IF ok THEN [db EXCEPT !.etag[p] = Etag([own |-> fs[f].own, mem |-> fs[f].mem])]
                    ELSE db
     /\ hist' = [hist EXCEPT !.filled = @ \/ ok,
+                            !.filledBeforeFlush = @ \/ (ok /\ \E u \in BatchedTxs :
+                                phase[u] = "active" /\ ~flushed[u] /\ p \in inv[u]),
                             !.lostToWriter = @ \/ (~ok /\ IsToken(cur)),
                             !.lostToFiller = @ \/ (~ok /\ ~IsToken(cur))]
     /\ fs' = [fs EXCEPT ![f] = IdleF]
-    /\ UNCHANGED <<phase, wlog, nw, sp, inv, fills, rd, pending>>
+    /\ UNCHANGED <<phase, wlog, nw, sp, inv, fills, rd, pending, flushed>>
 
 -----------------------------------------------------------------------------
 
@@ -337,7 +368,8 @@ Init ==
     /\ rd = [t \in Txs |-> {}]
     /\ pending = [t \in Txs |-> {}]
     /\ fs = [f \in Fillers |-> IdleF]
-    /\ hist = [filled |-> FALSE, lostToWriter |-> FALSE, lostToFiller |-> FALSE,
+    /\ flushed = [t \in Txs |-> FALSE]
+    /\ hist = [filled |-> FALSE, filledBeforeFlush |-> FALSE, flushedInv |-> FALSE, lostToWriter |-> FALSE, lostToFiller |-> FALSE,
                writerFilled |-> FALSE, fillDropped |-> {},
                spUndo |-> {}, committed |-> {}]
 
@@ -350,7 +382,7 @@ Next ==
                 \/ \E p \in Parents : Insert(t, c, p) \/ Move(t, c, p)
           \/ \E p \in Parents, v \in OwnValues : Own(t, p, v)
           \/ \E p \in Parents : WriterRead(t, p) \/ WriterFill(t, p)
-          \/ InvalidateAfterCommit(t) \/ FinishCallbacks(t)
+          \/ InvalidateAfterCommit(t) \/ FinishCallbacks(t) \/ Flush(t)
     \/ \E f \in Fillers :
           \/ \E p \in Parents : ReadRow(f, p) \/ ReadData(f, p)
           \/ ReadMembers(f) \/ ReadToken(f) \/ Fill(f)
@@ -366,6 +398,7 @@ TypeOK ==
     /\ nw \in [Txs -> 0..MaxWrites]
     /\ \A t \in Txs : fills[t] \subseteq [p : Parents, rep : Reps]
     /\ \A f \in Fillers : fs[f].step \in {"idle", "row", "data", "ready"}
+    /\ flushed \in [Txs -> BOOLEAN]
 
 \* At every state: a stored ETag is right, or it is a token.
 NeverWrong == \A p \in Parents : IsToken(db.etag[p]) \/ db.etag[p].rep = Rep(p, db)
@@ -399,6 +432,10 @@ NV_WriterFilled == ~hist.writerFilled
 \* A later write drops a real ETag the writer stored, in a thread that commits.
 NV_FillDropped == ~(hist.fillDropped \cap hist.committed # {})
 
+\* A fill succeeds while a batched writer holds the parent's token unwritten;
+\* the writer then flushes and commits over it.
+NV_FilledBeforeFlush == ~(hist.filledBeforeFlush /\ hist.flushedInv)
+
 \* Every thread commits, every token is filled again, and all work drains.
 NV_AllFilled ==
     ~(Quiescent /\ hist.committed = Txs /\ hist.filled
@@ -407,8 +444,10 @@ NV_AllFilled ==
 \* For runs that only check NeverWrong: states that differ only in hist are
 \* the same state.  hist's flags only ever switch on, so keeping them in the
 \* fingerprint multiplies the state space for nothing.
-NoHist == <<db, phase, wlog, nw, sp, inv, fills, rd, pending, fs>>
+NoHist == <<db, phase, wlog, nw, sp, inv, fills, rd, pending, fs, flushed>>
 
+\* Threads are interchangeable unless only some of them batch.
 Sym == Permutations(Parents) \cup Permutations(Children)
-           \cup Permutations(Txs) \cup Permutations(Fillers)
+           \cup (IF BatchedTxs \in {{}, Txs} THEN Permutations(Txs) ELSE {})
+           \cup Permutations(Fillers)
 =============================================================================
