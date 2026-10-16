@@ -7,7 +7,7 @@ does: in transactions, with savepoints that are kept or rolled back, through
 several Python objects for one row, with and without ``update_fields`` (also
 leaving changes to a foreign key unsaved), from new objects with existing pks, in
 bulk with ``invalidating_update``, on both sides of a many-to-many, with deletes
-that cascade or set null. A transaction may start from data that predates stored
+that cascade or set null, and in ``batched_invalidation``, nested or not. A transaction may start from data that predates stored
 ETags, as right after the upgrade. After every transaction it sends each resource a GET conditional on the ETag of its current
 representation, as computed by ``calculate_etag`` for a freshly loaded object,
 and expects a 304 carrying that ETag, for a HEAD too.
@@ -39,7 +39,7 @@ from hypothesis.stateful import (
 )
 
 from testapp.models import Attachment, Folder, Sheet, Shortcut, Tag
-from vng_api_common.caching import invalidating_update
+from vng_api_common.caching import batched_invalidation, invalidating_update
 
 from .etags import (
     ServedBodies,
@@ -400,8 +400,9 @@ class EtagOracle(RuleBasedStateMachine):
         if data.draw(st.sampled_from([False, False, False, True]), label="upgrade"):
             forget_stored_etags()
         session = Session(data)
+        batched = data.draw(st.booleans(), label="batched")
         try:
-            with transaction.atomic():
+            with batched_invalidation() if batched else transaction.atomic():
                 for _ in range(data.draw(st.integers(1, 3), label="operations")):
                     # drawn from the operations that apply, so no draw is wasted
                     applicable = [
@@ -415,8 +416,13 @@ class EtagOracle(RuleBasedStateMachine):
                     if nesting is Nesting.PLAIN:
                         registration.run(session)
                     else:
+                        nested = data.draw(st.booleans(), label="a nested batch")
                         try:
-                            with transaction.atomic():
+                            with (
+                                batched_invalidation()
+                                if nested
+                                else transaction.atomic()
+                            ):
                                 registration.run(session)
                                 if nesting is Nesting.ROLLED_BACK_SAVEPOINT:
                                     raise Rollback
