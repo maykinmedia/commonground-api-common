@@ -24,6 +24,9 @@ Unreleased
   ``QuerySet.update`` that invalidates what it affects.
 * [open-zaak/open-zaak#2577] This library's release is part of every ETag. Set
   ``ETAG_REPRESENTATION_VERSION`` to your project's release to do the same for it.
+* [open-zaak/open-zaak#2577] The check ``vng_api_common.caching.W001`` warns
+  about a migration that drops ``_etag`` in one step, which breaks a rolling
+  deploy. ``migrate`` runs it.
 
 **Deprecations**
 

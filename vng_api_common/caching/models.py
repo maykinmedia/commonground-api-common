@@ -12,8 +12,10 @@ class ETagMixin(models.Model):
 
     The ETags are stored in :class:`StoredETag`; ``_etag`` is no longer maintained.
 
-    .. deprecated:: New models don't need it; drop it from existing ones in two
-      releases, as the HTTP caching docs show.
+    .. deprecated:: New models don't need it. Drop it from existing ones in two
+      releases, as the HTTP caching docs show: the ``RemoveField`` that
+      ``makemigrations`` writes drops the column in one step, which breaks a rolling
+      deploy (check ``vng_api_common.caching.W001``).
     """
 
     _etag = models.CharField(
@@ -36,7 +38,8 @@ class ETagMixin(models.Model):
         """
         warnings.warn(
             "calculate_etag_value is deprecated: use invalidating_update instead of "
-            "QuerySet.update",
+            "QuerySet.update. To drop ETagMixin, don't use the RemoveField "
+            "makemigrations writes: see the HTTP caching docs",
             DeprecationWarning,
             stacklevel=2,
         )

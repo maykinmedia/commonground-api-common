@@ -139,7 +139,8 @@ releases, so a rolling deploy keeps working:
        )
 
 ``makemigrations`` generates a plain ``RemoveField``, which drops the column while
-old processes still select it.
+old processes still select it. The check ``vng_api_common.caching.W001`` warns
+about one when ``migrate`` runs.
 
 
 Public API
