@@ -174,9 +174,15 @@ class Attachment(models.Model):
 
 class Shortcut(ETagMixin, models.Model):
     label = models.CharField(max_length=10)
+    # its target lists it, ordered by label, without showing the label; it may
+    # point at a folder that doesn't exist yet
     target = models.ForeignKey(
-        Folder, on_delete=models.SET_NULL, null=True, related_name="shortcuts"
+        Folder,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="shortcuts",
+        db_constraint=False,
     )
 
     class Meta:  # type: ignore
-        ordering = ["pk"]
+        ordering = ["label", "pk"]

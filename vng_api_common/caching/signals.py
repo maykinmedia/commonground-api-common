@@ -3,17 +3,24 @@ Invalidate stored ETags inside the transaction that writes.
 
 Every receiver invalidates the resources :func:`~.registry.affected` returns,
 before and after the write, so a moved or deleted row invalidates its old parents
-too. Before a save or delete of an existing row, the row is locked first: another
-transaction can't move it between reading its old parents and writing it.
+too. Before a delete the row is locked first: another transaction can't move it
+between reading its old parents and writing it.
 
-``QuerySet.update``, ``bulk_create``, ``bulk_update`` and raw SQL send no signals and
-are not covered.
+A save narrows that to the columns it writes (``update_fields``), see
+:func:`~.registry.before_save` and :func:`~.registry.affected_by_save`.
+
+Write in a transaction. A save in autocommit can't lock, and each statement
+commits on its own, so a GET between them may store an ETag that the rest of the
+save makes stale; invalidating again after the save narrows that window.
+
+``QuerySet.update`` sends no signals: use :func:`~.bulk.invalidating_update`.
+``bulk_create``, ``bulk_update`` and raw SQL are not covered.
 """
 
-from collections.abc import Collection, Iterable
+from collections.abc import Hashable, Iterable, Set as AbstractSet
 from enum import StrEnum
 
-from django.db import DEFAULT_DB_ALIAS, models, transaction
+from django.db import DEFAULT_DB_ALIAS, IntegrityError, models, transaction
 from django.db.models.signals import (
     m2m_changed,
     post_delete,
@@ -23,8 +30,20 @@ from django.db.models.signals import (
 )
 from django.dispatch import receiver
 
-from .registry import DEPENDENCY_REGISTRY, affected, is_resource
+from .registry import (
+    DEPENDENCY_REGISTRY,
+    affected,
+    affected_by_save,
+    before_save,
+    is_resource,
+    written_by,
+)
 from .store import Resource, forget, invalidate
+
+# what a save invalidated before it wrote, for its post_save to invalidate again
+_BEFORE = "_etags_invalidated_before_save"
+# that a save found no row to lock, so it inserts
+_ABSENT = "_etags_found_no_row"
 
 
 class M2MAction(StrEnum):
@@ -43,32 +62,26 @@ def _matters(model: type[models.Model]) -> bool:
     return is_resource(model) or model in DEPENDENCY_REGISTRY
 
 
-def _only_etag(update_fields: object) -> bool:
+def _only_etag(update_fields: AbstractSet[str] | None) -> bool:
     """
     Whether a save writes ``_etag`` alone, as ``ETagMixin.calculate_etag_value``
     does: nothing a representation reads.
     """
-    return isinstance(update_fields, Collection) and set(update_fields) == {"_etag"}
+    return update_fields == {"_etag"}
 
 
-def _lock(instance: models.Model, using: object) -> None:
+def _lock(instance: models.Model, using: str) -> bool:
     """
     Lock the row, so that reading its old parents and writing it can't interleave
-    with another transaction moving it.
+    with another transaction moving it. Whether the row may exist.
 
-    A save outside a transaction (autocommit) can't lock; its single statement is
-    all there is to interleave with.
+    A save outside a transaction (autocommit) can't lock, so the row may exist;
+    the lookups of an insert find nothing.
     """
-    alias = using if isinstance(using, str) else DEFAULT_DB_ALIAS
-    if not transaction.get_connection(alias).in_atomic_block:
-        return
-    rows = (
-        type(instance)
-        ._base_manager.using(alias)
-        .select_for_update()
-        .filter(pk=instance.pk)
-    )
-    list(rows)  # evaluate
+    if not transaction.get_connection(using).in_atomic_block:
+        return True
+    rows = type(instance)._base_manager.using(using).filter(pk=instance.pk)
+    return bool(list(rows.select_for_update()))
 
 
 def _linked(
@@ -104,36 +117,65 @@ def invalidate_before_save(
     sender: type[models.Model],
     instance: models.Model,
     raw: bool = False,
+    using: str = DEFAULT_DB_ALIAS,
+    update_fields: AbstractSet[str] | None = None,
     **kwargs: object,
 ) -> None:
     """
-    Lock an existing row, in a transaction, and invalidate the resources that read it
-    before the save.
+    Before a save of a row that may exist, lock it, in a transaction, and
+    invalidate the resources :func:`~.registry.before_save` names.
     """
-    if raw or not _matters(sender) or _only_etag(kwargs.get("update_fields")):
+    if raw or not _matters(sender) or _only_etag(update_fields):
         return
-    if instance._state.adding or instance.pk is None:
-        return  # nothing reads a row that doesn't exist yet
-    _lock(instance, kwargs.get("using"))
-    invalidate(affected(instance))
+    pk = sender._meta.pk
+    if instance.pk is None or (
+        instance._state.adding and (pk.has_default() or pk.has_db_default())
+    ):
+        return  # an insert: nothing reads a row that doesn't exist yet
+    if not (dependencies := before_save(sender, written_by(sender, update_fields))):
+        return
+    if not _lock(instance, using):
+        vars(instance)[_ABSENT] = True  # an insert, with a pk of its own
+        return
+    resources = frozenset().union(*(d.resources(instance) for d in dependencies))
+    invalidate(resources)
+    vars(instance)[_BEFORE] = resources
 
 
 @receiver(post_save)
 def invalidate_after_save(
     sender: type[models.Model],
     instance: models.Model,
+    created: bool = False,
     raw: bool = False,
+    update_fields: AbstractSet[str] | None = None,
     **kwargs: object,
 ) -> None:
-    """Invalidate the resources that read the row after the save."""
-    if raw or not _matters(sender) or _only_etag(kwargs.get("update_fields")):
+    """
+    Invalidate the resources whose representations the save may have changed, and
+    again those it invalidated before it wrote.
+    """
+    if raw or not _matters(sender) or _only_etag(update_fields):
         return
-    invalidate(affected(instance))
+    if vars(instance).pop(_ABSENT, False) and not created:
+        # another transaction inserted the row meanwhile, and this save overwrote
+        # it: what that row was linked to before is unknown
+        raise IntegrityError(
+            f"{sender.__name__} {instance.pk} was inserted by another transaction "
+            "while this save inserted it"
+        )
+    written = written_by(sender, update_fields)
+    before: frozenset[Resource] = vars(instance).pop(_BEFORE, frozenset())
+    after = affected_by_save(instance, written, created)
+    invalidate(before | after)
 
 
 @receiver(pre_delete)
 def invalidate_before_delete(
-    sender: type[models.Model], instance: models.Model, **kwargs: object
+    sender: type[models.Model],
+    instance: models.Model,
+    using: str = DEFAULT_DB_ALIAS,
+    **kwargs: object,
 ) -> None:
     """
     Lock the row and invalidate the resources that read it, including those whose
@@ -141,7 +183,7 @@ def invalidate_before_delete(
     """
     if not _matters(sender):
         return
-    _lock(instance, kwargs.get("using"))
+    _lock(instance, using)
     invalidate(affected(instance))
 
 
@@ -160,7 +202,8 @@ def invalidate_on_m2m_change(
     instance: models.Model,
     action: str,
     model: type[models.Model],
-    pk_set: set[object] | None,
+    pk_set: AbstractSet[Hashable] | None,
+    reverse: bool = False,
     **kwargs: object,
 ) -> None:
     """
@@ -181,7 +224,7 @@ def invalidate_on_m2m_change(
                 pk__in=pk_set or ()
             )
         case M2MAction.PRE_CLEAR:
-            others = _linked(instance, sender, bool(kwargs.get("reverse")))
+            others = _linked(instance, sender, reverse)
         case M2MAction.POST_CLEAR:
             others = ()
     invalidate(frozenset(affected(instance).union(*map(affected, others))))

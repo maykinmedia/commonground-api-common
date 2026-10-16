@@ -191,3 +191,16 @@ def test_a_failed_fill_leaves_the_response(
     assert (response.status_code, response["ETag"]) == (200, f'"{too_long}"')
     monkeypatch.undo()
     assert_served_etags_match(client, ServedBodies())
+
+
+def test_a_save_that_reorders_a_list(client: Client, etag_api: None) -> None:
+    """A folder lists its shortcuts by label, without showing it."""
+    folder = Folder.objects.create(name="a", code="a")
+    first, _ = (Shortcut.objects.create(label=x, target=folder) for x in "ab")
+    served = ServedBodies()
+    assert_served_etags_match(client, served)
+
+    first.label = "c"
+    first.save(update_fields=["label"])
+
+    assert_served_etags_match(client, served)

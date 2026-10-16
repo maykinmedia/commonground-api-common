@@ -17,7 +17,7 @@ from django.test.utils import CaptureQueriesContext
 
 import pytest
 
-from testapp.models import Folder, Sheet, Tag
+from testapp.models import Folder, Sheet, Shortcut, Tag
 from testapp.serializers import SERIALIZERS
 
 from .etags import detail_url, forget_stored_etags
@@ -36,6 +36,7 @@ class Seeded:
     other: Folder
     sheet: Sheet  # in ``folder``
     tag: Tag  # on no folder
+    shortcut: Shortcut  # to ``folder``
 
 
 def seed(size: int) -> Seeded:
@@ -45,7 +46,8 @@ def seed(size: int) -> Seeded:
         Sheet.objects.create(folder=folder, title=f"s{i}", position=i)
         Tag.objects.create(label=f"t{i}").folders.add(folder)
     sheet = folder.sheets.get(position=0)
-    return Seeded(folder, other, sheet, Tag.objects.create(label="x"))
+    shortcut = Shortcut.objects.create(label="x", target=folder)
+    return Seeded(folder, other, sheet, Tag.objects.create(label="x"), shortcut)
 
 
 @dataclass(frozen=True)
@@ -100,6 +102,21 @@ def rename_folder(s: Seeded) -> None:
     s.folder.save()
 
 
+def rename_folder_alone(s: Seeded) -> None:
+    s.folder.name = "c"  # shown by nothing else
+    s.folder.save(update_fields=["name"])
+
+
+def relabel_shortcut(s: Seeded) -> None:
+    s.shortcut.label = "y"  # its folder lists it by label
+    s.shortcut.save(update_fields=["label"])
+
+
+def retarget_shortcut(s: Seeded) -> None:
+    s.shortcut.target = s.other
+    s.shortcut.save(update_fields=["target"])
+
+
 def tag_folder(s: Seeded) -> None:
     s.tag.folders.add(s.folder)
 
@@ -114,6 +131,9 @@ WRITES: tuple[Callable[[Seeded], None], ...] = (
     move_sheet,
     delete_sheet,
     rename_folder,
+    rename_folder_alone,
+    relabel_shortcut,
+    retarget_shortcut,
     tag_folder,
     untag_folder,
 )
@@ -140,6 +160,22 @@ def test_a_write_costs_the_same_however_big_what_it_affects(
     write: Callable[[Seeded], None],
 ):
     assert write_cost(write, SMALL).statements == write_cost(write, LARGE).statements
+
+
+@pytest.mark.parametrize("write", [rename_folder_alone, create_sheet])
+def test_a_write_reads_no_rows_to_find_what_it_affects(
+    write: Callable[[Seeded], None],
+):
+    """
+    Writing columns nothing else shows, or a new row, whose parents are on the
+    row: the write, and invalidating, which reads nothing. A move reads the parent
+    it leaves.
+    """
+    seeded = seed(LARGE)
+    with CaptureQueriesContext(connection) as statements:
+        write(seeded)
+    reads = [q["sql"] for q in statements if q["sql"].startswith("SELECT")]
+    assert reads == []
 
 
 def get_cost(size: int, conditional: bool) -> Cost:

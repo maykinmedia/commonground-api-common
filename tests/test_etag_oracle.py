@@ -4,10 +4,11 @@ resource's current representation.
 
 A hypothesis state machine writes through the ORM, the way application code
 does: in transactions, with savepoints that are kept or rolled back, through
-several Python objects for one row, with and without ``update_fields``, on both
-sides of a many-to-many, with deletes that cascade or set null. A transaction may
-start from data that predates stored ETags, as right after the upgrade. After every
-transaction it sends each resource a GET conditional on the ETag of its current
+several Python objects for one row, with and without ``update_fields`` (also
+leaving changes to a foreign key unsaved), from new objects with existing pks, in
+bulk with ``invalidating_update``, on both sides of a many-to-many, with deletes
+that cascade or set null. A transaction may start from data that predates stored
+ETags, as right after the upgrade. After every transaction it sends each resource a GET conditional on the ETag of its current
 representation, as computed by ``calculate_etag`` for a freshly loaded object,
 and expects a 304 carrying that ETag, for a HEAD too.
 
@@ -38,6 +39,7 @@ from hypothesis.stateful import (
 )
 
 from testapp.models import Attachment, Folder, Sheet, Shortcut, Tag
+from vng_api_common.caching import invalidating_update
 
 from .etags import (
     ServedBodies,
@@ -141,6 +143,24 @@ def create_folder(s: Session) -> None:
     Folder.objects.create(name=s.draw(VALUES, "name"), code=s.draw(VALUES, "code"))
 
 
+# a folder's pk of its own, which shortcuts may point at before the folder exists
+OWN_PK = 1000
+
+
+@operation(room=Folder)
+def create_folder_with_its_own_pk(s: Session) -> None:
+    """As Open Zaak's zaak, whose pk is reserved before the insert."""
+    last = Folder.objects.order_by("-pk").values_list("pk", flat=True).first() or 0
+    pk = OWN_PK if last < OWN_PK else last + 1
+    Folder(pk=pk, name=s.draw(VALUES, "name"), code=s.draw(VALUES, "code")).save()
+
+
+@operation(room=Shortcut)
+def create_shortcut_ahead_of_its_folder(s: Session) -> None:
+    """Its link isn't enforced, so the folder may not exist yet."""
+    Shortcut.objects.create(label=s.draw(VALUES, "label"), target_id=OWN_PK)
+
+
 @operation(needs={Folder})
 def update_folder(s: Session) -> None:
     folder = s.pick(Folder)
@@ -179,6 +199,65 @@ def move_sheet(s: Session) -> None:
     sheet = s.pick(Sheet)
     sheet.folder = s.pick(Folder)
     s.save(sheet, "folder")
+
+
+@operation(needs={Sheet, Folder})
+def overwrite_sheet(s: Session) -> None:
+    """A new object with the pk of an existing row: its save updates the row."""
+    Sheet(
+        pk=s.pick(Sheet).pk,
+        folder=s.pick(Folder),
+        title=s.draw(VALUES, "title"),
+        position=s.draw(POSITIONS, "position"),
+    ).save()
+
+
+@operation(needs={Sheet, Folder})
+def retitle_sheet_moved_in_memory(s: Session) -> None:
+    """Its folder changed on the object only: ``update_fields`` leaves it unsaved."""
+    sheet = s.pick(Sheet)
+    sheet.folder = s.pick(Folder)
+    sheet.title = s.draw(VALUES, "title")
+    sheet.save(update_fields=["title"])
+
+
+@operation(needs={Shortcut, Folder})
+def relabel_shortcut_retargeted_in_memory(s: Session) -> None:
+    """Its target changed on the object only: ``update_fields`` leaves it unsaved."""
+    shortcut = s.pick(Shortcut)
+    shortcut.target = s.pick(Folder)
+    shortcut.label = s.draw(VALUES, "label")
+    shortcut.save(update_fields=["label"])
+
+
+@operation(needs={Sheet, Folder})
+def move_sheets_in_bulk(s: Session) -> None:
+    invalidating_update(
+        Sheet.objects.filter(folder=s.pick(Folder)), folder=s.pick(Folder)
+    )
+
+
+@operation(needs={Sheet})
+def retitle_sheets_in_bulk(s: Session) -> None:
+    title = s.draw(VALUES, "title")
+    invalidating_update(
+        Sheet.objects.filter(position=s.draw(POSITIONS, "position")), title=title
+    )
+
+
+@operation(needs={Folder})
+def recode_folders_in_bulk(s: Session) -> None:
+    code = s.draw(VALUES, "code")
+    invalidating_update(Folder.objects.filter(name=s.draw(VALUES, "name")), code=code)
+
+
+@operation(needs={Shortcut})
+def retarget_shortcuts_in_bulk(s: Session) -> None:
+    with_target = Folder.objects.exists() and s.draw(st.booleans(), "with a target")
+    target = s.pick(Folder) if with_target else None
+    invalidating_update(
+        Shortcut.objects.filter(label=s.draw(VALUES, "label")), target=target
+    )
 
 
 @operation(needs={Sheet})

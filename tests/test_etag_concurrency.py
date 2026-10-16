@@ -36,8 +36,9 @@ import time
 from collections.abc import Callable, Collection, Mapping
 from enum import Enum
 
-from django.db import DatabaseError, connection, transaction
+from django.db import DatabaseError, IntegrityError, connection, transaction
 from django.db.models import Model
+from django.db.models.signals import pre_save
 from django.test import Client
 
 import pytest
@@ -58,7 +59,7 @@ from hypothesis.stateful import (
 )
 
 from testapp import checkpoints
-from testapp.models import Folder, Sheet, Tag
+from testapp.models import Folder, Sheet, Shortcut, Tag
 
 from .etags import (
     RESOURCES,
@@ -80,7 +81,7 @@ SETTLE_TIMEOUT = 30  # seconds the workers get to become idle, paused or blocked
 class Abort(Enum):
     """
     Why a worker's transaction can only roll back, by SQLSTATE. The violations are
-    of writing rows another transaction changed meanwhile.
+    of writing rows another transaction changed meanwhile, or deleted.
     """
 
     DEADLOCK = "40P01"
@@ -88,6 +89,8 @@ class Abort(Enum):
     LOCK_NOT_AVAILABLE = "55P03"
     FOREIGN_KEY_VIOLATION = "23503"
     UNIQUE_VIOLATION = "23505"
+    # Django's, without SQLSTATE: a save with update_fields of a row deleted since
+    ROW_GONE = "Save with update_fields did not affect any rows."
 
 
 type Step = Callable[[], None]
@@ -95,6 +98,8 @@ type Write = Callable[[int, int, str], None]
 
 
 def abort_of(error: DatabaseError) -> Abort | None:
+    if str(error) == Abort.ROW_GONE.value:
+        return Abort.ROW_GONE
     cause = error.__cause__
     code: object = getattr(cause, "pgcode", None) or getattr(cause, "sqlstate", None)
     try:
@@ -266,6 +271,39 @@ def retitle_sheet(rank: int, other: int, value: str) -> None:
         sheet.save()
 
 
+def move_sheet_alone(rank: int, other: int, value: str) -> None:
+    """Writes the folder alone, so it may move the sheet: it locks."""
+    if (sheet := nth(Sheet, rank)) and (folder := nth(Folder, other)):
+        sheet.folder = folder
+        sheet.save(update_fields=["folder"])
+
+
+def retitle_sheet_alone(rank: int, other: int, value: str) -> None:
+    """Writes the title alone, so it can't move the sheet: it doesn't lock."""
+    if sheet := nth(Sheet, rank):
+        sheet.title = value
+        sheet.save(update_fields=["title"])
+
+
+def retarget_shortcut(rank: int, other: int, value: str) -> None:
+    if shortcut := nth(Shortcut, rank):
+        shortcut.target = nth(Folder, other)
+        shortcut.save(update_fields=["target"])
+
+
+def relabel_shortcut(rank: int, other: int, value: str) -> None:
+    if shortcut := nth(Shortcut, rank):
+        shortcut.label = value
+        shortcut.save(update_fields=["label"])
+
+
+def recode_folder_alone(rank: int, other: int, value: str) -> None:
+    """Writes the code alone, which its sheets show."""
+    if folder := nth(Folder, rank):
+        folder.code = value
+        folder.save(update_fields=["code"])
+
+
 def rename_folder(rank: int, other: int, value: str) -> None:
     if folder := nth(Folder, rank):
         folder.name = value
@@ -287,6 +325,11 @@ WRITES: tuple[Write, ...] = (
     delete_sheet,
     move_sheet,
     retitle_sheet,
+    move_sheet_alone,
+    retitle_sheet_alone,
+    retarget_shortcut,
+    relabel_shortcut,
+    recode_folder_alone,
     rename_folder,
     tag_folder,
     untag_folder,
@@ -375,6 +418,7 @@ class ConcurrentEtags(RuleBasedStateMachine):
         first, second = (Folder.objects.create(name="a", code="a") for _ in range(2))
         Sheet.objects.create(folder=first, title="a", position=0)
         Tag.objects.create(label="a").folders.add(second)
+        Shortcut.objects.create(label="a", target=first)
         self.client = Client()
         self.served = ServedBodies()
         self.workers = [Worker(f"worker {i}", self.served) for i in range(WORKERS)]
@@ -653,6 +697,82 @@ def test_a_first_fill_while_a_write_is_open() -> None:
         machine.teardown()
 
 
+def test_a_save_that_cant_move_a_row_waits_for_one_that_does() -> None:
+    """
+    A worker moves a sheet to the second folder. Another worker retitles it, writing
+    the title alone, without locking it first: its update waits. Once the move
+    commits, a GET fills the second folder's ETag in. Then the retitle commits: it
+    must invalidate the folder the sheet is in by then, not the one it loaded.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.served_etags_match_representations()
+        machine.begin(w=0)
+        machine.write(
+            w=0, write=move_sheet_alone, rank=0, other=1, value="a", pause_at=None
+        )
+        machine.begin(w=1)
+        machine.write(
+            w=1, write=retitle_sheet_alone, rank=0, other=0, value="b", pause_at=None
+        )
+        machine.commit(w=0, pause_at=None)
+        machine.get(w=2, model=Folder, rank=1, pause_at=None)
+        machine.commit(w=1, pause_at=None)
+    finally:
+        machine.teardown()
+
+
+def test_a_move_waits_for_a_save_that_cant_move_the_row() -> None:
+    """
+    A worker retitles a sheet, writing the title alone. Another worker moves it to
+    the second folder: its lock waits. Once the retitle commits, a GET fills the
+    first folder's ETag in. Then the move commits: it must invalidate the folder it
+    took the sheet from, with the new title.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.served_etags_match_representations()
+        machine.begin(w=1)
+        machine.write(
+            w=1, write=retitle_sheet_alone, rank=0, other=0, value="b", pause_at=None
+        )
+        machine.begin(w=0)
+        machine.write(
+            w=0, write=move_sheet_alone, rank=0, other=1, value="a", pause_at=None
+        )
+        machine.commit(w=1, pause_at=None)
+        machine.get(w=2, model=Folder, rank=0, pause_at=None)
+        machine.commit(w=0, pause_at=None)
+    finally:
+        machine.teardown()
+
+
+def test_a_save_of_what_a_list_shows_while_a_row_joins_it() -> None:
+    """
+    A worker moves a sheet into the second folder. Another worker recodes that
+    folder, which its sheets show: it can't see the sheet yet. Once the move
+    commits, a GET fills the sheet's ETag in. Then the recode commits: the sheet
+    must not keep the old code. Linking the sheet doesn't lock the folder as an
+    update does, so the recode has to lock it first.
+    """
+    machine = ConcurrentEtags()
+    try:
+        machine.served_etags_match_representations()
+        machine.begin(w=0)
+        machine.write(
+            w=0, write=move_sheet_alone, rank=0, other=1, value="a", pause_at=None
+        )
+        machine.begin(w=1)
+        machine.write(
+            w=1, write=recode_folder_alone, rank=1, other=0, value="c", pause_at=None
+        )
+        machine.commit(w=0, pause_at=None)
+        machine.get(w=2, model=Sheet, rank=0, pause_at=None)
+        machine.commit(w=1, pause_at=None)
+    finally:
+        machine.teardown()
+
+
 def test_moves_of_one_sheet_by_two_transactions() -> None:
     """
     A worker moves a sheet to the second folder. Another worker moves it back, and
@@ -672,3 +792,45 @@ def test_moves_of_one_sheet_by_two_transactions() -> None:
         machine.commit(w=1, pause_at=None)
     finally:
         machine.teardown()
+
+
+def test_a_save_with_its_own_pk_meets_an_insert_of_it(etag_api: None) -> None:
+    """
+    A save of a new sheet with a pk of its own finds no row to lock: an insert.
+    Before it writes, another transaction inserts that pk into the first folder and
+    commits, and a GET fills that folder's ETag in. The save would now update the
+    row, moving it out of a folder it never saw: it must fail instead.
+    """
+    first, second = (Folder.objects.create(name=n, code=n) for n in "ab")
+    client, served = Client(), ServedBodies()
+    assert_served_etags_match(client, served)
+    reached, go = threading.Event(), threading.Event()
+    saving = threading.current_thread()
+
+    def pause(sender: type[Model], **kwargs: object) -> None:  # after ours
+        if sender is Sheet and threading.current_thread() is saving:
+            if not reached.is_set():
+                reached.set()
+                assert go.wait(SETTLE_TIMEOUT)
+
+    def insert() -> None:
+        try:
+            assert reached.wait(SETTLE_TIMEOUT)
+            Sheet.objects.create(pk=7, folder=first, title="a", position=0)
+            assert Client().get(detail_url(Folder, first.pk)).status_code == 200
+        finally:
+            connection.close()
+            go.set()
+
+    pre_save.connect(pause, weak=False)
+    other = threading.Thread(target=insert)
+    other.start()
+    try:
+        with pytest.raises(IntegrityError), transaction.atomic():
+            Sheet(pk=7, folder=second, title="b", position=0).save()
+    finally:
+        other.join(SETTLE_TIMEOUT)
+        pre_save.disconnect(pause)
+
+    assert Sheet.objects.get(pk=7).folder == first
+    assert_served_etags_match(client, served)
