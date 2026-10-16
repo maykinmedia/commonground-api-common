@@ -8,7 +8,7 @@ essentially is a "version" of a resource. Every modification of the resource
 leads to a new version.
 
 This can be leveraged in combination with the ``If-None-Match`` request header,
-kwown as conditional requests.
+known as conditional requests.
 
 The client includes the ``ETag`` value(s) in this header, and if the current
 version of the resource has the same ``ETag`` value, then the server replies
@@ -21,26 +21,6 @@ See the `ETag on MDN`_ documentation for the full specification.
 
 Implementing conditional requests
 =================================
-
-Two actions are needed to implement this in API implementations:
-
-Add the model mixin to save the ETag value
-------------------------------------------
-
-This enables us to perform fast lookups and avoid calculating the ETag value
-over and over again. It happens automatically on ``save`` of a model instance.
-
-.. code-block:: python
-    :linenos:
-
-    from vng_api_common.caching import ETagMixin
-
-
-    class MyModel(ETagMixin, models.Model):
-        pass
-
-.. note:: If you're doing ``queryset.update`` or ``bulk_create`` operations,
-   you need to take care of setting/calculating the value yourself.
 
 Decorate the viewset
 --------------------
@@ -64,12 +44,102 @@ extra methods/headers show up in the generated API schema.
         queryset = MyModel.objects.all()
         serializer_class = MyModelSerializer
 
-.. warning:: Don't serve conditional requests with ``ATOMIC_REQUESTS``. A
-   conditional ``GET`` reads the ETag and the body in one ``REPEATABLE READ``
-   transaction, so both describe the same data. Inside the request's transaction it
-   reads in ``READ COMMITTED`` instead, and a write that commits in between pairs
-   the ETag of one state with the body of another. A client may then get a 304 for
-   a body it should not keep.
+The serializer is introspected for the relations the representation reads. Name
+the ones it can't see, such as those a ``SerializerMethodField`` reads, and the
+query parameters that select another representation:
+
+.. code-block:: python
+
+    @conditional_retrieve(extra_depends_on={"rollen"}, variant_params={"expand"})
+    class ZaakViewSet(viewsets.ReadOnlyModelViewSet): ...
+
+Responses to requests with a variant parameter get no ETag.
+
+Writing
+-------
+
+Saves and deletes keep ETags right by themselves: once a write commits, every
+resource it changed has a new ETag. Writes don't calculate ETags; the first
+``GET`` after them does, once, however many writes came before.
+
+Write in a transaction. Outside one, a ``GET`` that runs during a save can get
+an ETag that doesn't match the saved data.
+
+Writes that send no signals
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``QuerySet.update``, ``bulk_create``, ``bulk_update`` and raw SQL send no model
+signals, so they don't invalidate anything and may result in stale ETags: clients
+keep getting 304s for resources they changed.
+
+Instead of ``QuerySet.update``, use
+:func:`~vng_api_common.caching.invalidating_update`:
+
+.. code-block:: python
+
+    from vng_api_common.caching import invalidating_update
+
+    invalidating_update(Zaak.objects.filter(pk=zaak.pk), archiefactiedatum=None)
+
+Releases and settings
+~~~~~~~~~~~~~~~~~~~~~
+
+Set ``ETAG_REPRESENTATION_VERSION`` to your project's release, so that a
+release that represents resources differently gets new ETags. Releases of this
+library do so by themselves.
+
+.. code-block:: python
+
+    ETAG_REPRESENTATION_VERSION = openzaak.__version__
+
+.. warning:: Don't serve conditional requests with ``ATOMIC_REQUESTS``: a
+   client may get a 304 for a body that changed. A ``GET`` needs the ETag and the
+   body from one snapshot of the data, which it can't take inside the request's
+   transaction.
+
+Upgrading
+---------
+
+In a rolling deploy, old processes write without invalidating stored ETags. Once
+the last one has stopped, clear them, or clients may get a 304 for a changed
+resource:
+
+.. code-block:: bash
+
+    python manage.py shell -c "from vng_api_common.caching.models import StoredETag; StoredETag.objects.all().delete()"
+
+Migration ``0008`` creates the ``StoredETag`` table. The first ``GET`` of a
+resource after the upgrade calculates its ETag.
+
+:class:`~vng_api_common.caching.ETagMixin` is deprecated: new models don't need it.
+Its ``_etag`` column is no longer maintained. Drop it from your models in two
+releases, so a rolling deploy keeps working:
+
+1. Remove the field from the model state only, and give the column a database
+   default, as old processes still insert it and new ones don't:
+
+   .. code-block:: python
+
+       migrations.SeparateDatabaseAndState(
+           database_operations=[
+               migrations.RunSQL(
+                   "ALTER TABLE zaken_zaak ALTER COLUMN _etag SET DEFAULT ''",
+                   "ALTER TABLE zaken_zaak ALTER COLUMN _etag DROP DEFAULT",
+               )
+           ],
+           state_operations=[migrations.RemoveField("zaak", "_etag")],
+       )
+
+2. Drop the column in the next release:
+
+   .. code-block:: python
+
+       migrations.RunSQL(
+           "SET LOCAL lock_timeout = '5s'; ALTER TABLE zaken_zaak DROP COLUMN _etag"
+       )
+
+``makemigrations`` generates a plain ``RemoveField``, which drops the column while
+old processes still select it.
 
 
 Public API

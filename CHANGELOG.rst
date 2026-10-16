@@ -2,6 +2,67 @@
 Change history
 ==============
 
+Unreleased
+----------
+
+**Bugfixes**
+
+* [open-zaak/open-zaak#2577] A write invalidates the ETags of every resource it
+  affects, before and after, in its own transaction, and a ``GET`` reads the ETag
+  and the body in one snapshot. This fixes 304s for changed resources after
+  deleting or moving a child, after a deploy, between a commit and the
+  recalculation, and for ``?expand=``.
+* [open-zaak/open-zaak#2577] Writes serialize nothing, and their queries no longer
+  grow with the number of rows pointing at what they write. A save with
+  ``update_fields`` invalidates only the resources that show those columns. The
+  first ``GET`` after a write calculates the ETag. A 304 sends one indexed lookup
+  more, in a ``REPEATABLE READ`` transaction.
+
+**New features**
+
+* [open-zaak/open-zaak#2577] ``invalidating_update(queryset, **values)``: a
+  ``QuerySet.update`` that invalidates what it affects.
+* [open-zaak/open-zaak#2577] This library's release is part of every ETag. Set
+  ``ETAG_REPRESENTATION_VERSION`` to your project's release to do the same for it.
+
+**Deprecations**
+
+* [open-zaak/open-zaak#2577] ``ETagMixin``: new models don't need it. Its ``_etag``
+  column is no longer maintained; drop it from your models in two releases, the
+  field first and the column after, so a rolling deploy keeps working.
+* [open-zaak/open-zaak#2577] ``ETagMixin.calculate_etag_value``: use
+  ``invalidating_update`` instead of ``QuerySet.update``. It still invalidates
+  the resource's ETag.
+* [open-zaak/open-zaak#2577] The ``etag_field`` of ``conditional_retrieve``,
+  which is ignored.
+* [open-zaak/open-zaak#2577] The ``django-rest-framework-condition`` dependency,
+  which this library no longer uses.
+
+**Upgrade notes**
+
+* In a rolling deploy, old processes write without invalidating stored ETags.
+  Once the last one has stopped, clear them, or clients may get a 304 for a
+  changed resource::
+
+    python manage.py shell -c "from vng_api_common.caching.models import StoredETag; StoredETag.objects.all().delete()"
+
+* Migration ``0008`` creates the ``StoredETag`` table. The first ``GET`` of a
+  resource after the upgrade calculates its ETag.
+* Write in a transaction, and don't serve conditional requests with
+  ``ATOMIC_REQUESTS``.
+
+**Maintenance**
+
+* [open-zaak/open-zaak#2577] Removed implementation details: ``etag_func``,
+  ``EtagUpdate`` and ``MethodCallback`` from ``vng_api_common.caching.etags``,
+  ``add_dependency`` from ``vng_api_common.caching.registry``, and
+  ``handle_m2m_cleared``, ``is_etag_model`` and ``mark_affected_objects`` from
+  ``vng_api_common.caching.signals``. The receivers
+  ``mark_related_instances_for_etag_update`` and
+  ``mark_m2m_related_instances_for_etag_update`` stay, doing nothing, for
+  migrations that disconnect them.
+
+
 3.0.1 (2026-10-13)
 ------------------
 
