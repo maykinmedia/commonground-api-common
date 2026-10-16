@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from django.conf import settings
+from django.contrib.postgres.functions import RandomUUID
 from django.db import models, transaction
 
 import vng_api_common
@@ -71,13 +72,14 @@ def _model() -> type[StoredETag]:
     return StoredETag
 
 
+def _label(model: type[models.Model]) -> str:
+    """The ``model`` of its resources' rows: a proxy model shares its concrete one's."""
+    return (model._meta.concrete_model or model)._meta.label_lower
+
+
 def _key(resource: Resource) -> tuple[str, str]:
-    """
-    The ``model`` and ``object_id`` of the resource's row: ``"testapp.folder", "1"``.
-    A proxy model shares the row of its concrete model.
-    """
-    concrete = resource.model._meta.concrete_model or resource.model
-    return concrete._meta.label_lower, str(resource.pk)
+    """The ``model`` and ``object_id`` of the resource's row: ``"testapp.folder", "1"``."""
+    return _label(resource.model), str(resource.pk)
 
 
 def _lookup(resource: Resource) -> dict[str, str]:
@@ -188,6 +190,19 @@ def invalidate(resources: Collection[Resource]) -> None:
         batch.invalidated.update(keys)
     else:
         _write_tokens(keys)
+
+
+def invalidate_all(resource_models: Collection[type[models.Model]]) -> None:
+    """
+    Replace every stored ETag, or those of the resources of ``resource_models``,
+    with a fresh token, in one statement in the current transaction.
+    """
+    # It locks every row it writes until the transaction ends, in no particular
+    # order: a writer that meets it may deadlock, and PostgreSQL then aborts one.
+    rows = _model().objects.all()
+    if resource_models:
+        rows = rows.filter(model__in={_label(model) for model in resource_models})
+    rows.update(token=RandomUUID(), etag=None, stamp="")
 
 
 def _write_tokens(keys: Collection[tuple[str, str]]) -> None:

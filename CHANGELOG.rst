@@ -24,6 +24,9 @@ Unreleased
   ``QuerySet.update`` that invalidates what it affects.
 * [open-zaak/open-zaak#2577] ``batched_invalidation()``: a transaction in which
   a loop of writes sends one query to invalidate ETags instead of one per write.
+* [open-zaak/open-zaak#2577] ``invalidate_etags(*objs)`` after ``bulk_create``
+  and ``bulk_update``, and ``invalidate_all_etags(*resource_models)`` after raw
+  SQL: these send no signals, so their ETags have to be invalidated by hand.
 * [open-zaak/open-zaak#2577] This library's release is part of every ETag. Set
   ``ETAG_REPRESENTATION_VERSION`` to your project's release to do the same for it.
 * [open-zaak/open-zaak#2577] The check ``vng_api_common.caching.W001`` warns
