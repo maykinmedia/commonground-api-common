@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Collection
+from collections.abc import Collection, Hashable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
@@ -38,7 +38,7 @@ class Resource:
     """A resource, by model and primary key."""
 
     model: type[models.Model]
-    pk: object
+    pk: Hashable
 
 
 @dataclass(frozen=True)
@@ -73,7 +73,7 @@ def _key(resource: Resource) -> tuple[str, str]:
     return concrete._meta.label_lower, str(resource.pk)
 
 
-def _lookup(resource: Resource) -> dict[str, object]:
+def _lookup(resource: Resource) -> dict[str, str]:
     label, object_id = _key(resource)
     return {"model": label, "object_id": object_id}
 
@@ -122,7 +122,7 @@ def invalidate(resources: Collection[Resource]) -> None:
     # PostgreSQL inserts the rows of ``UNNEST`` in array order, and an ``ON
     # CONFLICT`` locks each existing row as it comes to it. SQL doesn't promise that
     # order; if another one came about, PostgreSQL detects the deadlock and aborts
-    # one writer, so it costs a failed write, not a stale ETag.
+    # one writer, so in a transaction it costs a failed write, not a stale ETag.
     keys = sorted({_key(resource) for resource in resources})
     if not keys:
         return

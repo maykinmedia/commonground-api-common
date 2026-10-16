@@ -8,14 +8,16 @@ On a request level, the API will return HTTP 304 statuses if the client has
 an up to date version of the resource. It will reply with a HTTP 200 otherwise,
 including the ETag header.
 
-This package provides a model mixin to save the ETag header value to the db,
-and a decorator to enable conditional requests on viewsets. The rest are
-implementation details.
+This package provides a model mixin to mark a model as a resource with ETags, a
+decorator to enable conditional requests on viewsets, and ``invalidating_update``
+for a ``QuerySet.update``, which sends no signals. The rest are implementation
+details.
 """
 
+from .bulk import invalidating_update
 from .decorators import conditional_retrieve
 from .etags import calculate_etag
 from .models import ETagMixin
 
 # public API
-__all__ = ["ETagMixin", "calculate_etag", "conditional_retrieve"]
+__all__ = ["ETagMixin", "calculate_etag", "conditional_retrieve", "invalidating_update"]

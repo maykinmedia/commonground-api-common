@@ -240,6 +240,10 @@ class FolderSerializer(ExpandingSerializer):
         view_name="tag-detail", lookup_field="pk", many=True, read_only=True
     )
     attachments = AttachmentSerializer(many=True, read_only=True)
+    # links whose rows point here: a shortcut's own columns aren't shown
+    shortcuts = CachedHyperlinkedRelatedField(
+        view_name="shortcut-detail", lookup_field="pk", many=True, read_only=True
+    )
     first_sheet_title = serializers.SerializerMethodField()
 
     expandable = frozenset({"sheets", "tags"})
@@ -253,6 +257,7 @@ class FolderSerializer(ExpandingSerializer):
             "sheets",
             "tags",
             "attachments",
+            "shortcuts",
             "first_sheet_title",
         ]
 
@@ -301,12 +306,16 @@ class ShortcutSerializer(ExpandingSerializer):
     target = CachedHyperlinkedRelatedField(
         view_name="folder-detail", lookup_field="pk", read_only=True
     )
+    # null until a folder with the target's pk exists
+    target_code = serializers.SlugRelatedField(
+        source="target", slug_field="code", read_only=True
+    )
 
     expandable = frozenset({"target"})
 
     class Meta:
         model = Shortcut
-        fields = ["url", "label", "target"]
+        fields = ["url", "label", "target", "target_code"]
 
 
 SERIALIZERS: dict[type[Model], type[serializers.ModelSerializer]] = {
