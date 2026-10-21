@@ -67,6 +67,9 @@ def conditional(handler: Handler, variant_params: AbstractSet[str]) -> Handler:
             if condition is not None and none_match(condition, etag.value):
                 response = Response(status=304, headers={"ETag": header})
             else:
+                # This is safe: self lives for 1 request and our get_object is done
+                # in same snapshot.
+                self.get_object = lambda: instance
                 response = handler(self, request, *args, **kwargs)
                 if response.status_code == 200:
                     response["ETag"] = header

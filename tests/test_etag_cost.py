@@ -3,7 +3,8 @@ What stored ETags cost, the reason for open-zaak#2577.
 
 A write serializes nothing, and the number of SQL statements it sends doesn't
 depend on how big the representations it affects are. A GET serializes no more
-than it sends: a 304 nothing, a 200 with a stored ETag once.
+than it sends: a 304 nothing, a 200 with a stored ETag once. Either checks the
+client's permissions once.
 """
 
 from collections.abc import Callable, Iterator
@@ -17,6 +18,7 @@ from django.test.utils import CaptureQueriesContext
 
 import pytest
 
+from testapp.etag_viewsets import FolderViewSet
 from testapp.models import Folder, Sheet, Shortcut, Tag
 from testapp.serializers import SERIALIZERS
 
@@ -202,6 +204,23 @@ def test_a_304_costs_the_same_however_big_the_resource():
 
 def test_a_200_with_a_stored_etag_serializes_once():
     assert get_cost(LARGE, conditional=False).serializations == 1
+
+
+@pytest.mark.parametrize("conditional", [False, True])
+def test_a_get_checks_the_permissions_once(conditional: bool):
+    seeded = seed(SMALL)
+    client = Client()
+    url = detail_url(Folder, seeded.folder.pk)
+    etag = client.get(url)["ETag"]
+    headers = {"If-None-Match": etag} if conditional else {}
+    with patch.object(
+        FolderViewSet,
+        "check_object_permissions",
+        side_effect=FolderViewSet.check_object_permissions,
+        autospec=True,
+    ) as check:
+        client.get(url, headers=headers)
+    assert check.call_count == 1
 
 
 def test_the_first_get_after_the_upgrade_stores_the_etag():
