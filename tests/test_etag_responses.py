@@ -12,6 +12,9 @@ A client that may not see a resource gets the same 404 or 403 whether or not its
 GET is conditional, and no ETag: a 304 would tell it that the resource exists and
 is unchanged.
 
+A GET with an ``If-Match`` that doesn't list the current ETag gets a 412, and the
+comparison is strong: ``W/`` and the current ETag is no match.
+
 A HEAD is answered as its GET is, without the body.
 """
 
@@ -149,6 +152,61 @@ def test_a_304_for_what_the_client_may_see(
     )
 
     assert (response.status_code, response["ETag"]) == (304, etag)
+
+
+@send_with
+@pytest.mark.parametrize("if_match", ['"another"', "weak current ETag"])
+@pytest.mark.parametrize("model", [Folder, Sheet])
+def test_a_412_for_an_if_match_without_the_current_etag(
+    client: Client,
+    folders: tuple[Folder, Folder],
+    send: Callable[..., HttpResponse],
+    model: type[Model],
+    if_match: str,
+) -> None:
+    pk = in_folder(model, folders[0]).pk
+    etag = current_etag(model, pk)
+    condition = f"W/{etag}" if if_match == "weak current ETag" else if_match
+
+    response = send(client, detail_url(model, pk), headers={"If-Match": condition})
+
+    assert response.status_code == 412
+
+
+@send_with
+@pytest.mark.parametrize("if_match", ["current ETag", "*"])
+@pytest.mark.parametrize("model", [Folder, Sheet])
+def test_an_if_match_with_the_current_etag_is_served(
+    client: Client,
+    folders: tuple[Folder, Folder],
+    send: Callable[..., HttpResponse],
+    model: type[Model],
+    if_match: str,
+) -> None:
+    pk = in_folder(model, folders[0]).pk
+    etag = current_etag(model, pk)
+    condition = f'"another", {etag}' if if_match == "current ETag" else "*"
+
+    response = send(client, detail_url(model, pk), headers={"If-Match": condition})
+
+    assert (response.status_code, response["ETag"]) == (200, etag)
+
+
+@pytest.mark.parametrize(("model", "status"), [(Folder, 404), (Sheet, 403)])
+def test_no_412_for_what_the_client_may_not_see(
+    client: Client,
+    folders: tuple[Folder, Folder],
+    model: type[Model],
+    status: int,
+) -> None:
+    pk = in_folder(model, folders[1]).pk
+
+    response = client.get(
+        detail_url(model, pk),
+        headers={"X-Allowed-Codes": "a", "If-Match": '"another"'},
+    )
+
+    assert response.status_code == status
 
 
 @pytest.mark.parametrize("model", list(RESOURCES))

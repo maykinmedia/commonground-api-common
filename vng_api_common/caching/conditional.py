@@ -63,8 +63,11 @@ def conditional(handler: Handler, variant_params: AbstractSet[str]) -> Handler:
             instance = self.get_object()  # a 404 or 403 comes before anything else
             etag = current_etag(instance)
             header = f'"{etag.value}"'
+            precondition = request.headers.get("If-Match")
             condition = request.headers.get("If-None-Match")
-            if condition is not None and none_match(condition, etag.value):
+            if precondition is not None and not match(precondition, etag.value):
+                response = Response(status=412)
+            elif condition is not None and none_match(condition, etag.value):
                 response = Response(status=304, headers={"ETag": header})
             else:
                 # This is safe: self lives for 1 request and our get_object is done
@@ -133,6 +136,16 @@ def _opaque(tag: str) -> str:
     Weak comparison matches tags whose opaque values are equal.
     """
     return tag.removeprefix("W/").strip('"')
+
+
+def match(header: str, etag: str) -> bool:
+    """
+    Whether an ``If-Match`` header is ``*`` or lists ``etag``, compared strongly
+    (RFC 9110, 13.1.1): a weak tag matches nothing.
+    """
+    if header.strip() == "*":
+        return True
+    return f'"{etag}"' in parse_etags(header)
 
 
 def none_match(header: str, etag: str) -> bool:
