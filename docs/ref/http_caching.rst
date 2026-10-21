@@ -150,6 +150,17 @@ share one:
 Inside a transaction, ``batched_invalidation(savepoint=False)`` skips the
 savepoint, as ``transaction.atomic(savepoint=False)`` does.
 
+Run a write that also saves its parent in one too, such as adding a rol that
+updates its zaak's ``laatst_gemuteerd``. Outside a batch, it can deadlock with a
+save of that zaak, and one of the two requests fails with ``deadlock detected``:
+
+.. code-block:: python
+
+    with batched_invalidation():
+        Rol.objects.create(zaak=zaak, ...)
+        zaak.laatst_gemuteerd = timezone.now()
+        zaak.save(update_fields=["laatst_gemuteerd"])
+
 Releases and settings
 ~~~~~~~~~~~~~~~~~~~~~
 

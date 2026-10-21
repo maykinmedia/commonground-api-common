@@ -144,7 +144,8 @@ def batched_invalidation(*, savepoint: bool = True) -> Generator[None]:
                 RelevanteZaakRelatie.objects.create(zaak=zaak, url=url)
 
     Use it where one request writes many rows, such as a create with nested
-    relations. The block is a transaction, as in ``transaction.atomic()``: an
+    relations, and where a write also saves its parent: outside a batch, that can
+    deadlock with a save of the parent. The block is a transaction, as in ``transaction.atomic()``: an
     exception rolls back its writes. It nests in transactions and in itself.
     Clients see the same ETags as without it.
 
@@ -156,6 +157,9 @@ def batched_invalidation(*, savepoint: bool = True) -> Generator[None]:
     # writes their tokens, before the transaction commits. Until then the writes
     # don't lock the stored ETags, so a GET may fill one in from the committed data;
     # the end replaces it. ``specs/etag/EtagToken.tla`` checks this (BatchedTxs).
+    # Locking the stored ETags last keeps the lock order of a save of the parent:
+    # outside a batch, a child's write locks its parent's stored ETag before a later
+    # save of the parent locks the parent's row, which deadlocks with that save.
     # Rows of writes rolled back to a savepoint are invalidated too: needlessly,
     # but safely. The rows of deleted resources are deleted at the end too, as a
     # rollback to a savepoint undoes a delete but not what the batch collected; a

@@ -48,6 +48,9 @@ Unreleased
   resource after the upgrade calculates its ETag.
 * Write in a transaction, and don't serve conditional requests with
   ``ATOMIC_REQUESTS``.
+* A write that also saves its parent, such as a child that updates the parent's
+  ``laatst_gemuteerd``, can deadlock with a save of that parent: run it in
+  ``batched_invalidation()``.
 
 **Maintenance**
 
