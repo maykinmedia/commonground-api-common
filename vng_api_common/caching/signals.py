@@ -20,6 +20,7 @@ save makes stale; invalidating again after the save narrows that window.
 from collections.abc import Hashable, Iterable, Set as AbstractSet
 from enum import StrEnum
 
+from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, IntegrityError, models, transaction
 from django.db.models.signals import (
     m2m_changed,
@@ -36,6 +37,7 @@ from .registry import (
     affected_by_save,
     before_save,
     is_resource,
+    load,
     written_by,
 )
 from .store import Resource, forget, invalidate
@@ -59,6 +61,10 @@ class M2MAction(StrEnum):
 
 def _matters(model: type[models.Model]) -> bool:
     """Whether a write to ``model`` can affect a resource."""
+    # a migration's historical models are none, and it shouldn't import the URLconf
+    if model._meta.apps is not apps:
+        return False
+    load()
     return is_resource(model) or model in DEPENDENCY_REGISTRY
 
 

@@ -5,7 +5,6 @@ The urls import is needed to make sure all urls/subclasses are registered
 BEFORE fixtures run.
 """
 
-import importlib
 from collections.abc import Iterator
 
 from django.urls import clear_script_prefix, set_script_prefix
@@ -47,9 +46,5 @@ def quiet_logs() -> Iterator[None]:
 
 @pytest.fixture
 def etag_api(settings: Settings) -> None:
-    """
-    Route requests to the ETag tests' API, after its viewsets have registered their
-    serializers: a write needs them to maintain the stored ETags.
-    """
-    importlib.import_module("testapp.etag_urls")
+    """Route requests to the ETag tests' API."""
     settings.ROOT_URLCONF = "testapp.etag_urls"

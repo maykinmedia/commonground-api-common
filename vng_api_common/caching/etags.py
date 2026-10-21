@@ -17,7 +17,7 @@ from rest_framework.request import Request
 from rest_framework.settings import api_settings
 
 from ..utils import get_domain
-from .registry import MODEL_SERIALIZERS
+from .registry import MODEL_SERIALIZERS, load
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -40,6 +40,7 @@ def track_object_serializer(instance: models.Model, serializer: serializers.Seri
             "The instance is already tracking a different serializer for "
             "ETag calculation"
         )
+    load()
     serializer_class = MODEL_SERIALIZERS[type(instance)]
     if not isinstance(serializer, serializer_class):
         raise TypeError(
@@ -63,6 +64,7 @@ def get_etag_serializer(instance: models.Model) -> serializers.Serializer:
     if serializer is not None:
         return serializer
 
+    load()
     model_class = type(instance)
     serializer_class = MODEL_SERIALIZERS[model_class]
 

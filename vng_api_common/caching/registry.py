@@ -35,8 +35,10 @@ from collections.abc import (
     Set as AbstractSet,
 )
 from dataclasses import dataclass, replace
+from importlib import import_module
 from typing import Final, Literal, final
 
+from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models.fields.reverse_related import ForeignObjectRel
@@ -469,6 +471,17 @@ def extract_dependencies(
             edges.append((hop.target, dependency))
     for source, dependency in edges:
         _register(source, dependency)
+
+
+def load() -> None:
+    """
+    Import the URLconf, if no one has yet, so its viewsets register their resources.
+
+    They register as they are decorated. A process that serves no requests, such as
+    ``manage.py shell`` or a Celery worker, would otherwise have none of them, and
+    its writes would invalidate nothing.
+    """
+    import_module(settings.ROOT_URLCONF)
 
 
 def is_resource(model: type[models.Model]) -> bool:

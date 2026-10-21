@@ -11,6 +11,7 @@ from .registry import (
     affected,
     before_save,
     is_resource,
+    load,
     written_by,
 )
 from .store import Resource, invalidate, invalidate_all
@@ -33,6 +34,7 @@ def invalidating_update(queryset: models.QuerySet, /, **values: object) -> int:
     # locked rows are updated. Before the update it invalidates what the rows leave
     # if it writes a link; after, the rows' own ETags and those of the resources
     # that show a column it writes.
+    load()
     model = queryset.model
     written = written_by(model, values)
     dependencies = DEPENDENCY_REGISTRY.get(model, ())
@@ -85,6 +87,7 @@ def invalidate_etags(*objs: models.Model) -> None:
     """
     # Lock the rows first, as a save does, so no other transaction moves them
     # between reading their parents and the write that follows.
+    load()
     by_model: defaultdict[type[models.Model], list[models.Model]] = defaultdict(list)
     for obj in objs:
         by_model[type(obj)].append(obj)
