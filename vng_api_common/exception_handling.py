@@ -5,6 +5,7 @@ from typing import Any, Protocol, cast
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
+from django.db import OperationalError
 from django.http import Http404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -16,6 +17,7 @@ from rest_framework.exceptions import ErrorDetail, ReturnDict, ReturnList
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
+from .exceptions import TransactionCancelled
 from .serializers import FoutSerializer, ValidatieFoutSerializer
 from .settings import get_setting
 from .utils import underscore_to_camel
@@ -312,6 +314,21 @@ def get_custom_exception_response(
     return None
 
 
+# the SQLSTATEs of a transaction PostgreSQL cancelled to let another one finish: a
+# deadlock, and a serialization failure
+CANCELLED_TRANSACTION_STATES = frozenset({"40P01", "40001"})
+
+
+def _cancelled_transaction(exc: Exception) -> bool:
+    """Whether PostgreSQL cancelled the transaction ``exc`` ended."""
+    if not isinstance(exc, OperationalError):
+        return False
+    # psycopg2 calls it ``pgcode``, psycopg 3 ``sqlstate``
+    cause = exc.__cause__
+    state = getattr(cause, "pgcode", None) or getattr(cause, "sqlstate", None)
+    return state in CANCELLED_TRANSACTION_STATES
+
+
 def finalize_response(
     exc: Exception, response: Response, context: dict[str, object]
 ) -> Response:
@@ -339,8 +356,17 @@ def exception_handler(exc: Exception, context: dict[str, object]) -> Response | 
         }
 
     Supports project-level custom exception handlers via the registry.
+
+    A transaction PostgreSQL cancelled, to resolve a deadlock with another one, gets
+    a 503 with ``Retry-After``: nothing of it was written, so a retry most likely
+    succeeds.
     """
     response = get_custom_exception_response(exc, context)
+
+    if response is None and _cancelled_transaction(exc):
+        cancelled = TransactionCancelled()
+        cancelled.__cause__ = exc  # for the logs and Sentry
+        exc = cancelled
 
     if response is None:
         response = drf_exception_handler(exc, context)

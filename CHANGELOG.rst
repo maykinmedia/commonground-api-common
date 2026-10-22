@@ -27,6 +27,10 @@ Unreleased
 * [open-zaak/open-zaak#2577] ``invalidate_etags(*objs)`` after ``bulk_create``
   and ``bulk_update``, and ``invalidate_all_etags(*resource_models)`` after raw
   SQL: these send no signals, so their ETags have to be invalidated by hand.
+* [open-zaak/open-zaak#2577] The exception handler answers a request whose
+  transaction PostgreSQL cancelled, to resolve a deadlock or a serialization
+  failure, with a 503 and ``Retry-After: 1`` instead of a 500. Nothing of it was
+  written, so the client can retry.
 * [open-zaak/open-zaak#2577] This library's release is part of every ETag. Set
   ``ETAG_REPRESENTATION_VERSION`` to your project's release to do the same for it.
 
@@ -50,7 +54,7 @@ Unreleased
   ``ATOMIC_REQUESTS``.
 * A write that also saves its parent, such as a child that updates the parent's
   ``laatst_gemuteerd``, can deadlock with a save of that parent. PostgreSQL
-  detects the deadlock and cancels one of the two requests, which fails. Run
+  detects the deadlock and cancels one of the two requests, which gets a 503. Run
   such a write in ``batched_invalidation()``.
 
 **Maintenance**

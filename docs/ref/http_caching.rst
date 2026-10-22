@@ -154,8 +154,7 @@ Run a write that also saves its parent in one too, such as adding a rol that
 updates its zaak's ``laatst_gemuteerd``. Outside a batch, it can deadlock with a
 save of that zaak. Nothing hangs: PostgreSQL detects the deadlock after about a
 second (its ``deadlock_timeout``), cancels one of the two transactions and lets
-the other finish. The cancelled request fails with ``deadlock detected``, and
-nothing it wrote is kept:
+the other finish. Nothing the cancelled request wrote is kept:
 
 .. code-block:: python
 
@@ -163,6 +162,13 @@ nothing it wrote is kept:
         Rol.objects.create(zaak=zaak, ...)
         zaak.laatst_gemuteerd = timezone.now()
         zaak.save(update_fields=["laatst_gemuteerd"])
+
+A child added while another request saves its parent can still deadlock; a batch
+doesn't prevent that one. PostgreSQL detects and resolves it in the same way.
+
+This library's exception handler,
+:func:`~vng_api_common.exception_handling.exception_handler`, answers a cancelled
+request with a 503 and ``Retry-After: 1``, so the client knows to try again.
 
 Releases and settings
 ~~~~~~~~~~~~~~~~~~~~~

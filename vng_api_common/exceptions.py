@@ -20,3 +20,18 @@ class PreconditionFailed(APIException):
     status_code = status.HTTP_412_PRECONDITION_FAILED
     default_detail = _("Precondition failed")
     default_code = "precondition_failed"
+
+
+class TransactionCancelled(APIException):
+    """
+    PostgreSQL cancelled the request's transaction to resolve a deadlock or a
+    serialization conflict with another one. Nothing of it was written, so a
+    retry most likely succeeds.
+    """
+
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = _(
+        "The request conflicted with another one and was cancelled. Try again."
+    )
+    default_code = "transaction_cancelled"
+    wait = 1  # sent as Retry-After
