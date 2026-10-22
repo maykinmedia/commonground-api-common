@@ -145,9 +145,10 @@ def batched_invalidation(*, savepoint: bool = True) -> Generator[None]:
 
     Use it where one request writes many rows, such as a create with nested
     relations, and where a write also saves its parent: outside a batch, that can
-    deadlock with a save of the parent. The block is a transaction, as in ``transaction.atomic()``: an
-    exception rolls back its writes. It nests in transactions and in itself.
-    Clients see the same ETags as without it.
+    deadlock with a save of the parent, which PostgreSQL detects and resolves by
+    cancelling one of the two. The block is a transaction, as in
+    ``transaction.atomic()``: an exception rolls back its writes. It nests in
+    transactions and in itself. Clients see the same ETags as without it.
 
     Inside a transaction, ``savepoint=False`` saves the two queries of a
     savepoint, as it does for ``transaction.atomic``: an exception in the block

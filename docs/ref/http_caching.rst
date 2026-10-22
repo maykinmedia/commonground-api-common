@@ -152,7 +152,10 @@ savepoint, as ``transaction.atomic(savepoint=False)`` does.
 
 Run a write that also saves its parent in one too, such as adding a rol that
 updates its zaak's ``laatst_gemuteerd``. Outside a batch, it can deadlock with a
-save of that zaak, and one of the two requests fails with ``deadlock detected``:
+save of that zaak. Nothing hangs: PostgreSQL detects the deadlock after about a
+second (its ``deadlock_timeout``), cancels one of the two transactions and lets
+the other finish. The cancelled request fails with ``deadlock detected``, and
+nothing it wrote is kept:
 
 .. code-block:: python
 
