@@ -168,6 +168,18 @@ cancelled request wrote is kept:
 Adding a child, or saving a new parent into its foreign key with
 ``update_fields``, needs no batch for this: such a save locks the parent first.
 
+It only locks parents that are API resources. When a child refers to a row that
+isn't one, but whose saves change the ETags of resources, lock that row first
+yourself, as an update of it would:
+
+.. code-block:: python
+
+    with transaction.atomic():
+        EnkelvoudigInformatieObjectCanonical.objects.select_for_update(
+            no_key=True
+        ).get(pk=canonical.pk)
+        Gebruiksrechten.objects.create(informatieobject=canonical, ...)
+
 This library's exception handler,
 :func:`~vng_api_common.exception_handling.exception_handler`, answers a cancelled
 request with a 503 and ``Retry-After: 1``, so the client knows to try again.
