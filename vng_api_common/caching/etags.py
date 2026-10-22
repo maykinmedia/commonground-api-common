@@ -3,13 +3,11 @@ Calculate ETag values for API resources.
 """
 
 import hashlib
-from dataclasses import dataclass
 from weakref import WeakKeyDictionary
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
-from django.db import DatabaseError, models, transaction
-from django.http import Http404, HttpRequest
+from django.db import models
+from django.http import HttpRequest
 from django.utils.module_loading import import_string
 
 import structlog
@@ -18,8 +16,8 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.settings import api_settings
 
-from ..utils import get_domain, get_resource_for_path
-from .registry import MODEL_SERIALIZERS
+from ..utils import get_domain
+from .registry import MODEL_SERIALIZERS, load
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -42,6 +40,7 @@ def track_object_serializer(instance: models.Model, serializer: serializers.Seri
             "The instance is already tracking a different serializer for "
             "ETag calculation"
         )
+    load()
     serializer_class = MODEL_SERIALIZERS[type(instance)]
     if not isinstance(serializer, serializer_class):
         raise TypeError(
@@ -65,6 +64,7 @@ def get_etag_serializer(instance: models.Model) -> serializers.Serializer:
     if serializer is not None:
         return serializer
 
+    load()
     model_class = type(instance)
     serializer_class = MODEL_SERIALIZERS[model_class]
 
@@ -82,12 +82,17 @@ def get_etag_serializer(instance: models.Model) -> serializers.Serializer:
 
 def calculate_etag(instance: models.Model) -> str:
     """
-    Calculate the MD5 hash of a resource representation in the API.
+    The ETag the API sends for ``instance`` as it is now, without the quotes.
 
-    The serializer for the model class is retrieved, and then used to construct
-    the representation of the instance. Then, the representation is rendered
-    to camelCase JSON, after which the MD5 hash is calculated of this result.
+    .. code-block:: python
+
+        response = client.get(reverse("zaak-detail", kwargs={"uuid": zaak.uuid}))
+        assert response["ETag"] == f'"{calculate_etag(zaak)}"'
+
+    It serializes the instance, as a ``GET`` does: use it in tests and scripts, not
+    in a loop of writes.
     """
+    # the MD5 of the camelCase JSON the model's serializer renders
     serializer = get_etag_serializer(instance)
 
     # render the output to json, which is used as hash input
@@ -96,106 +101,3 @@ def calculate_etag(instance: models.Model) -> str:
 
     # calculate md5 hash
     return hashlib.md5(rendered).hexdigest()
-
-
-def etag_func(request: HttpRequest, etag_field: str = "_etag", **view_kwargs):
-    try:
-        obj = get_resource_for_path(request.path)
-    except ObjectDoesNotExist:
-        raise Http404
-    etag_value = getattr(obj, etag_field)
-    if not etag_value:  # calculate missing value and store it
-        etag_value = getattr(obj, "calculate_etag_value")()
-    return etag_value
-
-
-@dataclass
-class MethodCallback:
-    callback: callable  # type: ignore[attr-defined]
-
-    def __eq__(self, other):
-        # NOTE: before Python 3.7 you could compare bound methods, as method.__eq__(other_method)
-        # apparently compared the underlying data through __eq__. Dataclasses implement
-        # __eq__ based on the fields from the constructor, in our case this is the Django
-        # model instance. Django model instances in turn have __eq__ implemented to look
-        # at the same type & if the pk is the same or not.
-        # So, multiple instances of this class for the same django model instance will
-        # have equal methods, and we can de-duplicate them using that logic.
-        #
-        # Since Python 3.7 this appears to no longer be the case, so we wrap it in our
-        # own dataclass to perform this comparison
-        if type(self) != type(other):  # noqa
-            return False
-
-        # same function object?
-        if self.callback.__func__ != other.callback.__func__:
-            return False
-
-        # finally, compare the bound arguments
-        return self.callback.__self__ == other.callback.__self__
-
-    def __call__(self):
-        return self.callback()
-
-
-@dataclass
-class EtagUpdate:
-    instance: models.Model
-    using: str | None = None
-
-    @classmethod
-    def mark_affected(cls, obj: models.Model, using=None) -> None:
-        """
-        Schedule the ``instance`` to have it's ETag value updated on transaction commit.
-        """
-        already_updating = getattr(obj, "_updating_etag", False)
-        if already_updating:
-            return
-
-        etag_update = cls(instance=obj, using=using)
-
-        # we do not use the top-level transaction.commit, but need the underlying
-        # connection object to ensure the update is only scheduled once.
-        connection = transaction.get_connection(using)
-
-        func = MethodCallback(etag_update.calculate_new_value)
-        for run_on_commit in connection.run_on_commit:
-            _func = run_on_commit[1]
-            if func == _func:
-                logger.debug(
-                    "update_already_scheduled",
-                    model=type(obj).__name__,
-                    pk=obj.pk,
-                )
-                return
-
-        logger.debug(
-            "etag_update_scheduled",
-            model=type(obj).__name__,
-            pk=obj.pk,
-        )
-        # TODO: move this to celery to improve performance
-        connection.on_commit(func)
-
-    def calculate_new_value(self):
-        if self.instance.pk is None:
-            return
-
-        with transaction.atomic(using=self.using):  # wrap in its own transaction
-            # track the actions _inside_ the on_commit handler, to prevent infinite
-            # loops/stack overflows
-            try:
-                self.instance._updating_etag = True  # type: ignore[attr-defined]
-                self.instance.calculate_etag_value()  # type: ignore[attr-defined]
-            except DatabaseError as exc:
-                # the record may already have been deleted via a cascade delete. rather
-                # than always checking if the record still exists (which performs a query
-                # every time), we just try to update and see if it fails. The exception
-                # message is defined in django.db.models.base.Model._save_table
-                # TODO: see if we can tap into post_delete to remove the callback from
-                # the transaction.on_commit stack?
-                if exc.args[0] == "Save with update_fields did not affect any rows.":
-                    return
-                raise
-            finally:
-                del self.instance._updating_etag  # type: ignore[attr-defined]

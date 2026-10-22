@@ -2,6 +2,74 @@
 Change history
 ==============
 
+Unreleased
+----------
+
+**Bugfixes**
+
+* [open-zaak/open-zaak#2577] A write invalidates the ETags of every resource it
+  affects, before and after, in its own transaction, and a ``GET`` reads the ETag
+  and the body in one snapshot. This fixes 304s for changed resources after
+  deleting or moving a child, after a deploy, between a commit and the
+  recalculation, and for ``?expand=``.
+* [open-zaak/open-zaak#2577] Writes serialize nothing, and their queries no longer
+  grow with the number of rows pointing at what they write. A save with
+  ``update_fields`` invalidates only the resources that show those columns. The
+  first ``GET`` after a write calculates the ETag. A 304 sends one indexed lookup
+  more, in a ``REPEATABLE READ`` transaction.
+
+**New features**
+
+* [open-zaak/open-zaak#2577] ``invalidating_update(queryset, **values)``: a
+  ``QuerySet.update`` that invalidates what it affects.
+* [open-zaak/open-zaak#2577] ``batched_invalidation()``: a transaction in which
+  a loop of writes sends one query to invalidate ETags instead of one per write.
+* [open-zaak/open-zaak#2577] ``invalidate_etags(*objs)`` after ``bulk_create``
+  and ``bulk_update``, and ``invalidate_all_etags(*resource_models)`` after raw
+  SQL: these send no signals, so their ETags have to be invalidated by hand.
+* [open-zaak/open-zaak#2577] The exception handler answers a request whose
+  transaction PostgreSQL cancelled, to resolve a deadlock or a serialization
+  failure, with a 503 and ``Retry-After: 1`` instead of a 500. Nothing of it was
+  written, so the client can retry.
+* [open-zaak/open-zaak#2577] This library's release is part of every ETag. Set
+  ``ETAG_REPRESENTATION_VERSION`` to your project's release to do the same for it.
+
+**Deprecations**
+
+* [open-zaak/open-zaak#2577] ``ETagMixin``: new models don't need it. Its ``_etag``
+  column is no longer maintained; drop it from your models.
+* [open-zaak/open-zaak#2577] ``ETagMixin.calculate_etag_value``: use
+  ``invalidating_update`` instead of ``QuerySet.update``. It still invalidates
+  the resource's ETag.
+* [open-zaak/open-zaak#2577] The ``etag_field`` of ``conditional_retrieve``,
+  which is ignored.
+* [open-zaak/open-zaak#2577] The ``django-rest-framework-condition`` dependency,
+  which this library no longer uses.
+
+**Upgrade notes**
+
+* Migration ``0008`` creates the ``StoredETag`` table. The first ``GET`` of a
+  resource after the upgrade calculates its ETag.
+* Write in a transaction, and don't serve conditional requests with
+  ``ATOMIC_REQUESTS``.
+* A change or delete of a child that also saves its parent, such as one that
+  updates the parent's ``laatst_gemuteerd``, can deadlock with a save of that
+  parent. PostgreSQL detects the deadlock and cancels one of the two requests,
+  which gets a 503. Run such a write in ``batched_invalidation()``. Adding a child
+  needs no batch: its save locks the parent first.
+
+**Maintenance**
+
+* [open-zaak/open-zaak#2577] Removed implementation details: ``etag_func``,
+  ``EtagUpdate`` and ``MethodCallback`` from ``vng_api_common.caching.etags``,
+  ``add_dependency`` from ``vng_api_common.caching.registry``, and
+  ``handle_m2m_cleared``, ``is_etag_model`` and ``mark_affected_objects`` from
+  ``vng_api_common.caching.signals``. The receivers
+  ``mark_related_instances_for_etag_update`` and
+  ``mark_m2m_related_instances_for_etag_update`` stay, doing nothing, for
+  migrations that disconnect them.
+
+
 3.0.1 (2026-10-13)
 ------------------
 

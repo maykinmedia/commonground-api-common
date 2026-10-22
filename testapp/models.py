@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib.gis.db.models import GeometryField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -6,6 +10,12 @@ from vng_api_common.caching import ETagMixin
 from vng_api_common.descriptors import GegevensGroepType
 from vng_api_common.fields import BSNField, RSINField
 from vng_api_common.notes.models import NotitieBaseClass
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import (
+        ManyRelatedManager,
+        RelatedManager,
+    )
 
 
 class Group(models.Model):
@@ -113,3 +123,66 @@ class Notitie(NotitieBaseClass):
 class Medewerker(models.Model):
     bsn = BSNField(blank=True, null=True)
     rsin = RSINField(blank=True, null=True)
+
+
+# The ETag oracle (tests/test_etag_oracle.py) writes to these models. Between
+# them, the representations make every kind of read an ETag has to follow.
+
+
+class Folder(ETagMixin, models.Model):
+    name = models.CharField(max_length=10)
+    code = models.CharField(max_length=10)  # shown by its sheets, through a slug
+
+    if TYPE_CHECKING:  # reverse relations, which Django adds at runtime
+        sheets: RelatedManager[Sheet]
+        tags: ManyRelatedManager[Tag, models.Model]
+        attachments: RelatedManager[Attachment]
+        shortcuts: RelatedManager[Shortcut]
+
+    class Meta:  # type: ignore
+        ordering = ["pk"]
+
+
+class Sheet(ETagMixin, models.Model):
+    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, related_name="sheets")
+    title = models.CharField(max_length=10)
+    position = models.IntegerField()  # orders its folder's list of sheets
+
+    class Meta:  # type: ignore
+        ordering = ["position", "pk"]
+
+
+class Tag(ETagMixin, models.Model):
+    label = models.CharField(max_length=10)
+    folders = models.ManyToManyField(Folder, related_name="tags", blank=True)
+
+    class Meta:  # type: ignore
+        ordering = ["pk"]
+
+
+class Attachment(models.Model):
+    """No ETag of its own: its folder shows it nested."""
+
+    folder = models.ForeignKey(
+        Folder, on_delete=models.CASCADE, related_name="attachments"
+    )
+    filename = models.CharField(max_length=10)
+
+    class Meta:  # type: ignore
+        ordering = ["pk"]
+
+
+class Shortcut(ETagMixin, models.Model):
+    label = models.CharField(max_length=10)
+    # its target lists it, ordered by label, without showing the label; it may
+    # point at a folder that doesn't exist yet
+    target = models.ForeignKey(
+        Folder,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="shortcuts",
+        db_constraint=False,
+    )
+
+    class Meta:  # type: ignore
+        ordering = ["label", "pk"]

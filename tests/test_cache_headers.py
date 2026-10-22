@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from django.db import transaction
 from django.urls import path
 
 import pytest
@@ -13,7 +12,7 @@ from testapp.serializers import HobbySerializer
 from testapp.viewsets import PersonViewSet
 from tests import generate_schema
 from vng_api_common.caching.decorators import conditional_retrieve
-from vng_api_common.caching.etags import EtagUpdate
+from vng_api_common.caching.etags import calculate_etag
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -24,14 +23,14 @@ def test_etag_header_present(api_client, person):
 
     response = api_client.get(path)
 
-    person.refresh_from_db()
     assert response.status_code == status.HTTP_200_OK
     assert "ETag" in response
-    assert response["ETag"] == f'"{person._etag}"'
+    assert response["ETag"] == f'"{calculate_etag(person)}"'
 
 
 def test_304_on_cached_resource(api_client, person):
-    person.calculate_etag_value()
+    with pytest.deprecated_call():
+        person.calculate_etag_value()
     path = reverse("person-detail", kwargs={"pk": person.pk})
 
     response = api_client.get(path, HTTP_IF_NONE_MATCH=f'"{person._etag}"')
@@ -65,9 +64,8 @@ def test_cache_headers_detected():
     assert headers[0]["name"] == "If-None-Match"
 
 
-@pytest.mark.django_db(transaction=False)
-def test_related_resource_changes_recalculate_etag1(django_capture_on_commit_callbacks):
-    # Assert that resources references in the serializer trigger ETag recalculates, while
+def test_related_resource_changes_recalculate_etag1(api_client):
+    # Assert that resources referenced in the serializer change the ETag, while
     # resources not referenced don't.
     hobbies = [
         HobbyFactory.create(name="playing guitar"),
@@ -83,55 +81,32 @@ def test_related_resource_changes_recalculate_etag1(django_capture_on_commit_cal
         group=GroupFactory.create(name="Brut"),
     )
     person.hobbies.set(hobbies)  # not included in serializer
-    person.calculate_etag_value()
+    path = reverse("person-detail", kwargs={"pk": person.pk})
+    initial_etag = api_client.get(path)["ETag"]
 
-    # discard any scheduled callback handlers from test set up
-    transaction.get_connection().run_on_commit = []
+    # changing the hobbies does not change the representation, nor the ETag
+    person.hobbies.clear()
 
-    assert person._etag, "No ETag value calculated"
-    initial_etag_value = person._etag
+    assert api_client.get(path)["ETag"] == initial_etag
 
-    # start test 1 - changing the hobbies should not result in changed etags
-    with django_capture_on_commit_callbacks(execute=True):
-        person.hobbies.clear()
+    # changing the group does change the representation, and the ETag
+    person.group.name = "DWTD"
+    person.group.save()
 
-    person.refresh_from_db()
-
-    assert person._etag == initial_etag_value
-
-    # start test 2 - changing the group does affect the serializer output and thus the etag value
-    # discard any scheduled callback handlers from test set up
-    transaction.get_connection().run_on_commit = []
-    with django_capture_on_commit_callbacks(execute=True):
-        person.group.name = "DWTD"
-        person.group.save()
-
-    person.refresh_from_db()
-
-    assert person._etag, "ETag should have been set"
-    assert person._etag != initial_etag_value, "ETag value should have been changed"
+    assert api_client.get(path)["ETag"] != initial_etag
 
 
-@pytest.mark.django_db(transaction=False)
-def test_related_resource_changes_recalculate_etag2(django_capture_on_commit_callbacks):
+def test_related_resource_changes_recalculate_etag2(api_client):
     # has a simple (reverse) m2m to Person
     person = PersonFactory.create()
     hobby = HobbyFactory.create()
-    hobby.calculate_etag_value()
+    path = reverse("hobby-detail", kwargs={"pk": hobby.pk})
+    initial_etag = api_client.get(path)["ETag"]
 
-    assert hobby._etag, "No ETag value calculated"
-    initial_etag_value = hobby._etag
+    # now, change the related people resource to the hobby
+    person.hobbies.add(hobby)
 
-    # now, change the related people resource to the hobby, which should trigger a
-    # re-calculate
-    # discard any scheduled callback handlers from test set up
-    transaction.get_connection().run_on_commit = []
-    with django_capture_on_commit_callbacks(execute=True):
-        person.hobbies.add(hobby)
-
-    hobby.refresh_from_db()
-    assert hobby._etag, "ETag should have been set"
-    assert hobby._etag != initial_etag_value, "ETag value should have been changed"
+    assert api_client.get(path)["ETag"] != initial_etag
 
 
 def test_etag_changes_m2m_changes_forward(api_client, hobby, person):
@@ -256,20 +231,6 @@ def test_fetching_cache_enabled_deleted_resource_404s(api_client, person):
     assert response.status_code == 404
 
 
-@pytest.mark.django_db(transaction=False)
-def test_etag_updates_deduped(django_capture_on_commit_callbacks):
-    with patch(
-        "testapp.models.Person.calculate_etag_value"
-    ) as mock_calculate_etag_value:
-        with django_capture_on_commit_callbacks(execute=True):
-            # one post_save
-            person = PersonFactory.create()
-            # second post_save
-            person.save()
-
-    assert mock_calculate_etag_value.call_count == 1
-
-
 class DynamicSerializerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Hobby.objects.all()
 
@@ -287,21 +248,16 @@ def test_dynamic_serializer():
     assert Person in REPLACEMENT_REGISTRY
 
 
+def test_etag_field_is_deprecated():
+    with (
+        pytest.deprecated_call(),
+        patch("vng_api_common.caching.registry.DEPENDENCY_REGISTRY", new={}),
+    ):
+        conditional_retrieve(etag_field="_etag")(DynamicSerializerViewSet)
+
+
 def test_etag_object_cascading_delete():
     group = GroupFactory.create()
     PersonFactory.create(group=group)
 
     group.delete()
-
-
-def test_calculate_new_value_skips_instance_without_pk():
-    person = PersonFactory.create()
-    etag_update = EtagUpdate(instance=person)
-
-    person.delete()
-    assert person.pk is None
-
-    with patch.object(person, "calculate_etag_value") as calculate_etag_value:
-        etag_update.calculate_new_value()
-
-    calculate_etag_value.assert_not_called()

@@ -208,6 +208,33 @@ class ExceptionHandlerTests(APITestCase):
             },
         )
 
+    def test_503_for_a_deadlock(self):
+        self.assertErrorResponse(
+            views.DeadlockView,
+            {
+                "code": "transaction_cancelled",
+                "title": _(
+                    "The request conflicted with another one and was cancelled. "
+                    "Try again."
+                ),
+                "status": 503,
+                "detail": _(
+                    "The request conflicted with another one and was cancelled. "
+                    "Try again."
+                ),
+            },
+        )
+
+    def test_a_deadlock_says_when_to_retry(self):
+        response = views.DeadlockView.as_view()(self.factory.get("/irrelevant"))
+
+        self.assertEqual(response["Retry-After"], "1")
+
+    def test_other_database_errors_stay_500(self):
+        response = views.QueryCanceledView.as_view()(self.factory.get("/irrelevant"))
+
+        self.assertEqual(response.status_code, 500)
+
     @tag("gh-4505")
     @patch.dict("os.environ", {"DEBUG": "no"})
     def test_assertion_error_crash(self):
