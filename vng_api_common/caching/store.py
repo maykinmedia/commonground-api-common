@@ -144,9 +144,9 @@ def batched_invalidation(*, savepoint: bool = True) -> Generator[None]:
                 RelevanteZaakRelatie.objects.create(zaak=zaak, url=url)
 
     Use it where one request writes many rows, such as a create with nested
-    relations, and where a write also saves its parent: outside a batch, that can
-    deadlock with a save of the parent, which PostgreSQL detects and resolves by
-    cancelling one of the two. The block is a transaction, as in
+    relations, and where a change or delete of a child also saves its parent:
+    outside a batch, that can deadlock with a save of the parent, which PostgreSQL
+    detects and resolves by cancelling one of the two. The block is a transaction, as in
     ``transaction.atomic()``: an exception rolls back its writes. It nests in
     transactions and in itself. Clients see the same ETags as without it.
 

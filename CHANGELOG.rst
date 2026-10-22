@@ -52,10 +52,11 @@ Unreleased
   resource after the upgrade calculates its ETag.
 * Write in a transaction, and don't serve conditional requests with
   ``ATOMIC_REQUESTS``.
-* A write that also saves its parent, such as a child that updates the parent's
-  ``laatst_gemuteerd``, can deadlock with a save of that parent. PostgreSQL
-  detects the deadlock and cancels one of the two requests, which gets a 503. Run
-  such a write in ``batched_invalidation()``.
+* A change or delete of a child that also saves its parent, such as one that
+  updates the parent's ``laatst_gemuteerd``, can deadlock with a save of that
+  parent. PostgreSQL detects the deadlock and cancels one of the two requests,
+  which gets a 503. Run such a write in ``batched_invalidation()``. Adding a child
+  needs no batch: its save locks the parent first.
 
 **Maintenance**
 

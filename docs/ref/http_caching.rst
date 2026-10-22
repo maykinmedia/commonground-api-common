@@ -150,21 +150,23 @@ share one:
 Inside a transaction, ``batched_invalidation(savepoint=False)`` skips the
 savepoint, as ``transaction.atomic(savepoint=False)`` does.
 
-Run a write that also saves its parent in one too, such as adding a rol that
-updates its zaak's ``laatst_gemuteerd``. Outside a batch, it can deadlock with a
-save of that zaak. Nothing hangs: PostgreSQL detects the deadlock after about a
-second (its ``deadlock_timeout``), cancels one of the two transactions and lets
-the other finish. Nothing the cancelled request wrote is kept:
+Run a change or delete of a child that also saves its parent in one too, such as
+updating a zaakinformatieobject, which updates its zaak's ``laatst_gemuteerd``.
+Outside a batch, it can deadlock with a save of that zaak. Nothing hangs:
+PostgreSQL detects the deadlock after about a second (its ``deadlock_timeout``),
+cancels one of the two transactions and lets the other finish. Nothing the
+cancelled request wrote is kept:
 
 .. code-block:: python
 
     with batched_invalidation():
-        Rol.objects.create(zaak=zaak, ...)
+        zio.titel = titel
+        zio.save()
         zaak.laatst_gemuteerd = timezone.now()
         zaak.save(update_fields=["laatst_gemuteerd"])
 
-A child added while another request saves its parent can still deadlock; a batch
-doesn't prevent that one. PostgreSQL detects and resolves it in the same way.
+Adding a child, or saving a new parent into its foreign key with
+``update_fields``, needs no batch for this: such a save locks the parent first.
 
 This library's exception handler,
 :func:`~vng_api_common.exception_handling.exception_handler`, answers a cancelled

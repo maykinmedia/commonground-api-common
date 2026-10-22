@@ -17,7 +17,7 @@ save makes stale; invalidating again after the save narrows that window.
 ``bulk_create``, ``bulk_update`` and raw SQL are not covered.
 """
 
-from collections.abc import Hashable, Iterable, Set as AbstractSet
+from collections.abc import Collection, Hashable, Iterable, Set as AbstractSet
 from enum import StrEnum
 
 from django.apps import apps
@@ -40,7 +40,7 @@ from .registry import (
     load,
     written_by,
 )
-from .store import Resource, forget, invalidate
+from .store import Resource, _key, forget, invalidate
 
 # what a save invalidated before it wrote, for its post_save to invalidate again
 _BEFORE = "_etags_invalidated_before_save"
@@ -140,6 +140,49 @@ def invalidate_before_save(
     vars(instance)[_BEFORE] = resources
 
 
+def _lock_parents(
+    instance: models.Model,
+    using: str,
+    created: bool,
+    update_fields: AbstractSet[str] | None,
+    invalidating: Collection[Resource],
+) -> None:
+    """
+    Lock the resources among ``invalidating`` that a new row refers to, or that a
+    save of a foreign key moves it to, before their stored ETags.
+    """
+    # PostgreSQL checks Django's foreign keys at COMMIT (DEFERRABLE INITIALLY
+    # DEFERRED), taking FOR KEY SHARE on the parent. By then this transaction holds
+    # the parent's stored ETag, which a save of the parent waits for while it holds
+    # the parent FOR UPDATE: a deadlock. Locking the parent first puts both in the
+    # same order. NO KEY UPDATE rather than KEY SHARE: two children that each save
+    # their parent afterwards would both hold KEY SHARE, and neither could take
+    # FOR UPDATE. A full save of an existing row may move it too, but telling
+    # would take a query; it may still deadlock, and PostgreSQL resolves that.
+    if not transaction.get_connection(using).in_atomic_block:
+        return
+    # Only the parents the save invalidates: a rol's zaak, which lists it, not
+    # its roltype, whose row every rol of that type would otherwise queue on.
+    keys = {_key(resource) for resource in invalidating}
+    referred: dict[type[models.Model], set[object]] = {}
+    for field in type(instance)._meta.concrete_fields:
+        if not isinstance(field, models.ForeignKey):  # a OneToOneField is one too
+            continue
+        parent = field.remote_field.model
+        if field.target_field is not parent._meta.pk:
+            continue  # resources are known by pk
+        if not created and (
+            update_fields is None or not {field.name, field.attname} & update_fields
+        ):
+            continue
+        value = getattr(instance, field.attname)
+        if value is not None and _key(Resource(parent, value)) in keys:
+            referred.setdefault(parent, set()).add(value)
+    for model in sorted(referred, key=lambda model: model._meta.label):
+        rows = model._base_manager.using(using).filter(pk__in=referred[model])
+        list(rows.order_by("pk").select_for_update(no_key=True).values_list("pk"))
+
+
 @receiver(post_save)
 def invalidate_after_save(
     sender: type[models.Model],
@@ -165,6 +208,9 @@ def invalidate_after_save(
     written = written_by(sender, update_fields)
     before: frozenset[Resource] = vars(instance).pop(_BEFORE, frozenset())
     after = affected_by_save(instance, written, created)
+    using = kwargs.get("using", DEFAULT_DB_ALIAS)
+    assert isinstance(using, str)
+    _lock_parents(instance, using, created, update_fields, after)
     invalidate(before | after)
 
 
