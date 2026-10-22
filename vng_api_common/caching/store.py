@@ -122,10 +122,14 @@ def read(resource: Resource) -> Stored | None:
 
 @dataclass
 class _Batch:
-    """The rows the writes in a batch invalidated, and those of resources deleted."""
+    """
+    The rows the writes in a batch invalidated, those of resources deleted, and the
+    resources to lock before them.
+    """
 
     invalidated: set[tuple[str, str]] = field(default_factory=set)
     deleted: set[tuple[str, str]] = field(default_factory=set)
+    locked: set[Resource] = field(default_factory=set)
 
 
 _batch: ContextVar[_Batch | None] = ContextVar("batch", default=None)
@@ -155,7 +159,8 @@ def batched_invalidation(*, savepoint: bool = True) -> Generator[None]:
     then rolls back the whole transaction.
     """
     # The writes in the block collect the rows to invalidate, and the block's end
-    # writes their tokens, before the transaction commits. Until then the writes
+    # writes their tokens, before the transaction commits, after locking the
+    # parents the writes refer to, once each. Until then the writes
     # don't lock the stored ETags, so a GET may fill one in from the committed data;
     # the end replaces it. ``specs/etag/EtagToken.tla`` checks this (BatchedTxs).
     # Locking the stored ETags last keeps the lock order of a save of the parent:
@@ -177,11 +182,38 @@ def batched_invalidation(*, savepoint: bool = True) -> Generator[None]:
             yield
             _batch.reset(token)
             token = None
+            _lock_rows(batch.locked)
             _delete_rows(batch.deleted)
             _write_tokens(batch.invalidated - batch.deleted)
     finally:
         if token is not None:
             _batch.reset(token)
+
+
+def lock(resources: Collection[Resource]) -> None:
+    """
+    Lock the rows of ``resources`` FOR NO KEY UPDATE, in the current transaction, or
+    at the end of the :func:`batched_invalidation` around it, before its tokens.
+    """
+    if (batch := _batch.get()) is not None:
+        batch.locked.update(resources)
+    else:
+        _lock_rows(resources)
+
+
+def _lock_rows(resources: Collection[Resource]) -> None:
+    """
+    Lock the rows of ``resources``, one statement per model, in a canonical order
+    (model, then primary key), so concurrent writers lock them in the same order.
+    """
+    # PostgreSQL locks the rows as the ORDER BY returns them; ``pk IN`` and
+    # ``ORDER BY pk`` can use the primary key's index
+    by_model: dict[type[models.Model], set[Hashable]] = {}
+    for resource in resources:
+        by_model.setdefault(resource.model, set()).add(resource.pk)
+    for model in sorted(by_model, key=_label):
+        rows = model._base_manager.filter(pk__in=by_model[model]).order_by("pk")
+        list(rows.select_for_update(no_key=True).values_list("pk"))
 
 
 def invalidate(resources: Collection[Resource]) -> None:

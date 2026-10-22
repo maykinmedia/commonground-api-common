@@ -40,7 +40,7 @@ from .registry import (
     load,
     written_by,
 )
-from .store import Resource, _key, forget, invalidate
+from .store import Resource, _key, forget, invalidate, lock
 
 # what a save invalidated before it wrote, for its post_save to invalidate again
 _BEFORE = "_etags_invalidated_before_save"
@@ -164,7 +164,7 @@ def _lock_parents(
     # Only the parents the save invalidates: a rol's zaak, which lists it, not
     # its roltype, whose row every rol of that type would otherwise queue on.
     keys = {_key(resource) for resource in invalidating}
-    referred: dict[type[models.Model], set[object]] = {}
+    parents: set[Resource] = set()
     for field in type(instance)._meta.concrete_fields:
         if not isinstance(field, models.ForeignKey):  # a OneToOneField is one too
             continue
@@ -176,11 +176,9 @@ def _lock_parents(
         ):
             continue
         value = getattr(instance, field.attname)
-        if value is not None and _key(Resource(parent, value)) in keys:
-            referred.setdefault(parent, set()).add(value)
-    for model in sorted(referred, key=lambda model: model._meta.label):
-        rows = model._base_manager.using(using).filter(pk__in=referred[model])
-        list(rows.order_by("pk").select_for_update(no_key=True).values_list("pk"))
+        if value is not None and _key(resource := Resource(parent, value)) in keys:
+            parents.add(resource)
+    lock(parents)
 
 
 @receiver(post_save)

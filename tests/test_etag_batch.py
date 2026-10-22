@@ -1,6 +1,6 @@
 """
 ``batched_invalidation`` writes the tokens of the writes in it in one statement at
-its end. The oracle and the concurrency machine run writes in batches among other
+its end, after locking the parents of its new rows once. The oracle and the concurrency machine run writes in batches among other
 writes; these are what they don't count.
 """
 
@@ -39,6 +39,10 @@ def token_writes(statements: CaptureQueriesContext) -> list[str]:
     ]
 
 
+def parent_locks(statements: CaptureQueriesContext) -> list[str]:
+    return [q["sql"] for q in statements if q["sql"].endswith("FOR NO KEY UPDATE")]
+
+
 def add_sheets(folder: Folder) -> None:
     for position in range(3):
         Sheet.objects.create(folder=folder, title="a", position=position)
@@ -53,6 +57,16 @@ def test_a_batch_writes_its_tokens_in_one_statement(client: Client, folder: Fold
 
     assert len(token_writes(statements)) == 1
     assert_served_etags_match(client, served)
+
+
+def test_a_batch_locks_the_parent_of_its_new_rows_once(folder: Folder):
+    with CaptureQueriesContext(connection) as statements, transaction.atomic():
+        add_sheets(folder)
+    assert len(parent_locks(statements)) == 3
+
+    with CaptureQueriesContext(connection) as statements, batched_invalidation():
+        add_sheets(folder)
+    assert len(parent_locks(statements)) == 1
 
 
 def test_a_nested_batch_leaves_writing_to_the_outer_one(folder: Folder):
