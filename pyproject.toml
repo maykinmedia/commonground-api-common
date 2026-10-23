@@ -44,8 +44,9 @@ dependencies = [
     "notifications-api-common>=0.3.1",
     "zgw-consumers>=1.0.0",
     "oyaml",
-    "PyJWT>=2.10.1",
+    "PyJWT>=2.15.1",
     "requests",
+    "certifi>=2026.10.19",  # required through requests, bounded for 🔒
     "ape-pie",
     "sentry-sdk",
     "structlog",
