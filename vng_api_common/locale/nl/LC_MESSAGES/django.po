@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: 3.0.1\n"
+"Project-Id-Version: 3.1.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-17 15:36+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -681,6 +681,12 @@ msgstr "De resource bestaat niet meer"
 #: exceptions.py:21
 msgid "Precondition failed"
 msgstr "Voorwaarde is niet vervuld"
+
+#: exceptions.py:33
+msgid "The request conflicted with another one and was cancelled. Try again."
+msgstr ""
+"Het verzoek botste met een ander verzoek en is geannuleerd. Probeer het "
+"opnieuw."
 
 #: extensions/file.py:18
 msgid "Base64 encoded binary content."
