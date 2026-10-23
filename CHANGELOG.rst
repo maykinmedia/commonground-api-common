@@ -2,6 +2,19 @@
 Change history
 ==============
 
+3.1.1 (2026-10-23)
+------------------
+
+**Security**
+
+* Require ``certifi>=2026.10.19``, which no longer trusts the eMudhra root whose
+  intermediate CA keys were compromised. Also update ``pip`` to 26.2.2 or later and
+  rebuild your images without cache, to update the system certificates. See the
+  `Python advisory <https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576>`_.
+* Require ``PyJWT>=2.15.1``. Older versions have known vulnerabilities, among
+  them a ``RecursionError`` on a deeply nested JWT, which anyone could trigger
+  without credentials and which gave a 500 (CVE-2026-101918). It is now a 403.
+
 3.1.0 (2026-10-23)
 ------------------
 
