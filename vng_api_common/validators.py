@@ -6,6 +6,7 @@ from typing import Any, cast
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.deconstruct import deconstructible
@@ -430,3 +431,80 @@ class PublishValidator(ResourceValidator):
             raise serializers.ValidationError(
                 self.publish_message.format(url=url), code=self.publish_code
             )
+
+
+@deconstructible
+class URNValidator(RegexValidator):
+    """
+    The basic syntax for a URN is defined using the
+    Augmented Backus-Naur Form (ABNF) as specified in [RFC5234].
+
+    URN Syntax::
+
+        namestring    = assigned-name
+                        [ rq-components ]
+                        [ "#" f-component ]
+
+        assigned-name = "urn" ":" NID ":" NSS
+
+        NID           = (alphanum) 0*30(ldh) (alphanum)
+        ldh           = alphanum / "-"
+        NSS           = pchar *(pchar / "/")
+
+        rq-components = [ "?+" r-component ]
+                        [ "?=" q-component ]
+        r-component   = pchar *( pchar / "/" / "?" )
+        q-component   = pchar *( pchar / "/" / "?" )
+
+        f-component   = fragment
+
+        ; general URI syntax rules (RFC3986)
+        fragment      = *( pchar / "/" / "?" )
+        pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+        pct-encoded   = "%" HEXDIG HEXDIG
+        unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+        sub-delims    = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+
+        alphanum      = ALPHA / DIGIT  ; obsolete, usage is deprecated
+
+    The question mark character "?" can be used without percent-encoding
+    inside r-components, q-components, and f-components.  Other than
+    inside those components, a "?" that is not immediately followed by
+    "=" or "+" is not defined for URNs and SHOULD be treated as a syntax
+    error by URN-specific parsers and other processors.
+
+    https://datatracker.ietf.org/doc/html/rfc8141
+    """
+
+    HEXDIG = r"[0-9A-Fa-f]"
+    ALPHANUM = r"[A-Za-z0-9]"
+    pchar = rf"(?:{ALPHANUM}|[-._~]|%{HEXDIG}{HEXDIG}|[!$&'()*+,;=]|[:@])"
+
+    # assigned-name
+    NID = rf"{ALPHANUM}(?:{ALPHANUM}|-){{0,30}}{ALPHANUM}"
+    NSS = rf"{pchar}(?:{pchar}|/)*"
+    assigned_name = rf"urn:{NID}:{NSS}"
+
+    # optional r/q components
+    rq_components = (
+        rf"(?:\?\+{pchar}(?:{pchar}|/|\?)*)?(?:\?={pchar}(?:{pchar}|/|\?)*)?"
+    )
+
+    # optional f-component
+    f_component = rf"{pchar}(?:{pchar}|/|\?)*"
+
+    # complete URN regex (RFC 8141)
+    urn_pattern = rf"^{assigned_name}{rq_components}(?:#{f_component})?$"
+
+    message = (
+        "Enter a valid URN. Correct format: 'urn:<namespace>:<resource>' "
+        "(e.g., urn:isbn:9780143127796)."
+    )
+    code = "invalid_urn"
+
+    def __init__(self):
+        super().__init__(
+            regex=re.compile(self.urn_pattern),
+            message=self.message,
+            code=self.code,
+        )

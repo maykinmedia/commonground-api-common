@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from iso639 import iter_langs
 
 from .constants import BSN_LENGTH, RSIN_LENGTH, VertrouwelijkheidsAanduiding
-from .validators import validate_bsn, validate_rsin
+from .validators import URNValidator, validate_bsn, validate_rsin
 
 LANGUAGE_CHOICES = tuple([(lg.pt2b, lg.name) for lg in iter_langs() if lg.pt2b])
 
@@ -119,3 +119,21 @@ class VertrouwelijkheidsAanduidingField(models.CharField):
                 )
             ]
         return []
+
+
+class URNField(models.CharField):
+    """
+    A custom Django model field to store a valid URN (RFC 8141: Uniform Resource Names)
+    https://datatracker.ietf.org/doc/html/rfc8141
+
+    This field extends CharField and automatically validates the value
+    against a basic URN pattern: `urn:<namespace>:<resource>`.
+    """
+
+    default_validators = [URNValidator()]
+    description = _("URN")
+
+    def __init__(self, *args, **kwargs):
+        # Default max length 255 characters
+        kwargs.setdefault("max_length", 255)
+        super().__init__(*args, **kwargs)
