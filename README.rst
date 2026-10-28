@@ -43,6 +43,7 @@ Features
     * ``IsImmutableValidator`` - valideer dat bepaalde velden niet gewijzigd
       worden bij een (partial) update, maar wel mogen gezet worden bij een create
     * ``ResourceValidator`` - valideer dat een URL een bepaalde resource ontsluit
+    * ``URNValidator`` - valideer de URN-syntaxis volgens de ABNF-regels zoals gedefinieerd in RFC 5234
 * Custom inspectors voor drf-yasg:
     * Support voor ``rest_framework_gis`` ``GeometryField``
     * SUpport voor ``django-extra-fields`` ``Base64FieldMixin``
@@ -59,6 +60,7 @@ Features
     * ``LanguageField``
     * ``VertrouwelijkheidsAanduidingField``
     * ``DurationField``
+    * ``URNField``
 * Mocks voor de validators die netwerk IO hebben, eenvoudig via
   ``@override_settings`` toe te passen
 * Test utilities
