@@ -2,6 +2,8 @@
 Interface to get a client object for a given URL.
 """
 
+from typing import Literal, NoReturn, overload
+
 import structlog
 from ape_pie import APIClient
 from requests import JSONDecodeError, RequestException, Response
@@ -53,6 +55,14 @@ class Client(APIClient):
         return super().request(method, url, *args, **kwargs)
 
 
+@overload
+def get_client(
+    url: str, raise_exceptions: Literal[True], **client_kwargs
+) -> Client | NoReturn: ...
+@overload
+def get_client(
+    url: str, raise_exceptions: Literal[False] = False, **client_kwargs
+) -> Client | None: ...
 def get_client(
     url: str, raise_exceptions: bool = False, **client_kwargs
 ) -> Client | None:
