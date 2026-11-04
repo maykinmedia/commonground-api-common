@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError
@@ -128,3 +129,60 @@ class WildcardFilter(filters.CharFilter):
         value = r"^{}$".format(value.replace(self.wildcard, ".*"))
 
         return super().filter(qs, value)
+
+
+class URNFilter(filters.CharFilter):
+    """
+    Filters by an exact segment of a URN field.
+
+    Unlike a generic substring match (icontains), the value must match
+    a whole segment delimited by ``:``.
+    """
+
+    @staticmethod
+    def get_pattern(value):
+        return r"(^|:)" + re.escape(value) + r"(:|$)"
+
+    def filter(self, qs, value):
+        if value in EMPTY_VALUES:
+            return qs
+
+        pattern = self.get_pattern(value)
+        return self.get_method(qs)(**{f"{self.field_name}__regex": pattern})
+
+
+class ListURNFilter(filters.CharFilter):
+    """
+    Filters by an exact URN segment within a JSONField containing a
+    list of URNs. Supports two shapes:
+
+    - a list of plain URN strings
+    - a list of URN objects
+    """
+
+    def __init__(self, *args, json_key="urn", **kwargs):
+        self.json_key = json_key
+        super().__init__(*args, **kwargs)
+
+    def filter(self, qs, value):
+        if value in EMPTY_VALUES:
+            return qs
+
+        json_key = self.json_key
+        pattern = URNFilter.get_pattern(value)
+
+        class MatchesURN(models.Func):
+            output_field = models.BooleanField()  # pyright: ignore[reportAssignmentType]
+
+            def as_sql(self, compiler, connection, **extra_context):  # type: ignore
+                column, params = compiler.compile(self.source_expressions[0])
+                return (
+                    "EXISTS (SELECT 1 FROM jsonb_array_elements("
+                    f"COALESCE(NULLIF({column}, 'null'::jsonb), '[]'::jsonb)) e "
+                    "WHERE (CASE WHEN jsonb_typeof(e) = 'object' THEN e->>%s "
+                    "WHEN jsonb_typeof(e) = 'string' THEN e#>>'{}' END) ~ %s)",
+                    [*params, json_key, pattern],
+                )
+
+        condition = MatchesURN(models.F(self.field_name))  # pyright: ignore[reportArgumentType]
+        return self.get_method(qs)(condition)

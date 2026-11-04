@@ -2,6 +2,9 @@ import os
 
 from vng_api_common.conf.api import *  # noqa
 from vng_api_common.conf.api import JWT_SPECTACULAR_SETTINGS  # noqa
+from vng_api_common.settings import (
+    COMMONGROUND_API_COMMON as BASE_COMMONGROUND_API_COMMON,
+)
 
 DEBUG = os.getenv("DEBUG", "no").lower() in ["yes", "true", "1"]
 
@@ -122,3 +125,6 @@ SPECTACULAR_SETTINGS.update(
 )
 
 IS_HTTPS = False
+
+COMMONGROUND_API_COMMON = BASE_COMMONGROUND_API_COMMON.copy()
+COMMONGROUND_API_COMMON.update({"URN_NAMESPACE": "testapp"})
