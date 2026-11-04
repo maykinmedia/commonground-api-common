@@ -172,9 +172,9 @@ class ListURNFilter(filters.CharFilter):
         pattern = URNFilter.get_pattern(value)
 
         class MatchesURN(models.Func):
-            output_field = models.BooleanField()
+            output_field = models.BooleanField()  # pyright: ignore[reportAssignmentType]
 
-            def as_sql(self, compiler, connection, **extra_context):
+            def as_sql(self, compiler, connection, **extra_context):  # type: ignore
                 column, params = compiler.compile(self.source_expressions[0])
                 return (
                     "EXISTS (SELECT 1 FROM jsonb_array_elements("
@@ -184,5 +184,5 @@ class ListURNFilter(filters.CharFilter):
                     [*params, json_key, pattern],
                 )
 
-        condition = MatchesURN(models.F(self.field_name))
+        condition = MatchesURN(models.F(self.field_name))  # pyright: ignore[reportArgumentType]
         return self.get_method(qs)(condition)
