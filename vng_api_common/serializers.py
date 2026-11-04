@@ -577,6 +577,7 @@ class URNRelatedField(RelatedField):
 
         try:
             queryset = self.get_queryset()
+            assert self.parent is not None
             model = (
                 type(obj)
                 if obj is not None

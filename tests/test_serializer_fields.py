@@ -60,7 +60,7 @@ def test_duration_field_invalid_deserialization():
         serializer = DurationSerializer(data=data)
         assert not serializer.is_valid()
         assert (
-            serializer.errors["duration"][0]
+            serializer.errors["duration"][0]  # type: ignore
             == "Duration has wrong format. Use one of these formats instead: P(n)Y(n)M(n)D."
         )
 
@@ -276,11 +276,11 @@ def test_is_valid(urn_model):
         context={"request": None},
         data={"urn": f"urn:testapp:resource:test:{urn_model.uuid}"},
     )
-    serializer.fields["urn"].get_queryset = lambda: QuerySetURNResource(
+    serializer.fields["urn"].get_queryset = lambda: QuerySetURNResource(  # pyright: ignore[reportAttributeAccessIssue]
         [urn_model], "uuid"
     )
     assert serializer.is_valid(), serializer.errors
-    assert serializer.validated_data["urn"] == urn_model
+    assert serializer.validated_data["urn"] == urn_model  # type: ignore
 
 
 @pytest.mark.parametrize(
