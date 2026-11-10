@@ -8,7 +8,8 @@ import structlog
 from rest_framework import serializers
 
 from .choices import TextChoicesWithDescriptions, ensure_description_exists
-from .serializers import DurationField, LengthHyperlinkedRelatedField
+from .fields import URNField as URNModelField
+from .serializers import DurationField, LengthHyperlinkedRelatedField, URNField
 
 try:
     from relativedeltafield import RelativeDeltaField
@@ -44,6 +45,7 @@ class CommonGroundAPICommonConfig(AppConfig):
 def register_serializer_field():
     mapping = serializers.ModelSerializer.serializer_field_mapping
     mapping[models.DurationField] = DurationField
+    mapping[URNModelField] = URNField
 
     if RelativeDeltaField is not None:
         mapping[RelativeDeltaField] = DurationField
