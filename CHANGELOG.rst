@@ -2,6 +2,19 @@
 Change history
 ==============
 
+3.2.0 (2026-11-11)
+------------------
+
+**New features**
+
+* [open-zaak/open-zaak#2452] Add ``alleen_is_gereed_voor_publicatie`` to ``Applicatie`` and its
+  serializer. This flag indicates that an application may only read documents
+  with ``isGereedVoorPublicatie`` set to ``true``. It defaults to ``false``.
+
+* [open-zaak/open-zaak#2537] Add a reusable ``URNField`` and
+  ``URNValidator`` for URN values. The field extends ``CharField`` with a
+  maximum length of 255 characters and validates URN syntax (RFC 8141) using ABNF.
+
 3.1.1 (2026-10-23)
 ------------------
 

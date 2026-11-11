@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: 3.1.1\n"
+"Project-Id-Version: 3.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 15:36+0200\n"
+"POT-Creation-Date: 2026-11-11 10:00+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -137,7 +137,7 @@ msgstr "De iat claim moet een geheel getal zijn."
 msgid "The JWT used for this request is expired"
 msgstr "De JWT die gebruikt is voor dit verzoek is verlopen"
 
-#: authorizations/models.py:25 authorizations/models.py:120
+#: authorizations/models.py:25 authorizations/models.py:129
 msgid "component"
 msgstr ""
 
@@ -175,60 +175,70 @@ msgstr ""
 "opgegeven te worden. Gebruik dit alleen als je de consumer helemaal "
 "vertrouwt."
 
-#: authorizations/models.py:97 authorizations/models.py:117
+#: authorizations/models.py:94
+msgid "alleen is gereed voor publicatie"
+msgstr ""
+
+#: authorizations/models.py:97
+msgid ""
+"Indien `true` mag de betreffende applicatie alleen documenten lezen met "
+"waarde `true` voor `isGereedVoorPublicatie`."
+msgstr ""
+
+#: authorizations/models.py:106 authorizations/models.py:126
 msgid "applicatie"
 msgstr ""
 
-#: authorizations/models.py:98
+#: authorizations/models.py:107
 msgid "applicaties"
 msgstr ""
 
-#: authorizations/models.py:123
+#: authorizations/models.py:132
 msgid "Component waarop autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:127
+#: authorizations/models.py:136
 msgid "scopes"
 msgstr ""
 
-#: authorizations/models.py:128
+#: authorizations/models.py:137
 msgid "Komma-gescheiden lijst van scope labels."
 msgstr ""
 
-#: authorizations/models.py:133
+#: authorizations/models.py:142
 msgid "zaaktype"
 msgstr ""
 
-#: authorizations/models.py:134
+#: authorizations/models.py:143
 msgid "URL naar het zaaktype waarop de autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:141
+#: authorizations/models.py:150
 msgid "informatieobjecttype"
 msgstr ""
 
-#: authorizations/models.py:143
+#: authorizations/models.py:152
 msgid ""
 "URL naar het informatieobjecttype waarop de autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:151
+#: authorizations/models.py:160
 msgid "besluittype"
 msgstr ""
 
-#: authorizations/models.py:153
+#: authorizations/models.py:162
 msgid "URL naar het besluittype waarop de autorisatie van toepassing is."
 msgstr ""
 
-#: authorizations/models.py:161
+#: authorizations/models.py:170
 msgid "Maximaal toegelaten vertrouwelijkheidaanduiding (inclusief)."
 msgstr ""
 
-#: authorizations/models.py:169
+#: authorizations/models.py:178
 msgid "autorisatie"
 msgstr ""
 
-#: authorizations/models.py:170
+#: authorizations/models.py:179
 msgid "autorisaties"
 msgstr ""
 
@@ -242,17 +252,17 @@ msgid ""
 "operaties, zoals gedocumenteerd bij de betreffende component."
 msgstr ""
 
-#: authorizations/serializers.py:79
+#: authorizations/serializers.py:80
 msgid ""
 "Lijst van consumer identifiers (hun 'client_id'). Een `client_id` mag "
 "slechts bij één applicatie-object voorkomen."
 msgstr ""
 
-#: authorizations/serializers.py:103
+#: authorizations/serializers.py:104
 msgid "Either autorisaties or heeft_alle_autorisaties can be specified"
 msgstr "Specifieer of autorisaties, of heeft_alle_autorisaties"
 
-#: authorizations/serializers.py:109
+#: authorizations/serializers.py:110
 msgid "Either autorisaties or heeft_alle_autorisaties should be specified"
 msgstr "Je moet of autorisaties, of heeft_alle_autorisaties specifiëren"
 
@@ -267,11 +277,11 @@ msgstr ""
 msgid "This field is required if `component` is {component}"
 msgstr "Dit veld is verplicht als de `component` {component} is"
 
-#: caching/models.py:18
+#: caching/models.py:19
 msgid "etag value"
 msgstr "waarde etag"
 
-#: caching/models.py:20
+#: caching/models.py:21
 msgid "MD5 hash of the resource representation in its current version."
 msgstr "MD5-hash van de resourceweergave in de huidige versie."
 
@@ -359,11 +369,11 @@ msgstr ""
 msgid "Niet-natuurlijk persoon"
 msgstr ""
 
-#: constants.py:84 constants.py:232
+#: constants.py:84 constants.py:233
 msgid "Vestiging"
 msgstr ""
 
-#: constants.py:85 constants.py:226
+#: constants.py:85 constants.py:227
 msgid "Organisatorische eenheid"
 msgstr ""
 
@@ -466,8 +476,8 @@ msgstr ""
 
 #: constants.py:175
 msgid ""
-"De termijn start op de datum waarop het besluit van kracht wordt (`BESLUIT."
-"Ingangsdatum` in het RGBZ).\tResultaatType.ZaakType heeft relevant "
+"De termijn start op de datum waarop het besluit van kracht wordt "
+"(`BESLUIT.Ingangsdatum` in het RGBZ).\tResultaatType.ZaakType heeft relevant "
 "BesluitType"
 msgstr ""
 
@@ -479,17 +489,18 @@ msgstr ""
 
 #: constants.py:185
 msgid ""
-"De termijn start op de dag na de datum waarop het besluit vervalt (`BESLUIT."
-"Vervaldatum` in het RGBZ). ResultaatType.ZaakType heeft relevant BesluitType"
+"De termijn start op de dag na de datum waarop het besluit vervalt "
+"(`BESLUIT.Vervaldatum` in het RGBZ). ResultaatType.ZaakType heeft relevant "
+"BesluitType"
 msgstr ""
 
 #: constants.py:190
 msgid ""
 "De termijn start op de einddatum geldigheid van het zaakobject waarop de "
-"zaak betrekking heeft (bijvoorbeeld de overlijdendatum van een Persoon). M.b."
-"v. de attribuutsoort `Objecttype` wordt vastgelegd om welke zaakobjecttype "
-"het gaat; m.b.v. de attribuutsoort `Datumkenmerk` wordt vastgelegd welke "
-"datum-attribuutsoort van het zaakobjecttype het betreft."
+"zaak betrekking heeft (bijvoorbeeld de overlijdendatum van een Persoon). "
+"M.b.v. de attribuutsoort `Objecttype` wordt vastgelegd om welke "
+"zaakobjecttype het gaat; m.b.v. de attribuutsoort `Datumkenmerk` wordt "
+"vastgelegd welke datum-attribuutsoort van het zaakobjecttype het betreft."
 msgstr ""
 
 #: constants.py:202
@@ -533,140 +544,144 @@ msgid "Maatschappelijke activiteit"
 msgstr ""
 
 #: constants.py:225
+msgid "**EXPERIMENTEEL**: Product"
+msgstr ""
+
+#: constants.py:226
 msgid "Openbare ruimte"
 msgstr ""
 
-#: constants.py:227
+#: constants.py:228
 msgid "Pand"
 msgstr ""
 
-#: constants.py:228
+#: constants.py:229
 msgid "Spoorbaandeel"
 msgstr ""
 
-#: constants.py:229
+#: constants.py:230
 msgid "Status"
 msgstr ""
 
-#: constants.py:230
+#: constants.py:231
 msgid "Terreindeel"
 msgstr ""
 
-#: constants.py:231
+#: constants.py:232
 msgid "Terrein gebouwd object"
 msgstr ""
 
-#: constants.py:233
+#: constants.py:234
 msgid "Waterdeel"
 msgstr ""
 
-#: constants.py:234
+#: constants.py:235
 msgid "Wegdeel"
 msgstr ""
 
-#: constants.py:235
+#: constants.py:236
 msgid "Wijk"
 msgstr ""
 
-#: constants.py:236
+#: constants.py:237
 msgid "Woonplaats"
 msgstr ""
 
-#: constants.py:237
+#: constants.py:238
 msgid "Woz deel object"
 msgstr ""
 
-#: constants.py:238
+#: constants.py:239
 msgid "Woz object"
 msgstr ""
 
-#: constants.py:239
+#: constants.py:240
 msgid "Woz waarde"
 msgstr ""
 
-#: constants.py:240
+#: constants.py:241
 msgid "Zakelijk recht"
 msgstr ""
 
-#: constants.py:241
+#: constants.py:242
 msgid "Overige"
 msgstr ""
 
-#: constants.py:245
+#: constants.py:246
 msgid "Autorisaties API"
 msgstr ""
 
-#: constants.py:246
+#: constants.py:247
 msgid "Notificaties API"
 msgstr ""
 
-#: constants.py:247
+#: constants.py:248
 msgid "Zaken API"
 msgstr ""
 
-#: constants.py:248
+#: constants.py:249
 msgid "Catalogi API"
 msgstr ""
 
-#: constants.py:249
+#: constants.py:250
 #, fuzzy
 #| msgid "external API"
 msgid "Documenten API"
 msgstr "externe API"
 
-#: constants.py:250
+#: constants.py:251
 #, fuzzy
 #| msgid "external API"
 msgid "Besluiten API"
 msgstr "externe API"
 
-#: constants.py:251
+#: constants.py:252
 msgid "Contactmomenten API"
 msgstr ""
 
-#: constants.py:252
+#: constants.py:253
 #, fuzzy
 #| msgid "external API"
 msgid "Klanten API"
 msgstr "externe API"
 
-#: constants.py:253
+#: constants.py:254
 msgid "Verzoeken API"
 msgstr ""
 
-#: constants.py:257
+#: constants.py:258
 msgid "Object aangemaakt"
 msgstr ""
 
-#: constants.py:258
+#: constants.py:259
 msgid "Lijst van objecten opgehaald"
 msgstr ""
 
-#: constants.py:259
+#: constants.py:260
 msgid "Object opgehaald"
 msgstr ""
 
-#: constants.py:260
+#: constants.py:261
 msgid "Object verwijderd"
 msgstr ""
 
-#: constants.py:261
+#: constants.py:262
 msgid "Object bijgewerkt"
 msgstr ""
 
-#: constants.py:262
+#: constants.py:263
 msgid "Object deels bijgewerkt"
 msgstr ""
 
-#: constants.py:266
+#: constants.py:267
 msgid "Hoort bij, omgekeerd: kent"
 msgstr ""
 
-#: constants.py:267
+#: constants.py:268
 msgid "Legt vast, omgekeerd: kan vastgelegd zijn als"
 msgstr ""
 
-#: exception_handling.py:42
+#: exception_handling.py:44
 msgid "Invalid input."
 msgstr "Ongeldige invoerwaarde."
 
@@ -682,7 +697,7 @@ msgstr "De resource bestaat niet meer"
 msgid "Precondition failed"
 msgstr "Voorwaarde is niet vervuld"
 
-#: exceptions.py:33
+#: exceptions.py:34
 msgid "The request conflicted with another one and was cancelled. Try again."
 msgstr ""
 "Het verzoek botste met een ander verzoek en is geannuleerd. Probeer het "
@@ -696,7 +711,7 @@ msgstr "Binaire inhoud, in base64 geëncodeerd."
 msgid "Download URL of the binary content."
 msgstr "Download URL van de binaire inhoud."
 
-#: extensions/hyperlink.py:35
+#: extensions/hyperlink.py:34
 msgid ""
 "URL reference to this object. This is the unique identification and location "
 "of this object."
@@ -704,19 +719,19 @@ msgstr ""
 "URL-referentie naar dit object. Dit is de unieke identificatie en locatie "
 "van dit object."
 
-#: fields.py:24
+#: fields.py:18
 msgid "RSIN"
 msgstr ""
 
-#: fields.py:49
+#: fields.py:43
 msgid "BSN"
 msgstr ""
 
-#: fields.py:193
-msgid "Specifieer de duur als 'DD 00:00'"
+#: fields.py:134
+msgid "URN"
 msgstr ""
 
-#: filters.py:52
+#: filters.py:55
 #, python-format
 msgid "Invalid resource type supplied, expected %r"
 msgstr "Invalide resourcetype opgegeven, verwachtte %r"
@@ -899,45 +914,68 @@ msgstr ""
 msgid "Vraag de headers op die je bij een GET request zou krijgen."
 msgstr ""
 
-#: serializers.py:394
+#: serializers.py:407
 #, python-brace-format
 msgid "Ensure this field has no more than {max_length} characters."
 msgstr ""
 
-#: serializers.py:395
+#: serializers.py:408
 #, python-brace-format
 msgid "Ensure this field has at least {min_length} characters."
 msgstr ""
 
-#: validators.py:33
+#: serializers.py:509
+msgid "This field is required."
+msgstr ""
+
+#: serializers.py:510
+msgid "Invalid URN - Could not match the expected pattern."
+msgstr "Ongeldige URN – Kon niet worden vergeleken met het verwachte patroon."
+
+#: serializers.py:511
+msgid "Invalid URN - Does not conform to the expected format."
+msgstr "Ongeldige URN – Voldoet niet aan het verwachte formaat."
+
+#: serializers.py:512
+msgid "Invalid URN - Corresponding object does not exist."
+msgstr "Ongeldige URN – Het bijbehorende object bestaat niet."
+
+#: serializers.py:514
+#, python-brace-format
+msgid ""
+"Incorrect type. Expected a string representing a URN, received {data_type}."
+msgstr ""
+"Onjuist type. Er werd een string verwacht die een URN vertegenwoordigt, maar {data_type} werd ontvangen."
+
+#: validators.py:34
 msgid "Voer een numerieke waarde in"
 msgstr ""
 
-#: validators.py:34
+#: validators.py:35
 msgid "Ongeldige code"
 msgstr ""
 
-#: validators.py:79
+#: validators.py:80
 msgid "Onjuist RSIN nummer"
 msgstr ""
 
-#: validators.py:94
+#: validators.py:95
 msgid "Onjuist BSN nummer"
 msgstr ""
 
-#: validators.py:162
+#: validators.py:163
 #, python-brace-format
 msgid ""
 "The URL {url} responded with HTTP {status_code}. Please provide a valid URL."
 msgstr ""
 "De URL {url} gaf als antwoord HTTP {status_code}. Geef een geldige URL op."
 
-#: validators.py:191
+#: validators.py:192
 #, python-brace-format
 msgid "The URL {url} could not be fetched. Exception: {exc}"
 msgstr "De URL {url} kon niet opgehaald worden. Foutmelding: {exc}"
 
-#: validators.py:219
+#: validators.py:220
 #, python-brace-format
 msgid ""
 "The URL {url} resource did not look like a(n) `{resource}`. Please provide a "
@@ -946,98 +984,110 @@ msgstr ""
 "De URL {url} resource lijkt niet op een `{resource}`. Geef een validate URL "
 "op."
 
-#: validators.py:296
+#: validators.py:297
 msgid "Ensure this value is not in the future."
 msgstr "Deze waarde mag niet in de toekomst liggen."
 
-#: validators.py:334
+#: validators.py:335
 #, python-brace-format
 msgid "Deze identificatie ({identificatie}) bestaat al binnen de organisatie"
 msgstr ""
 
-#: validators.py:396
+#: validators.py:397
 msgid "Dit veld mag niet gewijzigd worden."
 msgstr ""
 
-#: validators.py:423
+#: validators.py:424
 #, python-brace-format
 msgid "The resource {url} is not published."
 msgstr "De resource {url} is (nog) niet gepubliceerd."
 
-#: views.py:83
+#: validators.py:500
+msgid ""
+"Enter a valid URN. Correct format: 'urn:<namespace>:<resource>' (e.g., "
+"urn:isbn:9780143127796)."
+msgstr ""
+"Voer een geldige URN in. Juiste indeling: ‘urn:<namespace>:<resource>’ (bijv., "
+"urn:isbn:9780143127796)."
+
+#: views.py:84
 msgid "Site domain"
 msgstr ""
 
-#: views.py:84
+#: views.py:85
 msgid "HTTPS"
 msgstr ""
 
-#: views.py:101
+#: views.py:107
 msgid "Type of component"
 msgstr ""
 
-#: views.py:103
+#: views.py:109
 msgid "AC"
 msgstr ""
 
-#: views.py:107 views.py:113 views.py:154 views.py:159 views.py:170
+#: views.py:113 views.py:124 views.py:173 views.py:189
 msgid "Missing"
 msgstr ""
 
-#: views.py:112
+#: views.py:118
 msgid "Credentials for AC"
 msgstr ""
 
-#: views.py:113 views.py:170
+#: views.py:120 views.py:185
+msgid "Misconfigured"
+msgstr ""
+
+#: views.py:122 views.py:187
 msgid "Configured"
 msgstr ""
 
-#: views.py:133
+#: views.py:145
 msgid "Could not connect with AC"
 msgstr ""
 
-#: views.py:135
+#: views.py:147
 msgid "Can retrieve authorizations"
 msgstr ""
 
-#: views.py:137
+#: views.py:149
 msgid "AC connection and authorizations"
 msgstr ""
 
-#: views.py:154 views.py:159 views.py:164
+#: views.py:173 views.py:178
 msgid "NRC"
 msgstr ""
 
-#: views.py:169
+#: views.py:183
 msgid "Credentials for NRC"
 msgstr ""
 
-#: views.py:184
+#: views.py:204
 msgid "Could not connect with NRC"
 msgstr ""
 
-#: views.py:188
+#: views.py:208
 #, python-brace-format
 msgid "Cannot retrieve kanalen: HTTP {status_code}"
 msgstr ""
 
-#: views.py:192
+#: views.py:212
 msgid "Can retrieve kanalen"
 msgstr ""
 
-#: views.py:194
+#: views.py:214
 msgid "NRC connection and authorizations"
 msgstr ""
 
-#: views.py:215
+#: views.py:235
 msgid "Listens to AC notifications?"
 msgstr ""
 
-#: views.py:215
+#: views.py:235
 msgid "Yes"
 msgstr ""
 
-#: views.py:215
+#: views.py:235
 msgid "No"
 msgstr ""
 
