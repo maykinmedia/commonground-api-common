@@ -11,7 +11,7 @@ from .audittrails.utils import _view_supports_audittrail
 from .caching.introspection import has_cache_header
 from .constants import HEADER_AUDIT, HEADER_LOGRECORD_ID, VERSION_HEADER
 from .exception_handling import ERROR_CONTENT_TYPE
-from .exceptions import Conflict, Gone, PreconditionFailed
+from .exceptions import Conflict, Gone, PreconditionFailed, ResourceProtected
 from .geo import DEFAULT_CRS, HEADER_ACCEPT, HEADER_CONTENT, GeoMixin
 from .permissions import BaseAuthRequired, get_required_scopes
 from .serializers import FoutSerializer, ValidatieFoutSerializer
@@ -38,7 +38,7 @@ DEFAULT_ACTION_ERRORS = {
     + [exceptions.ParseError, exceptions.ValidationError, exceptions.NotFound],
     "partial_update": COMMON_ERRORS
     + [exceptions.ParseError, exceptions.ValidationError, exceptions.NotFound],
-    "destroy": COMMON_ERRORS + [exceptions.NotFound],
+    "destroy": COMMON_ERRORS + [exceptions.NotFound, ResourceProtected],
 }
 
 HTTP_STATUS_CODE_TITLES = {

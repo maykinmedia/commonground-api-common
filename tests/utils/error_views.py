@@ -8,6 +8,7 @@ from vng_api_common.exceptions import (
     Conflict,
     Gone,
     PreconditionFailed,
+    ResourceProtected,
     TransactionCancelled,
 )
 
@@ -52,6 +53,12 @@ class NotAcceptableView(BaseErrorView):
 
 class ConflictView(BaseErrorView):
     exception = Conflict(_("The resource was updated, please retrieve it again"))
+
+
+class ResourceProtectedView(BaseErrorView):
+    exception = ResourceProtected(
+        _("The resource is referenced by other resources and cannot be deleted.")
+    )
 
 
 class GoneView(BaseErrorView):
