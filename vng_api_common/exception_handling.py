@@ -6,6 +6,7 @@ from typing import Any, Protocol, cast
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db import OperationalError
+from django.db.models import ProtectedError, RestrictedError
 from django.http import Http404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -17,7 +18,7 @@ from rest_framework.exceptions import ErrorDetail, ReturnDict, ReturnList
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
-from .exceptions import TransactionCancelled
+from .exceptions import ResourceProtected, TransactionCancelled
 from .serializers import FoutSerializer, ValidatieFoutSerializer
 from .settings import get_setting
 from .utils import underscore_to_camel
@@ -247,6 +248,9 @@ class HandledException:
         return [error for error in get_validation_errors(self.exc.detail)]
 
 
+DEFAULT_EXCEPTION_HANDLERS: dict[type[Exception], ExceptionHandler] = {}
+
+
 def register_exception_handler(
     exc_type: type[Exception],
     handler: ExceptionHandler,
@@ -300,6 +304,8 @@ def register_exception_handler(
     -----
 
     * Handlers are matched using ``isinstance`` so subclasses are supported.
+    * Registered handlers take precedence over the built-in default handlers
+      (e.g. for ``ProtectedError`` and ``RestrictedError``).
     * Responses are still finalized into the DSO-compliant problem format.
     """
     EXCEPTION_HANDLER_REGISTRY[exc_type] = handler
@@ -340,6 +346,27 @@ def finalize_response(
     return response
 
 
+def _protected_delete(exc: Exception) -> bool:
+    return isinstance(exc, (ProtectedError, RestrictedError))
+
+
+_EXCEPTION_TRANSLATIONS: tuple[
+    tuple[Callable[[Exception], bool], type[drf_exceptions.APIException]], ...
+] = (
+    (_cancelled_transaction, TransactionCancelled),
+    (_protected_delete, ResourceProtected),
+)
+
+
+def _translate_exception(exc: Exception) -> Exception:
+    for matches, api_exc_class in _EXCEPTION_TRANSLATIONS:
+        if matches(exc):
+            translated = api_exc_class()
+            translated.__cause__ = exc  # for the logs and Sentry
+            return translated
+    return exc
+
+
 def exception_handler(exc: Exception, context: dict[str, object]) -> Response | None:
     """
     Transform 4xx and 5xx errors into DSO-compliant Problem JSON shape.
@@ -355,18 +382,21 @@ def exception_handler(exc: Exception, context: dict[str, object]) -> Response | 
             ...
         }
 
-    Supports project-level custom exception handlers via the registry.
+    Supports project-level custom exception handlers via the registry. These take
+    precedence over the built-in handling below.
 
-    A transaction PostgreSQL cancelled, to resolve a deadlock with another one, gets
-    a 503 with ``Retry-After``: nothing of it was written, so a retry most likely
-    succeeds.
+    Some non-DRF exceptions are translated into specific API errors:
+
+    * A transaction PostgreSQL cancelled, to resolve a deadlock with another one,
+      gets a 503 with ``Retry-After``: nothing of it was written, so a retry most
+      likely succeeds.
+    * A delete blocked by ``on_delete=PROTECT`` or ``on_delete=RESTRICT`` gets
+      a 409.
     """
     response = get_custom_exception_response(exc, context)
 
-    if response is None and _cancelled_transaction(exc):
-        cancelled = TransactionCancelled()
-        cancelled.__cause__ = exc  # for the logs and Sentry
-        exc = cancelled
+    if response is None:
+        exc = _translate_exception(exc)
 
     if response is None:
         response = drf_exception_handler(exc, context)
