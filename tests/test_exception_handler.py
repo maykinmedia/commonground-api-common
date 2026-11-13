@@ -1,6 +1,7 @@
 import logging  # noqa: TID251
 from unittest.mock import patch
 
+from django.db.models import ProtectedError, RestrictedError
 from django.test import TestCase, tag
 from django.utils.translation import gettext as _
 
@@ -306,6 +307,38 @@ class ExceptionHandlerTests(APITestCase):
 
         self.assertIn("type", response.data)
         self.assertIn("status", response.data)
+
+
+class DefaultExceptionHandlerTests(APITestCase):
+    factory = APIRequestFactory()
+
+    def assertProtectedResponse(self, exc, exc_class: str):
+        request = self.factory.delete("/error/url")
+
+        response = exception_handler(exc, {"request": request})
+
+        assert response is not None
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+        del response.data["instance"]
+        data = {
+            "type": f"http://testserver/ref/fouten/{exc_class}/",
+            "code": "protected",
+            "title": _("Resource is protected."),
+            "status": 409,
+            "detail": _("Resource is protected."),
+        }
+        self.assertEqual(response.data, data)
+
+    def test_protected_error_gives_409(self):
+        self.assertProtectedResponse(
+            ProtectedError("Cannot delete", set()), "ResourceProtected"
+        )
+
+    def test_restricted_error_gives_409(self):
+        self.assertProtectedResponse(
+            RestrictedError("Cannot delete", set()), "ResourceProtected"
+        )
 
 
 class ExceptionHandlerMethodsTests(TestCase):
