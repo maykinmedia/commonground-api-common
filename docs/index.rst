@@ -50,7 +50,7 @@ Indices and tables
     :alt: Build status
     :target: https://github.com/maykinmedia/commonground-api-common/actions?query=workflow%3A%22ci-build%22
 
-.. |code-quality| image:: https://github.com/VNG-Realisatie/vng-api-common/workflows/Code%20quality%20checks/badge.svg
+.. |code-quality| image:: https://github.com/maykinmedia/commonground-api-common/actions/workflows/code_quality.yml/badge.svg
      :alt: Code quality checks
      :target: https://github.com/maykinmedia/commonground-api-common/actions?query=workflow%3A%22Code+quality+checks%22
 
