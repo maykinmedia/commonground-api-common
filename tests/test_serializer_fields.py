@@ -294,7 +294,6 @@ def test_is_valid(urn_model):
     ],
 )
 def test_rejects_wrong_resource_or_identifier(urn_model, urn):
-
     def serializer_for(value):
         serializer = URNSerializer(data={"urn": value})
         # Add the object to the queryset

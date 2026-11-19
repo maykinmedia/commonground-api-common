@@ -95,8 +95,8 @@ NOTIFICATIONS_DISABLED = False
 
 vng_repo = "VNG-Realisatie/vng-api-common"
 vng_branch = "ref-responses"
-COMMON_SPEC = f"https://raw.githubusercontent.com/{vng_repo}/feature/{vng_branch}/vng_api_common/schemas/common.yaml"
 
+COMMON_SPEC = f"https://raw.githubusercontent.com/{vng_repo}/refs/heads/master/api-specificatie/DESIGN/common/common.yaml"
 TIME_LEEWAY = 0  # default in PyJWT
 
 JWT_EXPIRY = 3600

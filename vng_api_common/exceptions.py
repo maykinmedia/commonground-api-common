@@ -10,6 +10,16 @@ class Conflict(APIException):
     default_code = "conflict"
 
 
+class ResourceProtected(Conflict):
+    """
+    Database ``ProtectedError`` or ``RestrictedError``, raised when a delete is
+    blocked by ``on_delete=PROTECT`` or ``on_delete=RESTRICT``
+    """
+
+    default_detail = _("Resource is protected.")
+    default_code = "protected"
+
+
 class Gone(APIException):
     status_code = status.HTTP_410_GONE
     default_detail = _("The resource is gone")
