@@ -248,9 +248,6 @@ class HandledException:
         return [error for error in get_validation_errors(self.exc.detail)]
 
 
-DEFAULT_EXCEPTION_HANDLERS: dict[type[Exception], ExceptionHandler] = {}
-
-
 def register_exception_handler(
     exc_type: type[Exception],
     handler: ExceptionHandler,
