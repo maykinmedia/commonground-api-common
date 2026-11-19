@@ -46,13 +46,13 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. |build-status| image:: https://github.com/maykinmedia/commonground-api-common/workflows/ci-build/badge.svg
+.. |build-status| image:: https://github.com/maykinmedia/commonground-api-common/actions/workflows/ci.yml/badge.svg
     :alt: Build status
-    :target: https://github.com/maykinmedia/commonground-api-common/actions?query=workflow%3A%22ci-build%22
+    :target: https://github.com/maykinmedia/commonground-api-common/actions/workflows/ci.yml
 
 .. |code-quality| image:: https://github.com/maykinmedia/commonground-api-common/actions/workflows/code_quality.yml/badge.svg
-     :alt: Code quality checks
-     :target: https://github.com/maykinmedia/commonground-api-common/actions?query=workflow%3A%22Code+quality+checks%22
+    :alt: Code quality checks
+    :target: https://github.com/maykinmedia/commonground-api-common/actions/workflows/code_quality.yml
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/commonground-api-common/branch/master/graph/badge.svg
     :target: https://app.codecov.io/gh/maykinmedia/commonground-api-common

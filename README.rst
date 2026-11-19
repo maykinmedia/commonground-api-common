@@ -68,19 +68,19 @@ Features
     * ontvangen van webhook events
     * configureren en registreren van notificatiecomponent/webhooks
 
-.. |build-status| image:: https://github.com/maykinmedia/commonground-api-common/workflows/ci-build/badge.svg
+.. |build-status| image:: https://github.com/maykinmedia/commonground-api-common/actions/workflows/ci.yml/badge.svg
     :alt: Build status
-    :target: https://github.com/maykinmedia/commonground-api-common/actions?query=workflow%3A%22ci-build%22
+    :target: https://github.com/maykinmedia/commonground-api-common/actions/workflows/ci.yml
 
-.. |code-quality| image:: https://github.com/maykinmedia/commonground-api-common/workflows/Code%20quality%20checks/badge.svg
-     :alt: Code quality checks
-     :target: https://github.com/maykinmedia/commonground-api-common/actions?query=workflow%3A%22Code+quality+checks%22
+.. |code-quality| image:: https://github.com/maykinmedia/commonground-api-common/actions/workflows/code_quality.yml/badge.svg
+    :alt: Code quality checks
+    :target: https://github.com/maykinmedia/commonground-api-common/actions/workflows/code_quality.yml
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/commonground-api-common/branch/main/graph/badge.svg
-    :target: https://codecov.io/gh/maykinmedia/commonground-api-common
+    :target: https://app.codecov.io/gh/maykinmedia/commonground-api-common
     :alt: Coverage status
 
-.. |docs| image:: https://readthedocs.org/projects/commonground-api-common/badge/?version=latest
+.. |docs| image:: https://app.readthedocs.org/projects/commonground-api-common/badge/?version=latest
     :target: https://commonground-api-common.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
